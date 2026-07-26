@@ -1,0 +1,54 @@
+[
+  {
+    "subject": "Maths",
+    "chapters": [
+      { "name": "Sets", "topics": ["Introduction to Sets", "Types of Sets", "Subsets", "Operations on Sets"] },
+      { "name": "Relations and Functions", "topics": ["Ordered Pairs", "Cartesian Product", "Relations", "Functions"] },
+      { "name": "Trigonometric Functions", "topics": ["Angles", "Trigonometric Ratios", "Signs and Identities", "Trigonometric Equations"] },
+      { "name": "Complex Numbers and Quadratic Equations", "topics": ["Imaginary Numbers", "Algebra of Complex Numbers", "Argand Plane", "Quadratic Equations"] },
+      { "name": "Linear Inequalities", "topics": ["Inequalities in One Variable", "Graphical Solutions", "Two Variable Inequalities"] },
+      { "name": "Permutations and Combinations", "topics": ["Fundamental Principle of Counting", "Permutations", "Combinations"] },
+      { "name": "Binomial Theorem", "topics": ["Binomial Expansion", "General Term", "Middle Terms"] },
+      { "name": "Sequences and Series", "topics": ["Arithmetic Progression", "Geometric Progression", "Special Series"] },
+      { "name": "Straight Lines", "topics": ["Slope of a Line", "Forms of Equation", "Distance of a Point from a Line"] },
+      { "name": "Conic Sections", "topics": ["Circle", "Parabola", "Ellipse", "Hyperbola"] },
+      { "name": "Introduction to Three Dimensional Geometry", "topics": ["Coordinate Axes", "Distance Formula", "Section Formula"] },
+      { "name": "Limits and Derivatives", "topics": ["Intuitive Idea of Limits", "Algebra of Limits", "Derivatives"] },
+      { "name": "Statistics", "topics": ["Range", "Mean Deviation", "Variance", "Standard Deviation"] },
+      { "name": "Probability", "topics": ["Random Experiments", "Events", "Axiomatic Probability"] }
+    ]
+  },
+  {
+    "subject": "Physics",
+    "chapters": [
+      { "name": "Units and Measurements", "topics": ["Physical Quantities", "SI Units", "Significant Figures", "Dimensional Analysis"] },
+      { "name": "Motion in a Straight Line", "topics": ["Position and Path Length", "Velocity and Speed", "Acceleration", "Kinematic Equations"] },
+      { "name": "Motion in a Plane", "topics": ["Scalars and Vectors", "Projectile Motion", "Uniform Circular Motion"] },
+      { "name": "Laws of Motion", "topics": ["Inertia", "Newton's Laws", "Friction", "Circular Motion"] },
+      { "name": "Work, Energy and Power", "topics": ["Work-Energy Theorem", "Kinetic Energy", "Potential Energy", "Power"] },
+      { "name": "System of Particles and Rotational Motion", "topics": ["Centre of Mass", "Torque", "Angular Momentum", "Moment of Inertia"] },
+      { "name": "Gravitation", "topics": ["Kepler's Laws", "Universal Law", "Acceleration Due to Gravity", "Satellites"] },
+      { "name": "Mechanical Properties of Solids", "topics": ["Elastic Behaviour", "Stress and Strain", "Hooke's Law"] },
+      { "name": "Mechanical Properties of Fluids", "topics": ["Pressure", "Streamline Flow", "Bernoulli's Principle", "Viscosity"] },
+      { "name": "Thermal Properties of Matter", "topics": ["Temperature", "Thermal Expansion", "Calorimetry", "Heat Transfer"] },
+      { "name": "Thermodynamics", "topics": ["Thermal Equilibrium", "First Law", "Thermodynamic Processes", "Second Law"] },
+      { "name": "Kinetic Theory", "topics": ["Molecular Nature of Matter", "Ideal Gas Equation", "Kinetic Interpretation of Temperature"] },
+      { "name": "Oscillations", "topics": ["Periodic Motion", "Simple Harmonic Motion", "Energy in SHM", "Pendulum"] },
+      { "name": "Waves", "topics": ["Transverse and Longitudinal Waves", "Wave Equation", "Superposition", "Standing Waves"] }
+    ]
+  },
+  {
+    "subject": "Chemistry",
+    "chapters": [
+      { "name": "Some Basic Concepts of Chemistry", "topics": ["Nature of Matter", "Laws of Chemical Combination", "Mole Concept", "Stoichiometry"] },
+      { "name": "Structure of Atom", "topics": ["Subatomic Particles", "Bohr's Model", "Quantum Numbers", "Electronic Configuration"] },
+      { "name": "Classification of Elements and Periodicity", "topics": ["Modern Periodic Law", "Periodic Trends", "Valency"] },
+      { "name": "Chemical Bonding and Molecular Structure", "topics": ["Ionic Bond", "Covalent Bond", "VSEPR Theory", "Hybridisation"] },
+      { "name": "Thermodynamics", "topics": ["System and Surroundings", "Internal Energy", "Enthalpy", "Hess's Law"] },
+      { "name": "Equilibrium", "topics": ["Physical Equilibrium", "Chemical Equilibrium", "Ionic Equilibrium", "pH"] },
+      { "name": "Redox Reactions", "topics": ["Oxidation Number", "Balancing Redox Reactions", "Applications"] },
+      { "name": "Organic Chemistry: Basic Principles", "topics": ["Tetravalence of Carbon", "Nomenclature", "Isomerism", "Reaction Mechanisms"] },
+      { "name": "Hydrocarbons", "topics": ["Alkanes", "Alkenes", "Alkynes", "Aromatic Hydrocarbons"] }
+    ]
+  }
+]

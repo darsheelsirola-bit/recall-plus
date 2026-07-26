@@ -1,0 +1,31 @@
+node_modules/
+dist/
+coverage/
+.vercel/
+
+# Local environment files can contain Supabase and AI-provider secrets.
+.env
+.env.*
+!.env.example
+
+# Supabase CLI state and function-local secrets. Keep migrations and config.toml.
+.supabase/
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+supabase/.env.*
+!supabase/.env.example
+supabase/functions/.env
+supabase/functions/.env.*
+
+# Private keys and certificates must never be committed.
+*.key
+*.pem
+*.p12
+
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db

@@ -1,0 +1,80 @@
+@import "@fontsource-variable/geist";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #ffffff;
+    --foreground: #10162f;
+    --card: #ffffff;
+    --card-foreground: #10162f;
+    --popover: #ffffff;
+    --popover-foreground: #10162f;
+    --primary: #625bf6;
+    --primary-foreground: #ffffff;
+    --secondary: #eeedff;
+    --secondary-foreground: #34309f;
+    --muted: #efeee9;
+    --muted-foreground: #667085;
+    --accent: #e8f8f5;
+    --accent-foreground: #0f766e;
+    --destructive: #e5484d;
+    --border: #e5e3dd;
+    --input: #dedcd5;
+    --ring: #625bf6;
+    --radius: 0.875rem;
+    --sidebar: #10162f;
+    --sidebar-foreground: #f8fafc;
+    --chart-1: #625bf6;
+    --chart-2: #14b8a6;
+    --chart-3: #fb7185;
+    --chart-4: #f59e0b;
+  }
+
+  * { @apply box-border border-border; }
+  html { @apply scroll-smooth font-sans; }
+  body { @apply m-0 min-w-[320px] bg-background font-sans text-foreground antialiased; }
+  button, input, select, textarea { font: inherit; }
+  button:disabled { @apply cursor-not-allowed opacity-50; }
+  ::selection { @apply bg-primary text-primary-foreground; }
+  :focus-visible { @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background; }
+}
+
+@layer components {
+  .panel { @apply rounded-2xl border border-border bg-card shadow-[0_1px_2px_rgba(16,22,47,0.03)]; }
+  .nav-link { @apply flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium text-white/70 transition duration-200 hover:bg-white/10 hover:text-white; }
+  .nav-link-active { @apply bg-primary text-white shadow-[0_10px_28px_rgba(98,91,246,0.28)] hover:bg-primary hover:text-white; }
+  .icon-button { @apply grid size-11 place-items-center rounded-xl border border-border bg-card text-foreground transition hover:-translate-y-0.5 hover:border-primary/30 hover:text-primary; }
+  .btn-primary { @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_10px_24px_rgba(98,91,246,0.22)] transition hover:-translate-y-0.5 hover:bg-[#514AE7]; }
+  .btn-secondary { @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground transition hover:-translate-y-0.5 hover:border-primary/30 hover:text-primary; }
+  .btn-ghost { @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold text-primary transition hover:bg-secondary; }
+  .field-label { @apply block text-sm font-semibold text-foreground; }
+  .field { @apply mt-2 block min-h-12 w-full rounded-xl border border-input bg-card px-3.5 text-sm font-medium text-foreground shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-4 focus:ring-primary/10; }
+  textarea.field { @apply py-3; }
+  .section-title { @apply text-lg font-semibold tracking-[-0.02em] text-foreground; }
+  .section-copy { @apply mt-1 text-sm text-muted-foreground; }
+  .status-chip { @apply inline-flex min-h-6 items-center rounded-full px-2.5 text-xs font-semibold; }
+  .tab-button { @apply min-h-10 whitespace-nowrap rounded-xl px-4 text-sm font-semibold text-muted-foreground transition hover:bg-card hover:text-foreground; }
+  .tab-button-active { @apply bg-card text-primary shadow-sm; }
+  .empty-state { @apply grid place-items-center rounded-xl border border-dashed border-border bg-muted/30 px-5 text-center; }
+  .settings-row { @apply flex min-h-16 w-full items-center gap-3 rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary/25 hover:shadow-sm; }
+  .settings-row span:nth-child(2) { @apply flex flex-col; }
+  .settings-row strong { @apply text-sm font-semibold text-foreground; }
+  .settings-row small { @apply mt-0.5 text-xs text-muted-foreground; }
+  .data-table { @apply w-full min-w-[680px] border-collapse text-left text-sm text-muted-foreground; }
+  .data-table th { @apply border-b border-border px-3 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground first:pl-0 last:pr-0; }
+  .data-table td { @apply border-b border-border/80 px-3 py-3.5 first:pl-0 last:pr-0; }
+  .data-table tbody tr:last-child td { @apply border-b-0; }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-rise { animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}
