@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_catalog;
 
-select plan(30);
+select plan(32);
 
 -- Auth users are inserted inside this transaction so the real signup trigger,
 -- profile creation, timezone validation, and cascade relationships are tested.
@@ -138,6 +138,38 @@ select ok(
       and data = '{}'::jsonb
   ),
   'signup creates an empty user_app_data snapshot'
+);
+
+select set_config(
+  'request.jwt.claim.sub',
+  '00000000-0000-0000-0000-000000000101',
+  true
+);
+set local role authenticated;
+
+select ok(
+  (
+    select count(*) = 1
+      and bool_and(user_id = '00000000-0000-0000-0000-000000000101')
+    from public.user_app_data
+  ),
+  'an authenticated user can read only their own app-data snapshot'
+);
+
+update public.user_app_data
+set data = '{"crossUserWrite":true}'::jsonb
+where user_id = '00000000-0000-0000-0000-000000000102';
+
+reset role;
+
+select is(
+  (
+    select data
+    from public.user_app_data
+    where user_id = '00000000-0000-0000-0000-000000000102'
+  ),
+  '{}'::jsonb,
+  'an authenticated user cannot update another user app-data snapshot'
 );
 
 select ok(
@@ -530,6 +562,22 @@ values (
   '2026-07-26 18:29:50+00'::timestamptz
 );
 
+-- Execute the volatile commit in its own statement. Keeping the later table
+-- assertions in the same SELECT can let PostgreSQL pre-evaluate uncorrelated
+-- scalar subqueries before the commit function runs.
+create temporary table recall_midnight_commit (
+  completion jsonb not null
+) on commit drop;
+
+insert into recall_midnight_commit (completion)
+select recall_private.commit_generation_at(
+  '00000000-0000-0000-0000-000000000102',
+  'timetable',
+  '00000000-0000-0000-0000-000000000204',
+  '{"blocks":[{"id":"after-midnight"}]}'::jsonb,
+  '2026-07-26 18:30:00+00'::timestamptz
+);
+
 select ok(
   (completion ->> 'remaining')::integer = 9
   and (
@@ -553,15 +601,7 @@ select ok(
   ) = '2026-07-27',
   'a pre-midnight request is charged to the new local day when success commits after midnight'
 )
-from (
-  select recall_private.commit_generation_at(
-    '00000000-0000-0000-0000-000000000102',
-    'timetable',
-    '00000000-0000-0000-0000-000000000204',
-    '{"blocks":[{"id":"after-midnight"}]}'::jsonb,
-    '2026-07-26 18:30:00+00'::timestamptz
-  ) as completion
-) as midnight_commit;
+from recall_midnight_commit;
 
 select ok(
   has_table_privilege('authenticated', 'public.user_app_data', 'SELECT')
