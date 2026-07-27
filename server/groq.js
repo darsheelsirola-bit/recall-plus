@@ -1,9 +1,22 @@
 import { MAX_QUESTIONS, MIN_QUESTIONS, validateQuizQuestions } from '../shared/quizValidation.js'
-import { fetchGroq } from './upstreamFetch.js'
+import { AppError, ERROR_CODES } from './errors.js'
+import {
+  fetchGroq,
+  MAX_PROVIDER_ATTEMPTS,
+  PROVIDER_TOTAL_DEADLINE_MS,
+  providerHttpError,
+  providerResponseInvalid,
+  readProviderJson,
+  waitBeforeProviderRetry,
+} from './upstreamFetch.js'
+import {
+  hasOnlyKeys,
+  normalizedRequiredText,
+} from './requestValidation.js'
 
 const GROQ_CHAT_COMPLETIONS_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const DEFAULT_GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']
-const MAX_ATTEMPTS = 3
+const QUIZ_OUTPUT_TOKENS = 4_096
 
 function clampCount(value) {
   const count = Number.parseInt(value, 10)
@@ -77,7 +90,48 @@ function parseGroqContent(payload) {
   }
 }
 
-async function generateOnce({ key, model, subject, chapter, topic, count, level }) {
+function normalizeQuizQuestions(questions, count, level) {
+  if (!Array.isArray(questions) || questions.length !== count) return null
+  const normalized = questions.map((question) => {
+    if (!hasOnlyKeys(question, [
+      'id',
+      'difficulty',
+      'question',
+      'options',
+      'answer',
+      'explanation',
+    ])) return null
+    const id = normalizedRequiredText(question.id, 80)
+    const prompt = normalizedRequiredText(question.question, 1_200)
+    const answer = normalizedRequiredText(question.answer, 500)
+    const explanation = normalizedRequiredText(question.explanation, 1_500)
+    if (!id || !prompt || !answer || !explanation) return null
+    if (!Array.isArray(question.options) || question.options.length !== 4) return null
+    const options = question.options.map((option) => normalizedRequiredText(option, 500))
+    if (options.some((option) => !option)) return null
+    return {
+      id,
+      difficulty: question.difficulty,
+      question: prompt,
+      options,
+      answer,
+      explanation,
+    }
+  })
+  if (normalized.some((question) => !question)) return null
+  return hasExpectedDifficultyMix(normalized, count, level) ? normalized : null
+}
+
+async function generateOnce({
+  key,
+  model,
+  subject,
+  chapter,
+  topic,
+  count,
+  level,
+  deadlineAt,
+}) {
   const response = await fetchGroq(GROQ_CHAT_COMPLETIONS_URL, {
     method: 'POST',
     headers: {
@@ -87,6 +141,7 @@ async function generateOnce({ key, model, subject, chapter, topic, count, level 
     body: JSON.stringify({
       model,
       temperature: 0.4,
+      max_completion_tokens: QUIZ_OUTPUT_TOKENS,
       response_format: { type: 'json_object' },
       messages: [
         {
@@ -99,63 +154,72 @@ async function generateOnce({ key, model, subject, chapter, topic, count, level 
         },
       ],
     }),
-  })
+  }, { deadlineAt })
 
-  if (!response.ok) {
-    const details = await response.json().catch(() => ({}))
-    const error = new Error(details?.error?.message || 'Groq could not generate the quiz. Please try again.')
-    error.statusCode = response.status
-    throw error
-  }
+  if (!response.ok) throw providerHttpError(response)
 
-  const payload = await response.json()
+  const payload = await readProviderJson(response)
   const parsed = parseGroqContent(payload)
   const questions = Array.isArray(parsed) ? parsed : parsed?.questions
-  return hasExpectedDifficultyMix(questions, count, level) ? questions : null
+  return normalizeQuizQuestions(questions, count, level)
 }
 
 export async function requestQuiz({ subject, chapter, topic, count, level = 'mixed' }) {
   const key = process.env.GROQ_QUIZ_API_KEY
   if (!key) {
-    const error = new Error('Quiz generation is not configured. Add GROQ_QUIZ_API_KEY to your .env file.')
-    error.statusCode = 503
-    throw error
+    throw new AppError('Quiz generation is temporarily unavailable.', {
+      code: ERROR_CODES.AI_PROVIDER_UNAVAILABLE,
+      statusCode: 503,
+      details: { retryable: true },
+    })
   }
 
   const safeCount = clampCount(count)
   const safeLevel = ['mixed', 'easy', 'medium', 'hard'].includes(level) ? level : 'mixed'
   const models = modelCandidates()
+  const deadlineAt = Date.now() + PROVIDER_TOTAL_DEADLINE_MS
   let lastError
 
-  for (const model of models) {
-    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-      try {
-        const questions = await generateOnce({ key, model, subject, chapter, topic, count: safeCount, level: safeLevel })
-        if (questions) return questions
-      } catch (error) {
-        const message = String(error?.message || '')
-        const modelNotFound = error.statusCode === 404 || /model.*not found|does not exist|decommissioned/i.test(message)
-        if (modelNotFound) {
-          lastError = error
-          break
-        }
-        if (error.statusCode && error.statusCode !== 429 && error.statusCode < 500) throw error
-        lastError = error
-      }
+  for (let attempt = 0; attempt < MAX_PROVIDER_ATTEMPTS && Date.now() < deadlineAt; attempt += 1) {
+    const model = models[attempt % models.length]
+    try {
+      const questions = await generateOnce({
+        key,
+        model,
+        subject,
+        chapter,
+        topic,
+        count: safeCount,
+        level: safeLevel,
+        deadlineAt,
+      })
+      if (questions) return questions
+      lastError = providerResponseInvalid()
+    } catch (error) {
+      lastError = error
+      if ([400, 401, 403, 422].includes(error?.upstreamStatus)) throw error
+    }
+    if (attempt + 1 < MAX_PROVIDER_ATTEMPTS && lastError?.upstreamStatus !== 404) {
+      await waitBeforeProviderRetry(lastError, attempt + 1, deadlineAt)
     }
   }
 
-  const error = lastError || new Error('The generated quiz did not pass validation. Please regenerate it.')
-  if (!error.statusCode) error.statusCode = 502
-  throw error
+  throw lastError || providerResponseInvalid()
+}
+
+export function normalizeQuizRequest(body) {
+  if (!hasOnlyKeys(body, ['subject', 'chapter', 'topic', 'count', 'level', 'requestId'])) return null
+  const subject = normalizedRequiredText(body.subject, 80)
+  const chapter = normalizedRequiredText(body.chapter, 600)
+  const topic = normalizedRequiredText(body.topic, 1_000)
+  const count = body.count
+  const level = body.level ?? 'mixed'
+  if (!subject || !chapter || !topic) return null
+  if (!Number.isInteger(count) || count < MIN_QUESTIONS || count > MAX_QUESTIONS) return null
+  if (!['mixed', 'easy', 'medium', 'hard'].includes(level)) return null
+  return { subject, chapter, topic, count, level }
 }
 
 export function validateRequest(body) {
-  const textOk = ['subject', 'chapter', 'topic'].every(
-    (field) => typeof body?.[field] === 'string' && body[field].trim().length > 0 && body[field].length <= 1200,
-  )
-  const count = Number(body?.count)
-  const countOk = Number.isInteger(count) && count >= MIN_QUESTIONS && count <= MAX_QUESTIONS
-  const levelOk = ['mixed', 'easy', 'medium', 'hard'].includes(body?.level ?? 'mixed')
-  return textOk && countOk && levelOk
+  return normalizeQuizRequest(body) !== null
 }

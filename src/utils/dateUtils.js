@@ -1,7 +1,13 @@
 export function toDateOnly(date = new Date()) {
+  if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return date
+  }
   const value = new Date(date)
-  const offset = value.getTimezoneOffset()
-  return new Date(value.getTime() - offset * 60_000).toISOString().slice(0, 10)
+  if (Number.isNaN(value.getTime())) return ''
+  const year = value.getFullYear()
+  const month = String(value.getMonth() + 1).padStart(2, '0')
+  const day = String(value.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 export function getTodayDate() {

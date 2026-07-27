@@ -2,6 +2,10 @@ const APP_PREFIX = 'recall_plus_'
 const USER_PREFIX = `${APP_PREFIX}user_`
 const INTERNAL_PREFIX = `${APP_PREFIX}internal_`
 const LEGACY_OWNER_KEY = `${INTERNAL_PREFIX}legacy_owner`
+export const MAX_BACKUP_BYTES = 1024 * 1024
+const MAX_BACKUP_ENTRIES = 512
+const MAX_BACKUP_DEPTH = 12
+const MAX_BACKUP_NODES = 25_000
 
 export const DATA_CHANGE_EVENT = 'recall-plus:data-change'
 export const DATA_DIRTY_EVENT = 'recall-plus:data-dirty'
@@ -182,9 +186,29 @@ export function saveData(key, value) {
   return saveDataForUser(activeUserId, key, value)
 }
 
+export class PersistenceError extends Error {
+  constructor(message = 'Recall+ could not save your changes on this device.', options) {
+    super(message, options)
+    this.name = 'PersistenceError'
+  }
+}
+
+export function saveDataOrThrow(key, value) {
+  if (!saveData(key, value)) throw new PersistenceError()
+  return true
+}
+
+export function saveDataForUserOrThrow(userId, key, value) {
+  if (!userId || !saveDataForUser(userId, key, value)) throw new PersistenceError()
+  return true
+}
+
 export function saveDataForUser(userId, key, value) {
+  const storage = getStorage()
+  const storageKey = fullKey(key, userId)
+  const previousValue = storage.getItem(storageKey)
   try {
-    getStorage().setItem(fullKey(key, userId), JSON.stringify(value))
+    storage.setItem(storageKey, JSON.stringify(value))
     markDirty(userId)
     // Skip remounting/refetching for derived cache-only keys.
     if (
@@ -196,8 +220,66 @@ export function saveDataForUser(userId, key, value) {
     }
     return true
   } catch {
+    try {
+      if (previousValue === null) storage.removeItem(storageKey)
+      else storage.setItem(storageKey, previousValue)
+    } catch {
+      return false
+    }
     return false
   }
+}
+
+export function saveDataBatchForUserOrThrow(userId, entries) {
+  if (!userId || !Array.isArray(entries) || !entries.length) {
+    throw new PersistenceError('Recall+ could not save this group of changes.')
+  }
+  const storage = getStorage()
+  const serialized = new Map()
+  entries.forEach(([key, value]) => {
+    serialized.set(fullKey(key, userId), {
+      logicalKey: logicalKey(key),
+      value: JSON.stringify(value),
+    })
+  })
+  const previous = [...serialized.keys()].map((key) => [key, storage.getItem(key)])
+  const previousSyncState = storage.getItem(syncStateKey(userId))
+
+  try {
+    serialized.forEach((entry, key) => storage.setItem(key, entry.value))
+    markDirty(userId)
+  } catch (error) {
+    try {
+      previous.forEach(([key, value]) => {
+        if (value === null) storage.removeItem(key)
+        else storage.setItem(key, value)
+      })
+      if (previousSyncState === null) storage.removeItem(syncStateKey(userId))
+      else storage.setItem(syncStateKey(userId), previousSyncState)
+    } catch (restoreError) {
+      throw new PersistenceError(
+        'Recall+ could not save these changes and browser storage recovery was incomplete.',
+        { cause: restoreError },
+      )
+    }
+    throw new PersistenceError('Recall+ could not save these changes. Your previous data was restored.', {
+      cause: error,
+    })
+  }
+
+  if (activeUserId === userId) {
+    serialized.forEach((entry) => {
+      if (
+        entry.logicalKey !== STORAGE_KEYS.insightCache
+        && entry.logicalKey !== STORAGE_KEYS.insightQuoteState
+      ) dispatchDataChange(entry.logicalKey)
+    })
+  }
+  return true
+}
+
+export function saveDataBatchOrThrow(entries) {
+  return saveDataBatchForUserOrThrow(activeUserId, entries)
 }
 
 export function deleteData(key) {
@@ -225,18 +307,160 @@ export function exportAllData() {
   return getScopedDataSnapshot(activeUserId)
 }
 
-export function importAllData(data) {
+export function exportAllDataForUser(userId) {
+  if (!userId || activeUserId !== userId) {
+    throw new Error('Your active Recall Plus account changed. Please try again.')
+  }
+  return getScopedDataSnapshot(userId)
+}
+
+function isPlainRecord(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const prototype = Object.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
+}
+
+function validateBackupShape(value) {
+  const seen = new WeakSet()
+  const stack = [{ value, depth: 0 }]
+  let nodes = 0
+
+  while (stack.length) {
+    const current = stack.pop()
+    const item = current.value
+    nodes += 1
+    if (nodes > MAX_BACKUP_NODES || current.depth > MAX_BACKUP_DEPTH) {
+      throw new Error('This Recall Plus backup is too complex.')
+    }
+    if (item === null || ['string', 'boolean'].includes(typeof item)) continue
+    if (typeof item === 'number') {
+      if (!Number.isFinite(item)) throw new Error('This Recall Plus backup contains invalid data.')
+      continue
+    }
+    if (typeof item !== 'object' || (!Array.isArray(item) && !isPlainRecord(item))) {
+      throw new Error('This Recall Plus backup contains invalid data.')
+    }
+    if (seen.has(item)) throw new Error('This Recall Plus backup contains circular data.')
+    seen.add(item)
+    Object.values(item).forEach((child) => stack.push({
+      value: child,
+      depth: current.depth + 1,
+    }))
+  }
+}
+
+function isRecordArray(value) {
+  return Array.isArray(value) && value.every(isPlainRecord)
+}
+
+function isAllowedBackupEntry(name, value) {
+  if (name.startsWith('questions_') || name.startsWith('post_study_questions_')) {
+    return isRecordArray(value)
+  }
+  if ([
+    STORAGE_KEYS.logs,
+    STORAGE_KEYS.quizResults,
+    STORAGE_KEYS.reviews,
+    STORAGE_KEYS.studyTimetable,
+  ].includes(name)) return isRecordArray(value)
+  if (name === STORAGE_KEYS.topicStatuses) {
+    return isPlainRecord(value)
+      && Object.values(value).every((status) => typeof status === 'string')
+  }
+  if ([STORAGE_KEYS.profile, STORAGE_KEYS.insightQuoteState].includes(name)) {
+    return isPlainRecord(value)
+  }
+  if (name === STORAGE_KEYS.studyAvailability) {
+    return value === null || isPlainRecord(value)
+  }
+  if (name === STORAGE_KEYS.insightCache) {
+    if (value === null) return true
+    if (
+      !isPlainRecord(value)
+      || typeof value.date !== 'string'
+      || typeof value.fingerprint !== 'string'
+      || !isPlainRecord(value.payload)
+    ) return false
+    return value.payload.chapters === undefined || isRecordArray(value.payload.chapters)
+  }
+  return false
+}
+
+function validatedBackupEntries(data, { allowEmpty = false } = {}) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) {
     throw new Error('Invalid Recall Plus backup file.')
   }
-  const entries = Object.entries(data).filter(([key]) => isLegacyDataKey(canonicalKey(key)))
+  validateBackupShape(data)
+  const serialized = JSON.stringify(data)
+  if (new TextEncoder().encode(serialized).byteLength > MAX_BACKUP_BYTES) {
+    throw new Error('This Recall Plus backup is larger than 1 MiB.')
+  }
+  const rawEntries = Object.entries(data)
+  if ((!allowEmpty && !rawEntries.length) || rawEntries.length > MAX_BACKUP_ENTRIES) {
+    throw new Error('This Recall Plus backup has an invalid number of entries.')
+  }
+  const entries = rawEntries.map(([key, value]) => {
+    const normalized = canonicalKey(key)
+    if (!isLegacyDataKey(normalized)) throw new Error('This backup contains unsupported keys.')
+    const name = normalized.slice(APP_PREFIX.length)
+    if (!isAllowedBackupEntry(name, value)) {
+      throw new Error(`The backup entry "${name}" has an invalid format.`)
+    }
+    return [normalized, value]
+  })
   if (!entries.length) throw new Error('No Recall Plus data found in this file.')
+  return entries
+}
 
-  clearAllData()
+export function validateScopedDataSnapshot(data) {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new Error('The synced Recall Plus data has an invalid format.')
+  }
+  if (!Object.keys(data).length) return data
+  validatedBackupEntries(data, { allowEmpty: true })
+  return data
+}
+
+export function importAllDataForUser(userId, data) {
+  if (!userId || activeUserId !== userId) {
+    throw new Error('Your active Recall Plus account changed. No data was imported.')
+  }
+  const entries = validatedBackupEntries(data)
+
   const storage = getStorage()
-  entries.forEach(([key, value]) => storage.setItem(fullKey(key), JSON.stringify(value)))
-  markDirty()
-  dispatchDataChange('*')
+  const prefix = userPrefix(userId)
+  const currentEntries = storageKeys(storage)
+    .filter((key) => key.startsWith(prefix))
+    .map((key) => [key, storage.getItem(key)])
+  const serializedEntries = entries.map(([key, value]) => [fullKey(key, userId), JSON.stringify(value)])
+  const previousSyncState = storage.getItem(syncStateKey(userId))
+
+  try {
+    if (activeUserId !== userId) {
+      throw new Error('Your active Recall Plus account changed. No data was imported.')
+    }
+    currentEntries.forEach(([key]) => storage.removeItem(key))
+    serializedEntries.forEach(([key, value]) => storage.setItem(key, value))
+    markDirty(userId)
+  } catch {
+    try {
+      serializedEntries.forEach(([key]) => storage.removeItem(key))
+      currentEntries.forEach(([key, value]) => {
+        if (value !== null) storage.setItem(key, value)
+      })
+      if (previousSyncState === null) storage.removeItem(syncStateKey(userId))
+      else storage.setItem(syncStateKey(userId), previousSyncState)
+    } catch {
+      throw new PersistenceError('Recall+ could not import this backup and browser storage recovery was incomplete.')
+    }
+    throw new PersistenceError('Recall+ could not import this backup. Your previous local data was restored.')
+  }
+
+  if (activeUserId === userId) dispatchDataChange('*')
+}
+
+export function importAllData(data) {
+  return importAllDataForUser(activeUserId, data)
 }
 
 export function getScopedDataSnapshot(userId = activeUserId) {
@@ -256,19 +480,39 @@ export function getScopedDataSnapshot(userId = activeUserId) {
  * This intentionally does not mark the data dirty or echo it back to Supabase.
  */
 export function replaceScopedDataSnapshot(userId, snapshot) {
-  if (!userId || !snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) return
+  if (!userId) throw new Error('A user is required to restore synced Recall Plus data.')
+  validateScopedDataSnapshot(snapshot)
   const storage = getStorage()
   const prefix = userPrefix(userId)
-  storageKeys(storage)
+  const previousEntries = storageKeys(storage)
     .filter((key) => key.startsWith(prefix))
-    .forEach((key) => storage.removeItem(key))
-
-  Object.entries(snapshot).forEach(([key, value]) => {
+    .map((key) => [key, storage.getItem(key)])
+  const nextEntries = Object.entries(snapshot).flatMap(([key, value]) => {
     const normalized = canonicalKey(key)
-    if (!isLegacyDataKey(normalized)) return
-    storage.setItem(fullKey(normalized, userId), JSON.stringify(value))
+    return isLegacyDataKey(normalized)
+      ? [[fullKey(normalized, userId), JSON.stringify(value)]]
+      : []
   })
 
+  try {
+    previousEntries.forEach(([key]) => storage.removeItem(key))
+    nextEntries.forEach(([key, value]) => storage.setItem(key, value))
+  } catch (error) {
+    try {
+      nextEntries.forEach(([key]) => storage.removeItem(key))
+      previousEntries.forEach(([key, value]) => {
+        if (value !== null) storage.setItem(key, value)
+      })
+    } catch (restoreError) {
+      throw new PersistenceError(
+        'Recall+ could not restore synced data and browser storage recovery was incomplete.',
+        { cause: restoreError },
+      )
+    }
+    throw new PersistenceError('Recall+ could not restore synced data on this device.', {
+      cause: error,
+    })
+  }
   if (activeUserId === userId) dispatchDataChange('*')
 }
 
@@ -278,14 +522,29 @@ export function getDataSyncState(userId) {
     dirty: Boolean(stored?.dirty),
     revision: Number.isInteger(stored?.revision) ? stored.revision : 0,
     remoteUpdatedAt: typeof stored?.remoteUpdatedAt === 'string' ? stored.remoteUpdatedAt : '',
+    remoteVersion: Number.isInteger(stored?.remoteVersion) && stored.remoteVersion >= 0
+      ? stored.remoteVersion
+      : 0,
   }
 }
 
-export function markDataSynced(userId, revision, remoteUpdatedAt = '') {
+export function markDataSynced(userId, revision, remoteUpdatedAt = '', remoteVersion = 0) {
   const current = getDataSyncState(userId)
   getStorage().setItem(syncStateKey(userId), JSON.stringify({
     dirty: current.revision !== revision,
     revision: current.revision,
     remoteUpdatedAt: remoteUpdatedAt || current.remoteUpdatedAt,
+    remoteVersion: Number.isInteger(remoteVersion) && remoteVersion >= 0
+      ? remoteVersion
+      : current.remoteVersion,
+  }))
+}
+
+export function setDataSyncRemoteBaseline(userId, remoteUpdatedAt = '', remoteVersion = 0) {
+  const current = getDataSyncState(userId)
+  getStorage().setItem(syncStateKey(userId), JSON.stringify({
+    ...current,
+    remoteUpdatedAt,
+    remoteVersion,
   }))
 }

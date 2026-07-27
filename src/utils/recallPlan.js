@@ -1,4 +1,5 @@
 import { isDueToday, isOverdue } from './dateUtils.js'
+import { getLogTopics } from './logUtils.js'
 
 // How long to revise a topic, from how long it was originally studied (logs)
 // scaled by the last small-quiz score: a weaker score means a longer revise.
@@ -15,7 +16,11 @@ export function getReviseMinutes(studyMinutes, percentage) {
 
 // Minutes from the most recent matching study log for a topic (logs are newest-first).
 export function getTopicStudyMinutes(logs, subject, chapter, topic) {
-  const match = logs.find((log) => log.subject === subject && log.chapter === chapter && log.topic === topic)
+  const match = logs.find((log) => (
+    log.subject === subject
+    && log.chapter === chapter
+    && getLogTopics(log).includes(topic)
+  ))
   return match ? Number(match.timeSpent) || 0 : 0
 }
 
@@ -38,7 +43,10 @@ export function buildRecallQueue(reviews, logs) {
 // Topics the student hasn't logged or scheduled yet — suggested when nothing is due.
 // Round-robins across subjects so the suggestions stay varied.
 export function suggestNewTopics(allTopics, reviews, logs, limit = 6) {
-  const seen = new Set([...reviews, ...logs].map((item) => `${item.subject}|${item.chapter}|${item.topic}`))
+  const seen = new Set([
+    ...reviews.map((item) => `${item.subject}|${item.chapter}|${item.topic}`),
+    ...logs.flatMap((log) => getLogTopics(log).map((topic) => `${log.subject}|${log.chapter}|${topic}`)),
+  ])
   const fresh = allTopics.filter((item) => !seen.has(`${item.subject}|${item.chapter}|${item.topic}`))
 
   const bySubject = new Map()

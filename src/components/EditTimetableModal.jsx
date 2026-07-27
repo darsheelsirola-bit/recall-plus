@@ -1,9 +1,10 @@
-import { GripVertical, Loader2, Sparkles, Trash2, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Loader2, Sparkles, Trash2, X } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import GenerationLimitStatus from './GenerationLimitStatus'
 import { SUBJECT_COLORS } from '../constants/subjects'
 import { useGenerationUsage } from '../contexts/GenerationUsageContext'
+import { useDialogFocus } from '../hooks/useDialogFocus'
 import { generateOptimalTimetable } from '../services/timetableService'
 import { GENERATION_LIMIT_MESSAGE } from '../types/generation'
 import { buildFallbackTimetable, normalizeTimetableBlock } from '../utils/studyTimetable'
@@ -30,7 +31,8 @@ function DayPicker({ value = [], onChange, single = false }) {
           <button
             key={label}
             type="button"
-            className={`rounded-md border px-2 py-1 text-xs ${value === day ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-background text-muted-foreground'}`}
+            aria-pressed={value === day}
+            className={`min-h-11 min-w-11 rounded-md border px-3 py-2 text-xs ${value === day ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-background text-muted-foreground'}`}
             onClick={() => onChange(day)}
           >
             {label}
@@ -48,7 +50,8 @@ function DayPicker({ value = [], onChange, single = false }) {
           <button
             key={label}
             type="button"
-            className={`rounded-md border px-2 py-1 text-xs ${selected ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-background text-muted-foreground'}`}
+            aria-pressed={selected}
+            className={`min-h-11 min-w-11 rounded-md border px-3 py-2 text-xs ${selected ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-background text-muted-foreground'}`}
             onClick={() => {
               if (selected) onChange(value.filter((item) => item !== day))
               else onChange([...value, day].sort((a, b) => a - b))
@@ -79,11 +82,11 @@ export default function EditTimetableModal({ open, blocks = [], initialProfile, 
   const [profile, setProfile] = useState(() => ({ ...DEFAULT_PROFILE, ...initialProfile }))
   const [draftBlocks, setDraftBlocks] = useState(() => blocks.filter((block) => !block.techniqueId).map((block) => normalizeTimetableBlock(block)))
   const [expandedSubjects, setExpandedSubjects] = useState(() => Object.fromEntries(SUBJECTS.map((subject) => [subject, true])))
-  const [draggingIndex, setDraggingIndex] = useState(null)
   const [view, setView] = useState('main')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const generationRef = useRef(false)
+  const dialogRef = useDialogFocus(open, onClose)
   const timetableUsage = useGenerationUsage('timetable')
   const generationBlocked = timetableUsage.loading || timetableUsage.inProgress || timetableUsage.exhausted || Boolean(timetableUsage.error)
 
@@ -216,8 +219,8 @@ export default function EditTimetableModal({ open, blocks = [], initialProfile, 
   const sportsSession = profile.sports?.sessions?.[0] || { days: [], startTime: '18:00', endTime: '19:00' }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-hidden bg-ink/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Edit timetable">
-      <div className="my-2 w-full max-w-4xl max-h-[94vh] overflow-y-auto rounded-2xl bg-card p-6 shadow-lift">
+    <div ref={dialogRef} tabIndex="-1" className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/45 p-4 backdrop-blur-sm outline-none" role="dialog" aria-modal="true" aria-label="Edit timetable">
+      <div className="my-2 max-h-[calc(100dvh-2rem)] w-full max-w-4xl overflow-y-auto rounded-2xl bg-card p-6 shadow-lift">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-primary">Edit timetable</p>
@@ -227,7 +230,7 @@ export default function EditTimetableModal({ open, blocks = [], initialProfile, 
           {view !== 'main' ? (
             <Button type="button" variant="outline" size="sm" onClick={() => setView('main')}>Back</Button>
           ) : null}
-          <Button type="button" size="icon-sm" variant="ghost" onClick={onClose} aria-label="Close"><X /></Button>
+          <Button type="button" data-dialog-autofocus size="icon-sm" variant="ghost" onClick={onClose} aria-label="Close"><X /></Button>
         </div>
         </div>
 
@@ -293,14 +296,14 @@ export default function EditTimetableModal({ open, blocks = [], initialProfile, 
               return (
                 <section key={subject} className="rounded-xl border p-3" style={{ borderColor: `${color}66`, backgroundColor: `${color}10` }}>
                   <div className="flex items-center justify-between gap-3">
-                    <button type="button" className="text-left" onClick={() => toggleSubject(subject)}>
+                    <button type="button" className="min-h-11 text-left" onClick={() => toggleSubject(subject)}>
                       <p className="text-sm font-semibold" style={{ color }}>{subject}</p>
                       <p className="text-xs text-muted-foreground">{slots.length} slot{slots.length === 1 ? '' : 's'} this week</p>
                     </button>
                     <div className="flex items-end gap-6">
                       <label className="flex flex-col items-center gap-2 text-xs font-medium text-muted-foreground">
                         <span className="text-center">Frequency/week</span>
-                        <input className="field h-8 w-20 !px-2 text-sm" type="number" min="0" max="14" value={slots.length} onChange={(event) => setSubjectFrequency(subject, event.target.value)} />
+                        <input className="field h-11 w-20 !px-2 text-sm" type="number" min="0" max="14" value={slots.length} onChange={(event) => setSubjectFrequency(subject, event.target.value)} />
                       </label>
                       <div className="flex flex-col items-center gap-2">
                         <span className="text-center text-xs font-medium text-muted-foreground">Slots</span>
@@ -310,21 +313,20 @@ export default function EditTimetableModal({ open, blocks = [], initialProfile, 
                   </div>
                   {expanded ? (
                     <div className="mt-3 space-y-2">
-                      {slots.length ? slots.map(({ block, index }) => (
+                      {slots.length ? slots.map(({ block, index }, slotPosition) => (
                         <div
                           key={`${subject}-${index}`}
-                          draggable
-                          onDragStart={() => setDraggingIndex(index)}
-                          onDragOver={(event) => event.preventDefault()}
-                          onDrop={() => { if (draggingIndex != null) moveBlock(draggingIndex, index); setDraggingIndex(null) }}
                           className="rounded-lg border border-border bg-background p-2"
                         >
-                          <div className="grid gap-2 sm:grid-cols-[24px_1fr_92px_108px_92px] sm:items-center">
-                            <button type="button" className="grid h-6 w-6 place-items-center rounded border border-border text-muted-foreground" title="Move slot"><GripVertical className="size-3.5" /></button>
-                            <input className="field h-8 text-sm" value={sanitizeStudyLabel(block.label, subject)} onChange={(event) => updateBlock(index, { label: event.target.value })} />
-                            <select className="field h-8 text-sm" value={block.weekday} onChange={(event) => updateBlock(index, { weekday: Number(event.target.value) })}>{DAY_LABELS.map((label, day) => <option key={label} value={day}>{label}</option>)}</select>
-                            <input className="field h-8 text-sm" type="time" value={block.startTime} onChange={(event) => updateBlock(index, { startTime: event.target.value })} />
-                            <input className="field h-8 text-sm" type="number" min="30" max="180" step="5" value={block.durationMinutes} onChange={(event) => updateBlock(index, { durationMinutes: event.target.value })} />
+                          <div className="grid gap-2 sm:grid-cols-[96px_1fr_92px_108px_92px] sm:items-center">
+                            <div className="flex gap-2" aria-label={`Reorder ${subject} slot`}>
+                              <Button type="button" size="icon-sm" variant="outline" aria-label={`Move ${subject} slot up`} disabled={slotPosition === 0} onClick={() => moveBlock(index, slots[slotPosition - 1].index)}><ChevronUp /></Button>
+                              <Button type="button" size="icon-sm" variant="outline" aria-label={`Move ${subject} slot down`} disabled={slotPosition === slots.length - 1} onClick={() => moveBlock(index, slots[slotPosition + 1].index)}><ChevronDown /></Button>
+                            </div>
+                            <input aria-label={`${subject} slot label`} className="field h-11 text-sm" value={sanitizeStudyLabel(block.label, subject)} onChange={(event) => updateBlock(index, { label: event.target.value })} />
+                            <select aria-label={`${subject} slot day`} className="field h-11 text-sm" value={block.weekday} onChange={(event) => updateBlock(index, { weekday: Number(event.target.value) })}>{DAY_LABELS.map((label, day) => <option key={label} value={day}>{label}</option>)}</select>
+                            <input aria-label={`${subject} slot start time`} className="field h-11 text-sm" type="time" value={block.startTime} onChange={(event) => updateBlock(index, { startTime: event.target.value })} />
+                            <input aria-label={`${subject} slot duration in minutes`} className="field h-11 text-sm" type="number" min="30" max="180" step="5" value={block.durationMinutes} onChange={(event) => updateBlock(index, { durationMinutes: event.target.value })} />
                           </div>
                         </div>
                       )) : <p className="rounded-lg border border-dashed border-border bg-background p-3 text-xs text-muted-foreground">No slots for {subject}. Increase frequency to add new study slots.</p>}

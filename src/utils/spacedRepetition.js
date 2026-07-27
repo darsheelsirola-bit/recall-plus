@@ -1,5 +1,5 @@
 import { addDays, getTodayDate } from './dateUtils.js'
-import { getData, saveData, STORAGE_KEYS } from './storage.js'
+import { getData, saveDataOrThrow, STORAGE_KEYS } from './storage.js'
 
 const REVIEW_GAPS = [1, 3, 7, 14, 30]
 
@@ -15,9 +15,21 @@ export function getNextReviewDate(reviewCount = 0, percentage = null) {
 }
 
 export function createOrUpdateReview(subject, chapter, topic, percentage = null) {
-  const reviews = getData(STORAGE_KEYS.reviews, [])
-  const index = reviews.findIndex((item) => item.subject === subject && item.chapter === chapter && item.topic === topic)
-  const current = index >= 0 ? reviews[index] : null
+  const update = createOrUpdateReviewData(
+    getData(STORAGE_KEYS.reviews, []),
+    subject,
+    chapter,
+    topic,
+    percentage,
+  )
+  saveDataOrThrow(STORAGE_KEYS.reviews, update.reviews)
+  return update.review
+}
+
+export function createOrUpdateReviewData(reviews, subject, chapter, topic, percentage = null) {
+  const nextReviews = Array.isArray(reviews) ? reviews.map((review) => ({ ...review })) : []
+  const index = nextReviews.findIndex((item) => item.subject === subject && item.chapter === chapter && item.topic === topic)
+  const current = index >= 0 ? nextReviews[index] : null
   const nextCount = percentage === null ? (current?.reviewCount || 0) : (current?.reviewCount || 0) + 1
   const review = {
     id: current?.id || `${Date.now()}_${Math.random().toString(36).slice(2)}`,
@@ -31,29 +43,39 @@ export function createOrUpdateReview(subject, chapter, topic, percentage = null)
     reviewCount: nextCount,
     completed: false,
   }
-  if (index >= 0) reviews[index] = review
-  else reviews.unshift(review)
-  saveData(STORAGE_KEYS.reviews, reviews)
-  return review
+  if (index >= 0) nextReviews[index] = review
+  else nextReviews.unshift(review)
+  return { review, reviews: nextReviews }
 }
 
 export function scheduleFirstReview(subject, chapter, topic, confidence = 'Medium') {
-  const reviews = getData(STORAGE_KEYS.reviews, [])
-  const index = reviews.findIndex((item) => item.subject === subject && item.chapter === chapter && item.topic === topic)
+  const update = scheduleFirstReviewData(
+    getData(STORAGE_KEYS.reviews, []),
+    subject,
+    chapter,
+    topic,
+    confidence,
+  )
+  saveDataOrThrow(STORAGE_KEYS.reviews, update.reviews)
+  return update.review
+}
+
+export function scheduleFirstReviewData(reviews, subject, chapter, topic, confidence = 'Medium') {
+  const nextReviews = Array.isArray(reviews) ? reviews.map((review) => ({ ...review })) : []
+  const index = nextReviews.findIndex((item) => item.subject === subject && item.chapter === chapter && item.topic === topic)
   const review = {
-    id: index >= 0 ? reviews[index].id : `${Date.now()}_${Math.random().toString(36).slice(2)}`,
+    id: index >= 0 ? nextReviews[index].id : `${Date.now()}_${Math.random().toString(36).slice(2)}`,
     subject,
     chapter,
     topic,
     lastStudiedDate: getTodayDate(),
     nextReviewDate: getNextReviewDate(0, null),
-    lastQuizScore: index >= 0 ? reviews[index].lastQuizScore : null,
+    lastQuizScore: index >= 0 ? nextReviews[index].lastQuizScore : null,
     confidence,
-    reviewCount: index >= 0 ? reviews[index].reviewCount : 0,
+    reviewCount: index >= 0 ? nextReviews[index].reviewCount : 0,
     completed: false,
   }
-  if (index >= 0) reviews[index] = review
-  else reviews.unshift(review)
-  saveData(STORAGE_KEYS.reviews, reviews)
-  return review
+  if (index >= 0) nextReviews[index] = review
+  else nextReviews.unshift(review)
+  return { review, reviews: nextReviews }
 }

@@ -1,6 +1,7 @@
 import syllabus from '../data/syllabus.json' with { type: 'json' }
 import studySources from '../data/studySources.json' with { type: 'json' }
 import { getLogTopics } from './logUtils.js'
+import { resultTimestamp } from './resultUtils.js'
 
 const DEFAULT_THRESHOLD = 50
 const MAX_WEAK_TOPICS = 5
@@ -22,6 +23,7 @@ function expandResultTopics(result) {
       topic: String(topic).trim(),
       percentage: result.percentage,
       date: result.date || '',
+      completedAt: result.completedAt || '',
       type: result.type,
       resultId: result.id,
       questionReview: result.questionReview || [],
@@ -38,6 +40,7 @@ function expandResultTopics(result) {
     topic,
     percentage: result.percentage,
     date: result.date || '',
+    completedAt: result.completedAt || '',
     type: result.type,
     resultId: result.id,
     questionReview: result.questionReview || [],
@@ -68,20 +71,26 @@ function updateScore(map, entry, field) {
   if (!Number.isFinite(score)) return
 
   if (field === 'recall') {
-    if (current.lastRecallDate === '' || entry.date >= current.lastRecallDate) {
+    if (current.lastRecallDate === '' || resultTimestamp(entry) > (current.lastRecallTimestamp || 0)) {
       current.recallScore = score
       current.lastRecallDate = entry.date
+      current.lastRecallTimestamp = resultTimestamp(entry)
     }
   } else if (field === 'practice') {
-    if (current.lastPracticeDate === '' || entry.date >= current.lastPracticeDate) {
+    if (current.lastPracticeDate === '' || resultTimestamp(entry) > (current.lastPracticeTimestamp || 0)) {
       current.practiceScore = score
       current.lastPracticeDate = entry.date
+      current.lastPracticeTimestamp = resultTimestamp(entry)
       current.latestPracticeResultId = entry.resultId
-      current.missedQuestionCount = (entry.questionReview || []).filter((item) => !item.correct).length
+      const questionReview = Array.isArray(entry.questionReview) ? entry.questionReview : []
+      current.missedQuestionCount = questionReview.filter((item) => !item.correct).length
     }
   }
 
-  if (entry.date >= current.lastAttemptDate) current.lastAttemptDate = entry.date
+  if (resultTimestamp(entry) > (current.lastAttemptTimestamp || 0)) {
+    current.lastAttemptDate = entry.date
+    current.lastAttemptTimestamp = resultTimestamp(entry)
+  }
   map.set(key, current)
 }
 
@@ -157,7 +166,8 @@ function collectMissedQuestions(results, subject, chapter) {
     .filter((result) => result.type === 'practice' && result.subject === subject && result.chapter === chapter)
     .sort((a, b) => `${b.date || ''}${b.id || ''}`.localeCompare(`${a.date || ''}${a.id || ''}`))
     .forEach((result) => {
-      ;(result.questionReview || []).filter((item) => !item.correct).forEach((item) => {
+      const questionReview = Array.isArray(result.questionReview) ? result.questionReview : []
+      questionReview.filter((item) => !item.correct).forEach((item) => {
         if (missed.length >= 5) return
         missed.push({
           question: item.question,

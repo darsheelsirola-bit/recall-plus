@@ -8,11 +8,17 @@ import { SUBJECT_COLORS, UNKNOWN_SUBJECT_COLOR } from '../constants/subjects'
 import { useGenerationUsage } from '../contexts/GenerationUsageContext'
 import syllabus from '../data/syllabus.json'
 import { useAppData } from '../hooks/useAppData'
-import { CALENDAR_SUBJECTS, createRecallItem, normalizeRecallItem, spreadRecallTimes } from '../utils/recallCalendar'
+import { useDialogFocus } from '../hooks/useDialogFocus'
+import { CALENDAR_SUBJECTS, countOverdueRecalls, createRecallItem, normalizeRecallItem, spreadRecallTimes } from '../utils/recallCalendar'
 import { addDays, formatDate, getTodayDate, toDateOnly } from '../utils/dateUtils'
 import { formatStudyMinutes } from '../utils/logUtils'
 import { buildFallbackTimetable, getBlocksForDate, mergeTimetableBlocks, normalizeTimetableBlock } from '../utils/studyTimetable'
-import { getData, saveData, STORAGE_KEYS } from '../utils/storage'
+import {
+  getData,
+  saveDataBatchOrThrow,
+  saveDataOrThrow,
+  STORAGE_KEYS,
+} from '../utils/storage'
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const FILTERS = ['All', ...CALENDAR_SUBJECTS]
@@ -55,7 +61,7 @@ function RecallEvent({ item, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-1.5 rounded px-1.5 py-1 text-left text-[11px] transition hover:brightness-95"
+      className="flex min-h-11 w-full items-center gap-1.5 rounded px-1.5 py-1 text-left text-[11px] transition hover:brightness-95"
       style={{ backgroundColor: `${color}16`, color }}
       title={`${item.dueTime} · ${item.topic}`}
     >
@@ -185,6 +191,7 @@ export default function RecallCalendar() {
   const [selectedDate, setSelectedDate] = useState(null)
   const [filter, setFilter] = useState('All')
   const [showManual, setShowManual] = useState(false)
+  const manualDialogRef = useDialogFocus(showManual, () => setShowManual(false))
   const [editingId, setEditingId] = useState(null)
   const [scheduleError, setScheduleError] = useState('')
   const [showWizard, setShowWizard] = useState(false)
@@ -225,8 +232,7 @@ export default function RecallCalendar() {
   const firstSelectedTime = [...selectedReviews.map((item) => item.dueTime), ...selectedTimetable.map((item) => item.startTime)].sort()[0] || ''
   const selectedLogs = logs.filter((log) => log.date === selectedDate && (filter === 'All' || log.subject === filter))
 
-  const overdueDate = selectedDate || today
-  const overdueCount = filtered.filter((item) => !item.completed && item.nextReviewDate === overdueDate && item.nextReviewDate < today).length
+  const overdueCount = countOverdueRecalls(filtered, today, selectedDate)
   const monthKey = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`
   const monthCount = filtered.filter((item) => !item.completed && item.nextReviewDate.startsWith(monthKey)).length
 
@@ -251,11 +257,26 @@ export default function RecallCalendar() {
   }, [selectedDate, filter, firstSelectedTime, today])
 
   function persistReviews(next) {
-    saveData(STORAGE_KEYS.reviews, next)
+    try {
+      saveDataOrThrow(STORAGE_KEYS.reviews, next)
+      return true
+    } catch (persistenceError) {
+      setScheduleError(persistenceError.message)
+      return false
+    }
   }
 
-  function persistTimetable(next) {
-    saveData(STORAGE_KEYS.studyTimetable, next)
+  function persistTimetableAndAvailability(profile, next) {
+    try {
+      saveDataBatchOrThrow([
+        [STORAGE_KEYS.studyAvailability, profile],
+        [STORAGE_KEYS.studyTimetable, next],
+      ])
+      return true
+    } catch (persistenceError) {
+      setScheduleError(persistenceError.message)
+      return false
+    }
   }
 
   function hasTimeConflict(candidate, ignoredId = null) {
@@ -312,13 +333,14 @@ export default function RecallCalendar() {
 
   function update(id, fields) {
     const current = reviews.find((item) => item.id === id)
+    if (!current) return false
     const candidate = normalizeRecallItem({ ...current, ...fields, updatedAt: new Date().toISOString() })
     if (hasTimeConflict(candidate, id)) {
       setScheduleError('That time overlaps another revision. Choose a different time or duration.')
-      return
+      return false
     }
     setScheduleError('')
-    persistReviews(reviews.map((item) => (item.id === id ? candidate : item)))
+    return persistReviews(reviews.map((item) => (item.id === id ? candidate : item)))
   }
 
   function remove(id) {
@@ -326,7 +348,17 @@ export default function RecallCalendar() {
   }
 
   function complete(id) {
-    update(id, { completed: true, status: 'completed', completedAt: new Date().toISOString() })
+    const current = reviews.find((item) => item.id === id)
+    if (!current) return
+    const completed = normalizeRecallItem({
+      ...current,
+      completed: true,
+      status: 'completed',
+      completedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+    setScheduleError('')
+    persistReviews(reviews.map((item) => (item.id === id ? completed : item)))
   }
 
   function movePeriod(delta) {
@@ -336,11 +368,10 @@ export default function RecallCalendar() {
       setCursor(new Date(`${nextDate}T12:00:00`))
       return
     }
-    const minMonth = new Date(`${today.slice(0, 7)}-01T12:00:00`)
-    const maxMonth = new Date(minMonth.getFullYear() + 1, minMonth.getMonth(), 1, 12)
+    const todayMonth = new Date(`${today.slice(0, 7)}-01T12:00:00`)
+    const maxMonth = new Date(todayMonth.getFullYear() + 1, todayMonth.getMonth(), 1, 12)
     setCursor((current) => {
       const next = new Date(current.getFullYear(), current.getMonth() + delta, 1, 12)
-      if (next < minMonth) return minMonth
       if (next > maxMonth) return maxMonth
       return next
     })
@@ -384,44 +415,61 @@ export default function RecallCalendar() {
       return
     }
     setScheduleError('')
-    persistReviews([item, ...reviews])
+    if (!persistReviews([item, ...reviews])) return
     setSelectedDate(manual.dueDate)
     setShowManual(false)
   }
 
   function applyOptimalPlan(profile, blocks, meta = {}) {
-    saveData(STORAGE_KEYS.studyAvailability, profile)
     const preservedBlocks = timetable.filter((item) => item.source !== 'ai')
     const incomingBlocks = blocks.map((item) => normalizeTimetableBlock({ ...item, source: 'ai' }))
     const aiBlocks = resolveTimetableConflicts(incomingBlocks, { profile, reviews, preservedBlocks })
     const hasConflict = hasTimetableConflict([...preservedBlocks, ...aiBlocks])
     if (hasConflict) {
       const fallbackBlocks = resolveTimetableConflicts(buildFallbackTimetable(profile).map((item) => normalizeTimetableBlock({ ...item, source: 'ai' })), { profile, reviews, preservedBlocks })
-      persistTimetable(mergeTimetableBlocks(timetable, fallbackBlocks, 'replace-ai'))
+      if (!persistTimetableAndAvailability(
+        profile,
+        mergeTimetableBlocks(timetable, fallbackBlocks, 'replace-ai'),
+      )) {
+        return 'Recall+ could not save the adjusted timetable on this device.'
+      }
       setNotice('Some generated slots overlapped, so Recall Plus adjusted them automatically before saving.')
       setShowWizard(false)
       return null
     }
     const merged = mergeTimetableBlocks(timetable, aiBlocks, 'replace-ai')
-    persistTimetable(merged)
+    if (!persistTimetableAndAvailability(profile, merged)) {
+      return 'Recall+ could not save this timetable on this device.'
+    }
     setNotice(meta.summary || 'Optimal study timetable applied to your calendar.')
     setShowWizard(false)
     return null
   }
 
   function saveEditedTimetable(profile, blocks) {
-    saveData(STORAGE_KEYS.studyAvailability, profile)
     const normalized = blocks.map((item) => normalizeTimetableBlock({ ...item, source: item.source || 'manual' }))
     if (hasTimetableConflict(normalized)) return 'Timetable has overlapping slots with recalls or other study blocks. Adjust times and try again.'
-    persistTimetable(mergeTimetableBlocks(timetable, normalized, 'replace-all'))
+    if (!persistTimetableAndAvailability(
+      profile,
+      mergeTimetableBlocks(timetable, normalized, 'replace-all'),
+    )) {
+      return 'Recall+ could not save this timetable on this device.'
+    }
     setNotice('Timetable updated.')
     return null
   }
 
   function deleteTimetable() {
     if (!window.confirm('Delete the saved timetable blocks?')) return
-    persistTimetable([])
-    saveData(STORAGE_KEYS.studyAvailability, null)
+    try {
+      saveDataBatchOrThrow([
+        [STORAGE_KEYS.studyTimetable, []],
+        [STORAGE_KEYS.studyAvailability, null],
+      ])
+    } catch (persistenceError) {
+      setScheduleError(persistenceError.message)
+      return
+    }
     setNotice('Timetable deleted. You can generate a new timetable anytime.')
     setShowTimetableEditor(false)
     setShowWizard(false)
@@ -436,11 +484,11 @@ export default function RecallCalendar() {
     || Boolean(timetableUsage.error)
 
   return (
-    <div className="-mt-4 flex h-[calc(100dvh-6rem)] flex-col overflow-hidden lg:-mt-5 lg:h-[calc(100dvh-4rem)]">
-      <header className="mb-3 flex shrink-0 items-center justify-between gap-4">
+    <div className="-mt-4 flex h-[calc(100dvh-9.5rem)] min-h-[36rem] flex-col overflow-hidden md:h-[calc(100dvh-7rem)] lg:-mt-5 lg:h-[calc(100dvh-4rem)]">
+      <header className="mb-3 flex shrink-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <h1 className="text-[2rem] font-semibold leading-tight tracking-[-0.04em]">Recall Calendar</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start">
+          <div className="min-w-0">
             <Button
               variant="outline"
               disabled={!hasTimetable && timetableGenerationBlocked}
@@ -450,27 +498,27 @@ export default function RecallCalendar() {
             </Button>
             <GenerationLimitStatus feature="timetable" className="mt-1 max-w-72" />
           </div>
-          <Button onClick={() => openManualForDate()}><Plus data-icon="inline-start" /> New revision</Button>
+          <Button className="w-full sm:w-auto" onClick={() => openManualForDate()}><Plus data-icon="inline-start" /> New revision</Button>
         </div>
       </header>
 
       {notice ? <p role="status" className="mb-2 shrink-0 rounded-lg border border-border bg-secondary/35 px-3 py-2 text-sm">{notice}</p> : null}
 
       <div className="mb-2 flex shrink-0 flex-col gap-2 rounded-xl border border-border bg-card p-2 shadow-[0_1px_2px_rgba(15,23,42,.04)] xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex items-center gap-1.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
           <Button size="icon-sm" variant="ghost" aria-label={selectedDate ? 'Previous week' : 'Previous month'} onClick={() => movePeriod(-1)}><ChevronLeft /></Button>
           <Button size="icon-sm" variant="ghost" aria-label={selectedDate ? 'Next week' : 'Next month'} onClick={() => movePeriod(1)}><ChevronRight /></Button>
           <Button size="sm" variant="outline" onClick={goToday}>Today</Button>
           <span className="mx-2 h-6 w-px bg-border" />
-          <h2 className="text-lg font-semibold">{monthTitle(new Date(`${visibleMonthDate}T12:00:00`))}</h2>
+          <h2 className="min-w-0 text-base font-semibold sm:text-lg">{monthTitle(new Date(`${visibleMonthDate}T12:00:00`))}</h2>
         </div>
-        <div className="flex w-fit gap-1 rounded-lg bg-secondary/60 p-1">
+        <div className="flex max-w-full gap-1 overflow-x-auto rounded-lg bg-secondary/60 p-1">
           {FILTERS.map((subject) => (
             <button
               type="button"
               key={subject}
               onClick={() => setFilter(subject)}
-              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${filter === subject ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:bg-card/60'}`}
+              className={`min-h-11 min-w-11 shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${filter === subject ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:bg-card/60'}`}
             >
               {subject}
             </button>
@@ -496,25 +544,21 @@ export default function RecallCalendar() {
                     const studied = logs.some((log) => log.date === cell.date && (filter === 'All' || log.subject === filter))
                     return (
                       <div
-                        role="button"
-                        tabIndex="0"
                         key={cell.date}
-                      onClick={() => {
-                        setSelectedDate(cell.date)
-                        setCursor(new Date(`${cell.date}T12:00:00`))
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          setSelectedDate(cell.date)
-                          setCursor(new Date(`${cell.date}T12:00:00`))
-                        }
-                      }}
                         className={`min-h-36 border-r border-border/70 p-2 transition-colors hover:bg-[#f7f7fb] sm:min-h-40 ${!inVisibleMonth ? 'bg-[#fafafa] text-muted-foreground/40' : ''} ${selected ? 'bg-secondary/35 ring-2 ring-inset ring-primary/30' : ''}`}
                       >
-                        <div className="flex items-center justify-between">
+                        <button
+                          type="button"
+                          className="flex min-h-11 w-full items-center justify-between rounded-md text-left"
+                          aria-label={`Open ${formatDate(cell.date, { weekday: 'long', day: 'numeric', month: 'long' })}`}
+                          onClick={() => {
+                            setSelectedDate(cell.date)
+                            setCursor(new Date(`${cell.date}T12:00:00`))
+                          }}
+                        >
                           <span className={`grid size-7 place-items-center rounded-full text-sm font-semibold ${cell.date === today ? 'bg-primary text-white' : inVisibleMonth ? 'text-foreground' : 'text-muted-foreground/45'}`}>{cell.day}</span>
                           {studied ? <span className="size-2 rounded-full bg-mint" /> : null}
-                        </div>
+                        </button>
                         <div className="mt-1.5 space-y-1 pr-1">
                           {items.map((item) => <RecallEvent key={item.id} item={item} onClick={(event) => { event.stopPropagation(); setSelectedDate(cell.date) }} />)}
                           {timetableItems.map((block, index) => <TimetablePill key={`${block.id}-${index}`} block={block} />)}
@@ -617,17 +661,17 @@ export default function RecallCalendar() {
                           <p className="truncate text-xs text-muted-foreground">{item.dueTime} · {formatStudyMinutes(item.durationMinutes, { compact: true })} · {item.chapter}</p>
                         </div>
                         <div className="flex gap-1">
-                          <Button size="icon-sm" variant="ghost" title="Complete" onClick={() => complete(item.id)}><Check /></Button>
-                          <Button size="icon-sm" variant="ghost" title="Edit" onClick={() => setEditingId(editing ? null : item.id)}><Clock3 /></Button>
-                          <Button size="icon-sm" variant="ghost" title="Tomorrow" onClick={() => update(item.id, { nextReviewDate: addDays(today, 1), completed: false, status: 'scheduled' })}><RotateCcw /></Button>
-                          <Button size="icon-sm" variant="ghost" title="Remove" onClick={() => remove(item.id)}><Trash2 /></Button>
+                          <Button size="icon-sm" variant="ghost" title="Complete" aria-label={`Complete ${item.topic}`} onClick={() => complete(item.id)}><Check /></Button>
+                          <Button size="icon-sm" variant="ghost" title="Edit" aria-label={`Edit ${item.topic}`} onClick={() => setEditingId(editing ? null : item.id)}><Clock3 /></Button>
+                          <Button size="icon-sm" variant="ghost" title="Tomorrow" aria-label={`Move ${item.topic} to tomorrow`} onClick={() => update(item.id, { nextReviewDate: addDays(today, 1), completed: false, status: 'scheduled' })}><RotateCcw /></Button>
+                          <Button size="icon-sm" variant="ghost" title="Remove" aria-label={`Remove ${item.topic}`} onClick={() => remove(item.id)}><Trash2 /></Button>
                         </div>
                       </div>
                       {editing ? (
                         <div className="mt-2 flex gap-2">
-                          <input className="field !min-h-8 !w-40 !px-2 !py-1 text-xs" type="date" defaultValue={item.nextReviewDate} onChange={(event) => update(item.id, { nextReviewDate: event.target.value })} />
-                          <input className="field !min-h-8 !w-28 !px-2 !py-1 text-xs" type="time" defaultValue={item.dueTime} onChange={(event) => update(item.id, { dueTime: event.target.value })} />
-                          <input aria-label={`Duration for ${item.topic}`} className="field !min-h-8 !w-24 !px-2 !py-1 text-xs" type="number" min="10" max="180" step="5" defaultValue={item.durationMinutes} onChange={(event) => update(item.id, { durationMinutes: Number(event.target.value) })} />
+                          <input aria-label={`Date for ${item.topic}`} className="field !min-h-11 !w-40 !px-2 !py-1 text-xs" type="date" value={item.nextReviewDate} onChange={(event) => update(item.id, { nextReviewDate: event.target.value })} />
+                          <input aria-label={`Time for ${item.topic}`} className="field !min-h-11 !w-28 !px-2 !py-1 text-xs" type="time" value={item.dueTime} onChange={(event) => update(item.id, { dueTime: event.target.value })} />
+                          <input aria-label={`Duration for ${item.topic}`} className="field !min-h-11 !w-24 !px-2 !py-1 text-xs" type="number" min="10" max="180" step="5" value={item.durationMinutes} onChange={(event) => update(item.id, { durationMinutes: Number(event.target.value) })} />
                         </div>
                       ) : null}
                     </div>
@@ -641,20 +685,20 @@ export default function RecallCalendar() {
 
       <div className="mt-2 flex shrink-0 flex-wrap gap-x-5 gap-y-1 text-[11px] text-muted-foreground">
         <span><strong className="text-foreground">{monthCount}</strong> revisions this month</span>
-        <span><strong className={overdueCount ? 'text-coral' : 'text-foreground'}>{overdueCount}</strong> overdue on this day</span>
+        <span><strong className={overdueCount ? 'text-coral' : 'text-foreground'}>{overdueCount}</strong> {selectedDate ? 'overdue on this day' : 'overdue overall'}</span>
         <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-secondary" />Study block</span>
         {CALENDAR_SUBJECTS.map((subject) => <span key={subject} className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ backgroundColor: SUBJECT_COLORS[subject] }} />{subject}</span>)}
       </div>
 
       {showManual ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Add revision">
-          <form onSubmit={addManual} className="w-full max-w-2xl rounded-2xl bg-card p-6 shadow-lift">
+        <div ref={manualDialogRef} tabIndex="-1" className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/45 p-4 backdrop-blur-sm outline-none" role="dialog" aria-modal="true" aria-label="Add revision">
+          <form onSubmit={addManual} className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-2xl bg-card p-6 shadow-lift">
             <div className="flex justify-between">
               <div>
                 <h2 className="text-xl font-semibold">Add a revision</h2>
                 <p className="mt-1 text-sm text-muted-foreground">Choose directly from your Class 11 syllabus.</p>
               </div>
-              <Button type="button" size="icon-sm" variant="ghost" aria-label="Close" onClick={() => setShowManual(false)}><X /></Button>
+              <Button type="button" data-dialog-autofocus size="icon-sm" variant="ghost" aria-label="Close" onClick={() => setShowManual(false)}><X /></Button>
             </div>
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               <label className="field-label">Subject<select className="field" value={manual.subject} onChange={(event) => changeManualSubject(event.target.value)}>{syllabus.map((item) => <option key={item.subject}>{item.subject}</option>)}</select></label>

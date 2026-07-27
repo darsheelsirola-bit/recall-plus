@@ -11,6 +11,7 @@ import {
   Mail,
   NotebookPen,
   Phone,
+  Settings,
   Timer,
   UserCircle2,
   X,
@@ -18,6 +19,7 @@ import {
 import { useEffect, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { useDialogFocus } from '../hooks/useDialogFocus'
 import { getData, STORAGE_KEYS } from '../utils/storage'
 import Logo from './Logo'
 
@@ -64,6 +66,7 @@ export default function Navbar() {
   const [showProfileDetails, setShowProfileDetails] = useState(false)
   const [signOutError, setSignOutError] = useState('')
   const [, setProfileVersion] = useState(0)
+  const accountDialogRef = useDialogFocus(showProfileDetails, () => setShowProfileDetails(false))
   const profile = normalizeProfile(getData(STORAGE_KEYS.profile, {}), user, syncedProfile)
 
   function openMenu() {
@@ -116,6 +119,10 @@ export default function Navbar() {
         className={`peer fixed inset-y-3 left-3 z-30 hidden flex-col overflow-hidden rounded-2xl bg-ink px-3 py-4 text-white shadow-lift transition-[width] duration-500 ease-in-out lg:flex ${expanded ? 'w-72' : 'w-20'}`}
         onMouseEnter={openMenu}
         onMouseLeave={closeMenu}
+        onFocus={openMenu}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) closeMenu()
+        }}
       >
         <Link to="/" onClick={closeAfterNavigation} className="flex items-center px-2 py-1.5" aria-label="Recall Plus home"><Logo compact={!expanded} inverse /></Link>
         <p className={`mt-2 overflow-hidden whitespace-nowrap px-2 text-xs font-medium text-white/45 transition-all ${expanded ? 'max-w-48 opacity-100' : 'max-w-0 opacity-0'}`}>Class 11 PCM workspace</p>
@@ -132,7 +139,7 @@ export default function Navbar() {
             <button
               type="button"
               onClick={toggleProfileDetails}
-              className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary font-semibold text-white transition hover:bg-primary/90"
+              className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary font-semibold text-white transition hover:bg-primary/90"
               title="Show account details"
               aria-label="Show account details"
               aria-expanded={showProfileDetails}
@@ -148,14 +155,14 @@ export default function Navbar() {
       </aside>
 
       {showProfileDetails ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/35 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Account details">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-5 text-foreground shadow-lift">
+        <div ref={accountDialogRef} tabIndex="-1" className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/35 p-4 backdrop-blur-sm outline-none" role="dialog" aria-modal="true" aria-label="Account details">
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-border bg-card p-5 text-foreground shadow-lift">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-primary">Profile</p>
                 <h2 className="mt-1 text-xl font-semibold">Account details</h2>
               </div>
-              <button type="button" className="grid size-8 place-items-center rounded-lg hover:bg-secondary" onClick={() => setShowProfileDetails(false)} aria-label="Close account details">
+              <button type="button" data-dialog-autofocus className="grid size-11 place-items-center rounded-lg hover:bg-secondary" onClick={() => setShowProfileDetails(false)} aria-label="Close account details">
                 <X className="size-4" />
               </button>
             </div>
@@ -178,8 +185,11 @@ export default function Navbar() {
               </div>
             </div>
             {signOutError ? <p role="alert" className="mt-4 rounded-lg border border-coral/25 bg-coral/10 px-3 py-2 text-sm text-coral">{signOutError}</p> : null}
+            <Link to="/settings" className="btn-secondary mt-5 w-full justify-center" onClick={() => setShowProfileDetails(false)}>
+              <Settings className="size-4" /> Settings &amp; backup
+            </Link>
             {configured && user ? (
-              <button type="button" className="btn-secondary mt-5 w-full justify-center" onClick={handleSignOut} disabled={signingOut}>
+              <button type="button" className="btn-secondary mt-3 w-full justify-center" onClick={handleSignOut} disabled={signingOut}>
                 {signingOut ? <Loader2 className="size-4 animate-spin" /> : <LogOut className="size-4" />}
                 {signingOut ? 'Signing out…' : 'Sign out'}
               </button>
@@ -189,14 +199,14 @@ export default function Navbar() {
       ) : null}
 
       <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur lg:hidden">
-        <Link to="/" aria-label="Recall Plus home"><Logo /></Link>
-        <button type="button" onClick={toggleProfileDetails} className="grid size-9 place-items-center rounded-xl bg-primary text-sm font-semibold text-white" aria-label="Show account details">{initial}</button>
+        <Link to="/" className="flex min-h-11 items-center" aria-label="Recall Plus home"><Logo /></Link>
+        <button type="button" onClick={toggleProfileDetails} className="grid size-11 place-items-center rounded-xl bg-primary text-sm font-semibold text-white" aria-label="Show account details">{initial}</button>
       </header>
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center gap-1 overflow-x-auto border-t border-border bg-card px-2 shadow-lift lg:hidden" aria-label="Mobile navigation">
+      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 gap-1 border-t border-border bg-card px-2 pb-[env(safe-area-inset-bottom)] shadow-lift md:grid-cols-8 lg:hidden" aria-label="Mobile navigation">
         {navItems.map(({ label, path, icon: Icon }) => (
-          <NavLink key={path} to={path} end={path === '/'} className={({ isActive }) => `flex min-w-[72px] flex-1 flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[10px] font-semibold ${isActive ? 'bg-secondary text-primary' : 'text-muted-foreground'}`}>
+          <NavLink key={path} to={path} end={path === '/'} className={({ isActive }) => `flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-center text-[10px] font-semibold ${isActive ? 'bg-secondary text-primary' : 'text-muted-foreground'}`}>
             <Icon className="size-4" />
-            <span className="whitespace-nowrap">{label === 'Recall Calendar' ? 'Calendar' : label.replace(' Study', '')}</span>
+            <span className="max-w-full truncate">{label === 'Recall Calendar' ? 'Calendar' : label.replace(' Study', '')}</span>
           </NavLink>
         ))}
       </nav>

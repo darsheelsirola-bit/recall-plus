@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { motivationalQuotes } from '../src/data/motivationalQuotes.js'
 import { buildAiInsights, getQuoteOfDay } from '../src/utils/aiInsight.js'
+import { addDays, getTodayDate } from '../src/utils/dateUtils.js'
 import { deleteData, STORAGE_KEYS } from '../src/utils/storage.js'
 
 test('quote of the day does not repeat until the full pool is used', () => {
@@ -32,4 +33,24 @@ test('buildAiInsights returns tips and techniques', () => {
   assert.ok(insight.tips.length >= 1)
   assert.ok(insight.techniques.length >= 1)
   assert.ok(insight.snapshot.length >= 4)
+})
+
+test('AI insight streaks stay on consecutive local dates east of UTC', () => {
+  const previousTimezone = process.env.TZ
+  try {
+    process.env.TZ = 'Pacific/Auckland'
+    const today = getTodayDate()
+    const yesterday = addDays(today, -1)
+    const insight = buildAiInsights([
+      { date: today, timeSpent: 30 },
+      { date: yesterday, timeSpent: 30 },
+    ], [], [])
+    assert.equal(
+      insight.snapshot.find((item) => item.label === 'Study streak')?.value,
+      '2 days',
+    )
+  } finally {
+    if (previousTimezone === undefined) delete process.env.TZ
+    else process.env.TZ = previousTimezone
+  }
 })

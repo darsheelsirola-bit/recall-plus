@@ -16,8 +16,15 @@ import { generateQuizQuestions } from '../services/groqService'
 import { GENERATION_LIMIT_MESSAGE } from '../types/generation'
 import { getTodayDate } from '../utils/dateUtils'
 import { formatStudyMinutes } from '../utils/logUtils'
-import { calculateScore, createId, createQuestionStorageKey, formatClock, getTopicStatus } from '../utils/quizUtils'
-import { getData, saveData, STORAGE_KEYS } from '../utils/storage'
+import { calculateScore, createId, createQuestionStorageKey, formatClock, getTopicStatus, validateQuizQuestions } from '../utils/quizUtils'
+import {
+  getData,
+  getStorageUser,
+  saveDataForUserOrThrow,
+  saveDataOrThrow,
+  STORAGE_KEYS,
+} from '../utils/storage'
+import { createSubmissionGuard } from '../utils/submissionGuard'
 
 const DIFFICULTIES = [
   { value: 'easy', label: 'Easy', copy: 'Build confidence and recall the basics', tone: 'bg-accent text-mint' },
@@ -52,6 +59,11 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, Number(value) || min))
 }
 
+function loadCachedQuestions(key, expectedCount) {
+  const cached = getData(key, [])
+  return validateQuizQuestions(cached, expectedCount) ? cached : []
+}
+
 export default function Quiz() {
   const [searchParams] = useSearchParams()
   const initialSelection = selectionFromParams(searchParams)
@@ -61,7 +73,7 @@ export default function Quiz() {
   const [difficulty, setDifficulty] = useState('medium')
   const [duration, setDuration] = useState(30)
   const [questionCount, setQuestionCount] = useState(10)
-  const [questions, setQuestions] = useState(() => getData(configStorageKey(initialSelection.subject, [initialSelection.chapter], [initialSelection.topic], 'medium', 30, 10), []))
+  const [questions, setQuestions] = useState(() => loadCachedQuestions(configStorageKey(initialSelection.subject, [initialSelection.chapter], [initialSelection.topic], 'medium', 30, 10), 10))
   const [mode, setMode] = useState('setup')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -71,6 +83,7 @@ export default function Quiz() {
   const [remaining, setRemaining] = useState(0)
   const [tipIndex, setTipIndex] = useState(0)
   const submitRef = useRef(() => {})
+  const submissionGuardRef = useRef(createSubmissionGuard())
   const generationRef = useRef(false)
   const quizUsage = useGenerationUsage('quiz')
 
@@ -80,13 +93,14 @@ export default function Quiz() {
   const chapterLabel = selectedChapters.join(', ')
   const topicLabel = selectedTopics.join(', ')
   const storageKey = configStorageKey(subject, selectedChapters, selectedTopics, difficulty, safeDuration, safeQuestionCount)
-  const ready = questions.length === safeQuestionCount
+  const ready = validateQuizQuestions(questions, safeQuestionCount)
   const generationBlocked = quizUsage.loading || quizUsage.inProgress || quizUsage.exhausted || Boolean(quizUsage.error)
   const pastResultsAction = <Button variant="outline" render={<Link to="/quiz/results" />}><History data-icon="inline-start" /> View past test results</Button>
 
   function resetForConfig(nextSubject, nextChapters, nextTopics, nextDifficulty, nextDuration, nextCount) {
     const key = configStorageKey(nextSubject, nextChapters, nextTopics, nextDifficulty, nextDuration, nextCount)
-    setQuestions(getData(key, []))
+    setQuestions(loadCachedQuestions(key, nextCount))
+    submissionGuardRef.current.reset()
     setMode('setup')
     setAnswers({})
     setResult(null)
@@ -160,15 +174,18 @@ export default function Quiz() {
     setLoading(true)
     setError('')
     setTipIndex(0)
+    const ownerId = getStorageUser()
     try {
       if (!ready) {
         const generated = await generateQuizQuestions(subject, chapterLabel, topicLabel, { count: safeQuestionCount, level: difficulty })
-        saveData(storageKey, generated)
+        if (!ownerId || getStorageUser() !== ownerId) return
+        saveDataForUserOrThrow(ownerId, storageKey, generated)
         setQuestions(generated)
       } else {
         await new Promise((resolve) => window.setTimeout(resolve, 900))
       }
       setAnswers({})
+      submissionGuardRef.current.reset()
       setIndex(0)
       setResult(null)
       setRemaining(safeDuration * 60)
@@ -183,6 +200,7 @@ export default function Quiz() {
   }
 
   function submit() {
+    if (!submissionGuardRef.current.claim()) return
     const summary = calculateScore(questions, answers)
     const questionReview = questions.map((question) => {
       const chosen = answers[question.id] ?? null
@@ -212,7 +230,13 @@ export default function Quiz() {
       ...summary,
       status: getTopicStatus(summary.percentage),
     }
-    saveData(STORAGE_KEYS.quizResults, [quizResult, ...getData(STORAGE_KEYS.quizResults, [])])
+    try {
+      saveDataOrThrow(STORAGE_KEYS.quizResults, [quizResult, ...getData(STORAGE_KEYS.quizResults, [])])
+    } catch (persistenceError) {
+      submissionGuardRef.current.reset()
+      setError(persistenceError.message)
+      return
+    }
     setResult(quizResult)
     setMode('result')
   }
@@ -269,12 +293,13 @@ export default function Quiz() {
     return (
       <>
         <PageHeader title="Practice Test" />
+        {error ? <Alert variant="destructive" className="mb-5"><X /><AlertTitle>Could not save your test</AlertTitle><AlertDescription>{error}</AlertDescription></Alert> : null}
         <div className="grid gap-5 lg:grid-cols-[1fr_270px]">
           <section className="panel p-8">
             <div className="flex items-center justify-between"><p className="font-semibold">Question {index + 1} of {questions.length}</p><Badge variant="outline" className="rounded-full capitalize">{question.difficulty}</Badge></div>
             <Progress value={Math.round(((index + 1) / questions.length) * 100)} className="mt-4" />
             <h2 className="mt-9 text-2xl font-semibold leading-8">{question.question}</h2>
-            <div className="mt-7 grid gap-3">{question.options.map((option, optionIndex) => { const selected = answers[question.id] === option; return <button key={option} onClick={() => setAnswers((current) => ({ ...current, [question.id]: option }))} className={`flex items-center gap-4 rounded-2xl border p-4 text-left font-medium transition ${selected ? 'border-primary bg-secondary text-primary' : 'border-border bg-card hover:border-primary/30'}`}><span className={`grid size-8 shrink-0 place-items-center rounded-full border text-xs ${selected ? 'border-primary bg-primary text-white' : 'border-border text-muted-foreground'}`}>{selected ? <Check className="size-4" /> : String.fromCharCode(65 + optionIndex)}</span>{option}</button> })}</div>
+            <div className="mt-7 grid gap-3" role="radiogroup" aria-label={`Answers for question ${index + 1}`}>{question.options.map((option, optionIndex) => { const selected = answers[question.id] === option; return <button type="button" role="radio" aria-checked={selected} key={option} onClick={() => setAnswers((current) => ({ ...current, [question.id]: option }))} className={`flex min-h-11 items-center gap-4 rounded-2xl border p-4 text-left font-medium transition ${selected ? 'border-primary bg-secondary text-primary' : 'border-border bg-card hover:border-primary/30'}`}><span className={`grid size-8 shrink-0 place-items-center rounded-full border text-xs ${selected ? 'border-primary bg-primary text-white' : 'border-border text-muted-foreground'}`}>{selected ? <Check className="size-4" /> : String.fromCharCode(65 + optionIndex)}</span>{option}</button> })}</div>
             <div className="mt-9 flex items-center justify-between">
               <Button variant="outline" disabled={index === 0} onClick={() => setIndex((value) => value - 1)}><ArrowLeft data-icon="inline-start" /> Previous</Button>
               {index === questions.length - 1 ? <Button onClick={submit}>Submit test <CheckCircle2 data-icon="inline-end" /></Button> : <Button onClick={() => setIndex((value) => value + 1)}>Next question <ArrowRight data-icon="inline-end" /></Button>}
@@ -283,9 +308,9 @@ export default function Quiz() {
           <aside className="panel p-5 lg:self-start">
             <div className={`flex items-center gap-3 rounded-2xl p-4 ${lowTime ? 'bg-rose-50 text-coral' : 'bg-secondary text-primary'}`}><AlarmClock className="size-5" /><div><p className="text-2xl font-semibold tabular-nums">{formatClock(remaining)}</p><p className="text-xs opacity-70">time remaining</p></div></div>
             <h2 className="section-title mt-6">Question map</h2>
-            <div className="mt-4 grid grid-cols-5 gap-2">{questions.map((item, mapIndex) => { const done = answers[item.id] !== undefined; const current = mapIndex === index; return <button key={item.id} onClick={() => setIndex(mapIndex)} className={`grid h-9 place-items-center rounded-lg text-xs font-semibold transition ${current ? 'bg-primary text-white' : done ? 'bg-accent text-mint' : 'bg-muted text-muted-foreground hover:bg-secondary'}`}>{mapIndex + 1}</button> })}</div>
+            <div className="mt-4 grid grid-cols-5 gap-2">{questions.map((item, mapIndex) => { const done = answers[item.id] !== undefined; const current = mapIndex === index; return <button type="button" key={item.id} aria-current={current ? 'step' : undefined} aria-label={`Question ${mapIndex + 1}${done ? ', answered' : ''}`} onClick={() => setIndex(mapIndex)} className={`grid min-h-11 place-items-center rounded-lg text-xs font-semibold transition ${current ? 'bg-primary text-white' : done ? 'bg-accent text-mint' : 'bg-muted text-muted-foreground hover:bg-secondary'}`}>{mapIndex + 1}</button> })}</div>
             <p className="mt-5 text-sm font-medium">{answeredCount} / {questions.length} answered</p>
-            <button className="mt-5 text-sm font-semibold text-primary" onClick={() => { if (window.confirm('End the test now? Unanswered questions are marked wrong.')) submit() }}>End test early</button>
+            <button type="button" className="mt-5 min-h-11 px-3 text-sm font-semibold text-primary" onClick={() => { if (window.confirm('End the test now? Unanswered questions are marked wrong.')) submit() }}>End test early</button>
           </aside>
         </div>
       </>
@@ -304,7 +329,7 @@ export default function Quiz() {
             />
           }
         />
-        <section className="rounded-3xl bg-ink p-9 text-white"><div className="grid gap-8 md:grid-cols-[240px_1fr] md:items-center"><div><p className="text-sm text-white/55">Your score</p><p className="mt-2 text-6xl font-semibold">{result.percentage}%</p><Badge className={`mt-4 rounded-full ${result.status === 'Strong' ? 'bg-mint text-ink' : result.status === 'Average' ? 'bg-amber-300 text-ink' : 'bg-coral text-white'}`}>{result.status}</Badge></div><div><h2 className="text-2xl font-semibold">{result.score} of {result.totalQuestions} correct</h2><p className="mt-3 max-w-xl text-sm leading-6 text-white/60">{formatStudyMinutes(result.durationMinutes)} · {result.difficulty} level · {result.chapters.length} chapter{result.chapters.length === 1 ? '' : 's'} · {result.topics.length} topic{result.topics.length === 1 ? '' : 's'}</p></div></div></section>
+        <section className="rounded-3xl bg-ink p-9 text-white"><div className="grid gap-8 md:grid-cols-[240px_1fr] md:items-center"><div><p className="text-sm text-white/55">Your score</p><p className="mt-2 text-6xl font-semibold">{result.percentage}%</p><Badge className={`mt-4 rounded-full ${result.status === 'Strong' ? 'bg-mint text-white' : result.status === 'Average' ? 'bg-amber-300 text-ink' : 'bg-coral text-white'}`}>{result.status}</Badge></div><div><h2 className="text-2xl font-semibold">{result.score} of {result.totalQuestions} correct</h2><p className="mt-3 max-w-xl text-sm leading-6 text-white/60">{formatStudyMinutes(result.durationMinutes)} · {result.difficulty} level · {result.chapters.length} chapter{result.chapters.length === 1 ? '' : 's'} · {result.topics.length} topic{result.topics.length === 1 ? '' : 's'}</p></div></div></section>
         <div className="mt-6 flex flex-col gap-4">{questions.map((question, questionIndex) => { const correct = answers[question.id] === question.answer; return <article className="panel p-6" key={question.id}><div className="flex gap-4"><span className={`grid size-9 shrink-0 place-items-center rounded-full ${correct ? 'bg-accent text-mint' : 'bg-rose-50 text-coral'}`}>{correct ? <Check className="size-4" /> : <X className="size-4" />}</span><div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Question {questionIndex + 1} · {question.difficulty}</p><h3 className="mt-1 font-semibold leading-6">{question.question}</h3><p className="mt-3 text-sm text-muted-foreground">Your answer: <strong className={correct ? 'text-mint' : 'text-coral'}>{answers[question.id] ?? 'Not answered'}</strong></p>{!correct ? <p className="mt-1 text-sm text-muted-foreground">Correct answer: <strong className="text-foreground">{question.answer}</strong></p> : null}<div className="mt-4 rounded-xl bg-secondary/50 p-4 text-sm leading-6 text-muted-foreground"><strong className="text-foreground">Why:</strong> {question.explanation}</div></div></div></article> })}</div>
       </>
     )

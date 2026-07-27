@@ -7,9 +7,19 @@ import {
   migrateLegacyDataForUser,
   replaceScopedDataSnapshot,
   saveDataForUser,
-  setStorageUser,
+  setDataSyncRemoteBaseline,
   STORAGE_KEYS,
+  validateScopedDataSnapshot,
 } from '../utils/storage'
+import {
+  assertExpectedSessionUser,
+  runForExpectedSessionUser,
+} from '../utils/authSessionGuard'
+import { isDataVersionConflictError } from '../utils/syncUtils'
+import {
+  buildTimezoneInitializationRpcArgs,
+  buildUserDataUpsertRpcArgs,
+} from '../utils/userDataRpc'
 
 export interface RecallProfile {
   displayName: string
@@ -33,10 +43,27 @@ interface ProfileRow {
 interface UserAppDataRow {
   data: Record<string, unknown>
   updated_at: string
+  version: number
+}
+
+interface UserAppDataRpcResult {
+  data: Record<string, unknown>
+  version: number
+  updatedAt: string
 }
 
 const activeHydrations = new Map<string, Promise<HydratedUserData>>()
 const activeSyncs = new Map<string, Promise<void>>()
+
+export class DataSyncConflictError extends Error {
+  constructor() {
+    super(
+      'Your Recall+ cloud data changed in another session. '
+      + 'This device’s unsynced copy was preserved instead of overwriting it.',
+    )
+    this.name = 'DataSyncConflictError'
+  }
+}
 
 function browserTimezone(): string {
   try {
@@ -93,6 +120,7 @@ function profileFromSources(
 }
 
 export async function syncUserSnapshot(userId: string): Promise<void> {
+  await assertExpectedSessionUser(supabase.auth, userId)
   const existing = activeSyncs.get(userId)
   if (existing) return existing
 
@@ -101,15 +129,24 @@ export async function syncUserSnapshot(userId: string): Promise<void> {
     if (!syncState.dirty) return
 
     const snapshot = getScopedDataSnapshot(userId)
-    const { data, error } = await supabase
-      .from('user_app_data')
-      .upsert({ user_id: userId, data: snapshot }, { onConflict: 'user_id' })
-      .select('updated_at')
-      .single()
+    const { data, error } = await runForExpectedSessionUser(
+      supabase.auth,
+      userId,
+      () => supabase.rpc(
+        'upsert_recall_app_data',
+        buildUserDataUpsertRpcArgs(userId, snapshot, syncState.remoteVersion),
+      ),
+    )
 
-    if (error) throw new Error(`Could not sync your Recall+ data: ${error.message}`)
-    const updatedAt = typeof data?.updated_at === 'string' ? data.updated_at : ''
-    markDataSynced(userId, syncState.revision, updatedAt)
+    if (error) {
+      if (isDataVersionConflictError(error)) throw new DataSyncConflictError()
+      throw new Error(`Could not sync your Recall+ data: ${error.message}`)
+    }
+
+    const result = data as UserAppDataRpcResult | null
+    const updatedAt = typeof result?.updatedAt === 'string' ? result.updatedAt : ''
+    const remoteVersion = Number.isInteger(result?.version) ? Number(result?.version) : syncState.remoteVersion
+    markDataSynced(userId, syncState.revision, updatedAt, remoteVersion)
   })().finally(() => {
     if (activeSyncs.get(userId) === operation) activeSyncs.delete(userId)
   })
@@ -118,22 +155,63 @@ export async function syncUserSnapshot(userId: string): Promise<void> {
   return operation
 }
 
+export async function resolveUserDataConflict(
+  userId: string,
+  strategy: 'cloud' | 'local',
+): Promise<void> {
+  await assertExpectedSessionUser(supabase.auth, userId)
+  const startingState = getDataSyncState(userId)
+  const localSnapshot = getScopedDataSnapshot(userId)
+  const { data, error } = await runForExpectedSessionUser(
+    supabase.auth,
+    userId,
+    () => supabase
+      .from('user_app_data')
+      .select('data, updated_at, version')
+      .eq('user_id', userId)
+      .maybeSingle(),
+  )
+  if (error) throw new Error(`Could not resolve your Recall+ data conflict: ${error.message}`)
+  const remoteRow = (data ?? null) as UserAppDataRow | null
+  if (!remoteRow) throw new Error('The cloud copy could not be found. Please retry.')
+
+  if (getDataSyncState(userId).revision !== startingState.revision) {
+    throw new Error('Your local data changed while resolving the conflict. Review it and try again.')
+  }
+
+  if (strategy === 'cloud') {
+    const remoteSnapshot = asSnapshot(remoteRow.data)
+    validateScopedDataSnapshot(remoteSnapshot)
+    replaceScopedDataSnapshot(userId, remoteSnapshot)
+    markDataSynced(userId, startingState.revision, remoteRow.updated_at, remoteRow.version)
+    return
+  }
+
+  replaceScopedDataSnapshot(userId, localSnapshot)
+  setDataSyncRemoteBaseline(userId, remoteRow.updated_at, remoteRow.version)
+  await syncUserSnapshot(userId)
+}
+
 async function hydrate(user: User): Promise<HydratedUserData> {
-  setStorageUser(user.id)
+  await assertExpectedSessionUser(supabase.auth, user.id)
   const migration = migrateLegacyDataForUser(user.id)
 
-  const [profileResult, appDataResult] = await Promise.all([
-    supabase
-      .from('recall_profiles')
-      .select('display_name, timezone, timezone_initialized')
-      .eq('id', user.id)
-      .maybeSingle(),
-    supabase
-      .from('user_app_data')
-      .select('data, updated_at')
-      .eq('user_id', user.id)
-      .maybeSingle(),
-  ])
+  const [profileResult, appDataResult] = await runForExpectedSessionUser(
+    supabase.auth,
+    user.id,
+    () => Promise.all([
+      supabase
+        .from('recall_profiles')
+        .select('display_name, timezone, timezone_initialized')
+        .eq('id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('user_app_data')
+        .select('data, updated_at, version')
+        .eq('user_id', user.id)
+        .maybeSingle(),
+    ]),
+  )
 
   if (profileResult.error) {
     throw new Error(`Could not load your Recall+ profile: ${profileResult.error.message}`)
@@ -146,9 +224,13 @@ async function hydrate(user: User): Promise<HydratedUserData> {
   if (!profileRow) throw new Error('Could not load your Recall+ profile.')
 
   if (!profileRow.timezone_initialized) {
-    const { data: initializedTimezone, error } = await supabase.rpc(
-      'initialize_recall_timezone',
-      { p_timezone: browserTimezone() },
+    const { data: initializedTimezone, error } = await runForExpectedSessionUser(
+      supabase.auth,
+      user.id,
+      () => supabase.rpc(
+        'initialize_recall_timezone',
+        buildTimezoneInitializationRpcArgs(user.id, browserTimezone()),
+      ),
     )
     if (error) throw new Error(`Could not initialize your local timezone: ${error.message}`)
     profileRow = {
@@ -160,18 +242,22 @@ async function hydrate(user: User): Promise<HydratedUserData> {
 
   const remoteRow = (appDataResult.data ?? null) as UserAppDataRow | null
   const remoteSnapshot = asSnapshot(remoteRow?.data)
+  validateScopedDataSnapshot(remoteSnapshot)
   const localSnapshot = getScopedDataSnapshot(user.id)
   const syncState = getDataSyncState(user.id)
 
-  const legacyOnlyDirty = migration.copied > 0 && !syncState.remoteUpdatedAt
+  const legacyOnlyDirty = migration.copied > 0 && syncState.remoteVersion === 0
 
   if (hasSnapshotData(remoteSnapshot) && (!syncState.dirty || legacyOnlyDirty)) {
     replaceScopedDataSnapshot(user.id, remoteSnapshot)
-    markDataSynced(user.id, syncState.revision, remoteRow?.updated_at || '')
+    markDataSynced(user.id, syncState.revision, remoteRow?.updated_at || '', remoteRow?.version || 0)
   } else if (syncState.dirty || (!hasSnapshotData(remoteSnapshot) && hasSnapshotData(localSnapshot))) {
+    if (remoteRow && syncState.remoteVersion === 0 && !hasSnapshotData(remoteSnapshot)) {
+      setDataSyncRemoteBaseline(user.id, remoteRow.updated_at, remoteRow.version)
+    }
     await syncUserSnapshot(user.id)
   } else {
-    markDataSynced(user.id, syncState.revision, remoteRow?.updated_at || '')
+    markDataSynced(user.id, syncState.revision, remoteRow?.updated_at || '', remoteRow?.version || 0)
   }
 
   const hydratedSnapshot = getScopedDataSnapshot(user.id)
@@ -193,10 +279,14 @@ async function hydrate(user: User): Promise<HydratedUserData> {
   const desiredDisplayName = metadataString(user, 'display_name', 'full_name', 'name')
     || profile.displayName
   if (desiredDisplayName && desiredDisplayName !== profileRow?.display_name) {
-    const { error } = await supabase
-      .from('recall_profiles')
-      .update({ display_name: desiredDisplayName })
-      .eq('id', user.id)
+    const { error } = await runForExpectedSessionUser(
+      supabase.auth,
+      user.id,
+      () => supabase
+        .from('recall_profiles')
+        .update({ display_name: desiredDisplayName })
+        .eq('id', user.id),
+    )
     if (error) throw new Error(`Could not sync your Recall+ profile: ${error.message}`)
   }
 

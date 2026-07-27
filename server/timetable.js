@@ -1,9 +1,21 @@
-import { validateGeneratedTimetable, validateTimetableProfile } from '../shared/timetableValidation.js'
-import { fetchGroq } from './upstreamFetch.js'
+import {
+  normalizeTimetableProfile,
+  validateGeneratedTimetable,
+} from '../shared/timetableValidation.js'
+import { AppError, ERROR_CODES } from './errors.js'
+import {
+  fetchGroq,
+  MAX_PROVIDER_ATTEMPTS,
+  PROVIDER_TOTAL_DEADLINE_MS,
+  providerHttpError,
+  providerResponseInvalid,
+  readProviderJson,
+  waitBeforeProviderRetry,
+} from './upstreamFetch.js'
 
 const GROQ_CHAT_COMPLETIONS_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const DEFAULT_GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']
-const MAX_ATTEMPTS = 3
+const TIMETABLE_OUTPUT_TOKENS = 3_000
 
 function periodHint(period) {
   if (period === 'morning') return '06:00-11:00'
@@ -47,7 +59,7 @@ JSON format:
 {"blocks":[{"weekday":0,"startTime":"17:00","durationMinutes":60,"subject":"Physics","label":"Physics recall"}],"summary":"A short explanation of why this plan is optimal."}`
 }
 
-async function generateOnce({ key, model, profile }) {
+async function generateOnce({ key, model, profile, deadlineAt }) {
   const response = await fetchGroq(GROQ_CHAT_COMPLETIONS_URL, {
     method: 'POST',
     headers: {
@@ -57,6 +69,7 @@ async function generateOnce({ key, model, profile }) {
     body: JSON.stringify({
       model,
       temperature: 0.3,
+      max_completion_tokens: TIMETABLE_OUTPUT_TOKENS,
       response_format: { type: 'json_object' },
       messages: [
         {
@@ -69,16 +82,11 @@ async function generateOnce({ key, model, profile }) {
         },
       ],
     }),
-  })
+  }, { deadlineAt })
 
-  if (!response.ok) {
-    const details = await response.json().catch(() => ({}))
-    const error = new Error(details?.error?.message || 'Groq could not generate the timetable. Please try again.')
-    error.statusCode = response.status
-    throw error
-  }
+  if (!response.ok) throw providerHttpError(response)
 
-  const payload = await response.json()
+  const payload = await readProviderJson(response)
   const text = payload?.choices?.[0]?.message?.content
   if (typeof text !== 'string' || !text.trim()) return null
   let parsed
@@ -93,12 +101,23 @@ async function generateOnce({ key, model, profile }) {
       return null
     }
   }
-  const blocks = parsed?.blocks
+  const blocks = Array.isArray(parsed?.blocks)
+    ? parsed.blocks.map((block) => ({
+      weekday: block?.weekday,
+      startTime: block?.startTime,
+      durationMinutes: block?.durationMinutes,
+      subject: block?.subject,
+      label: typeof block?.label === 'string' ? block.label.trim() : block?.label,
+      ...(block?.techniqueId == null ? {} : { techniqueId: block.techniqueId }),
+    }))
+    : null
   if (!Array.isArray(blocks) || blocks.length < 6 || blocks.length > 10) return null
   if (!validateGeneratedTimetable(blocks, profile)) return null
   return {
     blocks,
-    summary: typeof parsed?.summary === 'string' ? parsed.summary : 'Generated study timetable based on your routine.',
+    summary: typeof parsed?.summary === 'string' && parsed.summary.trim().length <= 1_000
+      ? parsed.summary.trim()
+      : 'Generated study timetable based on your routine.',
   }
 }
 
@@ -109,37 +128,39 @@ function modelCandidates() {
 }
 
 export async function requestTimetable(profile) {
-  if (!validateTimetableProfile(profile)) {
-    const error = new Error('Please provide a complete daily routine before generating an optimal timetable.')
-    error.statusCode = 400
-    throw error
+  const safeProfile = normalizeTimetableProfile(profile)
+  if (!safeProfile) {
+    throw new AppError('Please provide a complete daily routine before generating an optimal timetable.', {
+      code: ERROR_CODES.INVALID_REQUEST,
+      statusCode: 400,
+    })
   }
   const key = process.env.GROQ_TIMETABLE_API_KEY
   if (!key) {
-    const error = new Error('Timetable generation is not configured. Add GROQ_TIMETABLE_API_KEY to your .env file.')
-    error.statusCode = 503
-    throw error
+    throw new AppError('Timetable generation is temporarily unavailable.', {
+      code: ERROR_CODES.AI_PROVIDER_UNAVAILABLE,
+      statusCode: 503,
+      details: { retryable: true },
+    })
   }
   const models = modelCandidates()
+  const deadlineAt = Date.now() + PROVIDER_TOTAL_DEADLINE_MS
   let lastError
-  for (const model of models) {
-    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-      try {
-        const generated = await generateOnce({ key, model, profile })
-        if (generated) return generated
-      } catch (error) {
-        const message = String(error?.message || '')
-        const modelNotFound = error.statusCode === 404 || /model.*not found|does not exist|decommissioned/i.test(message)
-        if (modelNotFound) {
-          lastError = error
-          break
-        }
-        if (error.statusCode && error.statusCode !== 429 && error.statusCode < 500) throw error
-        lastError = error
-      }
+
+  for (let attempt = 0; attempt < MAX_PROVIDER_ATTEMPTS && Date.now() < deadlineAt; attempt += 1) {
+    const model = models[attempt % models.length]
+    try {
+      const generated = await generateOnce({ key, model, profile: safeProfile, deadlineAt })
+      if (generated) return generated
+      lastError = providerResponseInvalid()
+    } catch (error) {
+      lastError = error
+      if ([400, 401, 403, 422].includes(error?.upstreamStatus)) throw error
+    }
+    if (attempt + 1 < MAX_PROVIDER_ATTEMPTS && lastError?.upstreamStatus !== 404) {
+      await waitBeforeProviderRetry(lastError, attempt + 1, deadlineAt)
     }
   }
-  const error = lastError || new Error('The generated timetable did not pass validation. Please try again.')
-  if (!error.statusCode) error.statusCode = 502
-  throw error
+
+  throw lastError || providerResponseInvalid()
 }

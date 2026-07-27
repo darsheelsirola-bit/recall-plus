@@ -26,5 +26,6 @@ export function isValidQuestion(item) {
 export function validateQuizQuestions(questions, expectedCount) {
   if (!Array.isArray(questions) || questions.length === 0) return false
   if (Number.isInteger(expectedCount) && questions.length !== expectedCount) return false
-  return questions.every(isValidQuestion)
+  if (!questions.every(isValidQuestion)) return false
+  return new Set(questions.map((question) => String(question.id))).size === questions.length
 }

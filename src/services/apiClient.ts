@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase'
 import type { GenerationFeature } from '../types/generation'
+import { createSingleFlight, generationSingleFlightKey } from '../utils/requestUtils'
 
 interface ApiErrorPayload {
   error?: string
@@ -36,8 +37,30 @@ export class ApiRequestError extends Error {
   }
 }
 
-const activeGenerationRequests = new Map<GenerationFeature, Promise<unknown>>()
-const retryableGenerationIds = new Map<GenerationFeature, { payloadKey: string, requestId: string }>()
+export interface AuthenticatedIdentity {
+  userId: string
+  accessToken: string
+}
+
+const REQUEST_ID_TTL_MS = 30 * 60 * 1000
+const MAX_RETRYABLE_REQUEST_IDS = 32
+const retryableGenerationIds = new Map<string, { requestId: string, createdAt: number }>()
+const runActiveGeneration = createSingleFlight()
+
+function requestMapKey(feature: GenerationFeature, payloadKey: string, userId: string): string {
+  return `${userId}\u0000${feature}\u0000${payloadKey}`
+}
+
+function pruneRequestIds(now = Date.now()): void {
+  for (const [key, entry] of retryableGenerationIds) {
+    if (now - entry.createdAt > REQUEST_ID_TTL_MS) retryableGenerationIds.delete(key)
+  }
+  while (retryableGenerationIds.size >= MAX_RETRYABLE_REQUEST_IDS) {
+    const oldest = retryableGenerationIds.keys().next().value
+    if (typeof oldest !== 'string') break
+    retryableGenerationIds.delete(oldest)
+  }
+}
 
 export function createRequestId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -62,30 +85,62 @@ export function createRequestId(): string {
  * Reuses an idempotency key when the browser did not receive a definitive
  * response. A changed payload always receives a fresh key.
  */
-export function getGenerationRequestId(feature: GenerationFeature, payloadKey: string): string {
-  const existing = retryableGenerationIds.get(feature)
-  if (existing?.payloadKey === payloadKey) return existing.requestId
+export function getGenerationRequestId(
+  feature: GenerationFeature,
+  payloadKey: string,
+  userId: string,
+): string {
+  const now = Date.now()
+  pruneRequestIds(now)
+  const key = requestMapKey(feature, payloadKey, userId)
+  const existing = retryableGenerationIds.get(key)
+  if (existing) return existing.requestId
 
   const requestId = createRequestId()
-  retryableGenerationIds.set(feature, { payloadKey, requestId })
+  retryableGenerationIds.set(key, { requestId, createdAt: now })
   return requestId
 }
 
-export function clearGenerationRequestId(feature: GenerationFeature, requestId: string): void {
-  if (retryableGenerationIds.get(feature)?.requestId === requestId) {
-    retryableGenerationIds.delete(feature)
+export function clearGenerationRequestId(
+  feature: GenerationFeature,
+  payloadKey: string,
+  userId: string,
+  requestId: string,
+): void {
+  const key = requestMapKey(feature, payloadKey, userId)
+  if (retryableGenerationIds.get(key)?.requestId === requestId) {
+    retryableGenerationIds.delete(key)
   }
 }
 
-export async function authenticatedFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+export async function getAuthenticatedIdentity(): Promise<AuthenticatedIdentity> {
   const { data, error } = await supabase.auth.getSession()
   if (error) throw new ApiRequestError('Could not verify your session. Please sign in again.', 401, { code: 'AUTH_REQUIRED' })
 
   const accessToken = data.session?.access_token
-  if (!accessToken) throw new ApiRequestError('Please sign in to continue.', 401, { code: 'AUTH_REQUIRED' })
+  const userId = data.session?.user?.id
+  if (!accessToken || !userId) throw new ApiRequestError('Please sign in to continue.', 401, { code: 'AUTH_REQUIRED' })
+  return { accessToken, userId }
+}
+
+export async function assertCurrentIdentity(identity: AuthenticatedIdentity): Promise<void> {
+  const current = await getAuthenticatedIdentity()
+  if (current.userId !== identity.userId) {
+    throw new ApiRequestError('Your signed-in account changed. Please try again.', 409, {
+      code: 'AUTH_SESSION_CHANGED',
+    })
+  }
+}
+
+export async function authenticatedFetch(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  identity?: AuthenticatedIdentity,
+): Promise<Response> {
+  const authenticated = identity ?? await getAuthenticatedIdentity()
 
   const headers = new Headers(init.headers)
-  headers.set('Authorization', `Bearer ${accessToken}`)
+  headers.set('Authorization', `Bearer ${authenticated.accessToken}`)
 
   return fetch(input, { ...init, headers })
 }
@@ -101,16 +156,11 @@ export async function readApiError(response: Response, fallback: string): Promis
  */
 export function runGenerationSingleFlight<T>(
   feature: GenerationFeature,
-  operation: () => Promise<T>,
+  payloadKey: string,
+  operation: (identity: AuthenticatedIdentity) => Promise<T>,
 ): Promise<T> {
-  const active = activeGenerationRequests.get(feature)
-  if (active) return active as Promise<T>
-
-  const request = operation().finally(() => {
-    if (activeGenerationRequests.get(feature) === request) {
-      activeGenerationRequests.delete(feature)
-    }
+  return getAuthenticatedIdentity().then((identity) => {
+    const flightKey = generationSingleFlightKey(feature, `${identity.userId}\u0000${payloadKey}`)
+    return runActiveGeneration(flightKey, () => operation(identity)) as Promise<T>
   })
-  activeGenerationRequests.set(feature, request)
-  return request
 }

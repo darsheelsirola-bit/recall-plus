@@ -3,8 +3,10 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "packageManager": "npm@11.13.0",
   "engines": {
-    "node": ">=22.0.0"
+    "node": "24.x",
+    "npm": "11.13.x"
   },
   "scripts": {
     "dev": "concurrently -k -n API,WEB -c magenta,cyan \"node --watch server.js\" \"vite --host 0.0.0.0 --port 5173 --strictPort\"",
@@ -14,10 +16,16 @@
     "preview": "vite preview",
     "start": "node server.js",
     "lint": "eslint .",
+    "verify:router": "node scripts/verify-router.mjs",
+    "validate:vercel-env": "node scripts/validate-vercel-env.mjs",
     "scan:secrets": "node scripts/scan-secrets.mjs",
+    "scan:history": "node scripts/scan-git-history.mjs",
+    "audit:prod": "node scripts/audit-policy.mjs --omit=dev",
+    "audit:all": "node scripts/audit-policy.mjs",
     "test": "node --test test/*.test.js",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run lint && npm test && npm run build && npm run scan:secrets"
+    "check": "npm run verify:router && npm run typecheck && npm run lint && npm test && npm run build && npm run scan:secrets && npm run scan:history",
+    "vercel:build": "npm run validate:vercel-env && npm run check && npm run audit:all"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -49,6 +57,7 @@
     "globals": "^17.6.0",
     "postcss": "^8.5.15",
     "tailwindcss": "^3.4.19",
-    "typescript": "7.0.2"
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.65.0"
   }
 }

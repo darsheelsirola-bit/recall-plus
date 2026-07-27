@@ -54,9 +54,11 @@ export function getPostStudyGap(percentage, confidence = 'Medium') {
   return Math.min(20, Math.max(5, gap))
 }
 
-export function getRecallDifficulty(score) {
-  if (score <= 2) return 'Hard'
-  if (score === 3) return 'Moderate'
+export function getRecallDifficulty(score, totalQuestions = 5) {
+  const total = Math.max(1, Number(totalQuestions) || 5)
+  const percentage = (Math.max(0, Number(score) || 0) / total) * 100
+  if (percentage <= 40) return 'Hard'
+  if (percentage <= 60) return 'Moderate'
   return 'Easy'
 }
 
@@ -67,23 +69,23 @@ export function normalizeRecallItem(item) {
     completed: item.status === 'completed' || Boolean(item.completed),
     dueTime: item.dueTime || '17:00',
     durationMinutes: Math.min(180, Math.max(10, Number(item.durationMinutes) || 30)),
-    difficulty: item.difficulty || (item.lastQuizScore == null ? 'Not assessed' : getRecallDifficulty(Math.round(item.lastQuizScore / 20))),
+    difficulty: item.difficulty || (item.lastQuizScore == null ? 'Not assessed' : getRecallDifficulty(item.lastQuizScore, 100)),
     createdAt: item.createdAt || `${item.lastStudiedDate || getTodayDate()}T12:00:00.000Z`,
     updatedAt: item.updatedAt || item.createdAt || new Date().toISOString(),
   }
 }
 
-export function createRecallItem({ subject, chapter, topic, confidence = 'Medium', score = null, percentage = null, dueDate, dueTime = null, durationMinutes = 30, source = 'manual', sourceLogId = null, quizResultId = null, existing = null }) {
+export function createRecallItem({ subject, chapter, topic, confidence = 'Medium', score = null, totalQuestions = 5, percentage = null, dueDate, dueTime = null, durationMinutes = 30, source = 'manual', sourceLogId = null, quizResultId = null, existing = null }) {
   const now = new Date().toISOString()
   const correct = score == null ? null : Number(score)
-  const scorePercent = percentage ?? (correct == null ? null : correct * 20)
+  const scorePercent = percentage ?? (correct == null ? null : (correct / Math.max(1, Number(totalQuestions) || 5)) * 100)
   const nextReviewDate = dueDate || addDays(getTodayDate(), scorePercent == null ? 1 : getPostStudyGap(scorePercent, confidence))
   return normalizeRecallItem({
     id: existing?.id || createId(), subject, chapter, topic, confidence,
     source, sourceLogId, quizResultId, dueTime: dueTime || getSuggestedRecallTime(subject, topic, nextReviewDate), durationMinutes, nextReviewDate,
     lastStudiedDate: getTodayDate(), lastQuizCorrect: correct,
     lastQuizScore: percentage ?? (correct == null ? existing?.lastQuizScore ?? null : correct * 20),
-    difficulty: correct == null ? existing?.difficulty || 'Not assessed' : getRecallDifficulty(correct),
+    difficulty: correct == null ? existing?.difficulty || 'Not assessed' : getRecallDifficulty(correct, totalQuestions),
     reviewCount: existing?.reviewCount || 0, status: 'scheduled', completed: false,
     completedAt: null, createdAt: existing?.createdAt || now, updatedAt: now,
   })
@@ -97,7 +99,7 @@ export function upsertPostStudyRecalls(reviews, log, quizResult) {
     const existing = index >= 0 ? next[index] : null
     const item = createRecallItem({
       subject: log.subject, chapter: log.chapter, topic, confidence: log.confidence,
-      score: quizResult.score, percentage: quizResult.percentage, source: 'post-study-quiz',
+      score: quizResult.score, totalQuestions: quizResult.totalQuestions, percentage: quizResult.percentage, source: 'post-study-quiz',
       sourceLogId: log.id, quizResultId: quizResult.id, existing,
     })
     if (index >= 0) next[index] = item
@@ -120,4 +122,12 @@ export function groupRecallItems(items, today = getTodayDate()) {
   groups.upcoming.sort(sortByDue)
   groups.completed.sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''))
   return groups
+}
+
+export function countOverdueRecalls(items, today = getTodayDate(), selectedDate = null) {
+  return items.filter((item) => (
+    !item.completed
+    && item.nextReviewDate < today
+    && (!selectedDate || item.nextReviewDate === selectedDate)
+  )).length
 }

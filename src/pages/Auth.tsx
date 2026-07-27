@@ -1,11 +1,13 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { ArrowRight, Brain, CheckCircle2, Loader2, LockKeyhole, Mail, UserRound, X } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import Logo from '../components/Logo'
 import { useAuth } from '../auth/AuthProvider'
+import { validateAuthForm } from '../utils/authValidation'
 
-type AuthMode = 'signin' | 'signup'
+type AuthMode = 'signin' | 'signup' | 'forgot'
+type ActiveAuthMode = AuthMode | 'recovery'
 
 function localTimezone(): string {
   try {
@@ -16,20 +18,30 @@ function localTimezone(): string {
 }
 
 export default function Auth() {
-  const { signIn, signUp } = useAuth()
+  const {
+    passwordRecovery,
+    requestPasswordReset,
+    signIn,
+    signUp,
+    updatePassword,
+  } = useAuth()
   const [mode, setMode] = useState<AuthMode>('signin')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const timezone = useMemo(localTimezone, [])
+  const [timezone] = useState(localTimezone)
+  const activeMode: ActiveAuthMode = passwordRecovery ? 'recovery' : mode
 
   function changeMode(nextMode: AuthMode) {
     setMode(nextMode)
     setError('')
     setNotice('')
+    setPassword('')
+    setConfirmPassword('')
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -40,12 +52,30 @@ export default function Auth() {
     setNotice('')
 
     try {
-      const result = mode === 'signup'
+      const validationError = validateAuthForm({
+        mode: activeMode,
+        name,
+        email,
+        password,
+        confirmPassword,
+      })
+      if (validationError) {
+        setError(validationError)
+        return
+      }
+
+      const result = activeMode === 'signup'
         ? await signUp({ name, email, password })
-        : await signIn(email, password)
+        : activeMode === 'forgot'
+          ? await requestPasswordReset(email)
+          : activeMode === 'recovery'
+            ? await updatePassword(password)
+            : await signIn(email, password)
 
       if (result.error) {
         setError(result.error)
+      } else if (activeMode === 'forgot') {
+        setNotice('Check your email for a secure password-reset link.')
       } else if (result.needsEmailConfirmation) {
         setNotice('Check your email to confirm your Recall+ account, then sign in here.')
         setMode('signin')
@@ -89,37 +119,47 @@ export default function Auth() {
           <div className="mb-9 lg:hidden"><Logo /></div>
           <span className="grid size-12 place-items-center rounded-2xl bg-secondary text-primary"><Brain className="size-6" /></span>
           <h2 className="mt-6 text-3xl font-semibold tracking-[-0.03em]">
-            {mode === 'signin' ? 'Welcome back' : 'Create your Recall+ account'}
+            {activeMode === 'signin'
+              ? 'Welcome back'
+              : activeMode === 'signup'
+                ? 'Create your Recall+ account'
+                : activeMode === 'forgot'
+                  ? 'Reset your password'
+                  : 'Choose a new password'}
           </h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            {mode === 'signin'
+            {activeMode === 'signin'
               ? 'Sign in to open your study plan and continue where you left off.'
-              : 'Your current browser data will be preserved and securely attached to this account.'}
+              : activeMode === 'signup'
+                ? 'Your current browser data will be preserved and securely attached to this account.'
+                : activeMode === 'forgot'
+                  ? 'We will email you a secure link to choose a new password.'
+                  : 'Enter a new password to finish recovering your Recall+ account.'}
           </p>
 
-          <div className="mt-7 grid grid-cols-2 rounded-xl bg-muted p-1" role="tablist" aria-label="Authentication mode">
+          {activeMode === 'signin' || activeMode === 'signup' ? <div className="mt-7 grid grid-cols-2 rounded-xl bg-muted p-1" role="tablist" aria-label="Authentication mode">
             <button
               type="button"
               role="tab"
-              aria-selected={mode === 'signin'}
+              aria-selected={activeMode === 'signin'}
               onClick={() => changeMode('signin')}
-              className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${mode === 'signin' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`min-h-11 rounded-lg px-4 py-2.5 text-sm font-semibold transition ${activeMode === 'signin' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Sign in
             </button>
             <button
               type="button"
               role="tab"
-              aria-selected={mode === 'signup'}
+              aria-selected={activeMode === 'signup'}
               onClick={() => changeMode('signup')}
-              className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${mode === 'signup' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`min-h-11 rounded-lg px-4 py-2.5 text-sm font-semibold transition ${activeMode === 'signup' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Create account
             </button>
-          </div>
+          </div> : null}
 
           <form className="mt-6 space-y-4" onSubmit={submit}>
-            {mode === 'signup' ? (
+            {activeMode === 'signup' ? (
               <label className="field-label">
                 Name
                 <span className="relative mt-2 block">
@@ -138,7 +178,7 @@ export default function Auth() {
               </label>
             ) : null}
 
-            <label className="field-label">
+            {activeMode !== 'recovery' ? <label className="field-label">
               Email
               <span className="relative mt-2 block">
                 <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -153,26 +193,61 @@ export default function Auth() {
                   required
                 />
               </span>
-            </label>
+            </label> : null}
 
-            <label className="field-label">
-              Password
+            {activeMode !== 'forgot' ? <label className="field-label">
+              {activeMode === 'recovery' ? 'New password' : 'Password'}
               <span className="relative mt-2 block">
                 <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   className="field !pl-10"
                   type="password"
-                  autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                  autoComplete={activeMode === 'signup' || activeMode === 'recovery' ? 'new-password' : 'current-password'}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder={mode === 'signup' ? 'At least 8 characters' : 'Your password'}
-                  minLength={mode === 'signup' ? 8 : undefined}
+                  placeholder={activeMode === 'signup' || activeMode === 'recovery' ? 'At least 8 characters' : 'Your password'}
+                  minLength={activeMode === 'signup' || activeMode === 'recovery' ? 8 : undefined}
                   required
                 />
               </span>
-            </label>
+            </label> : null}
 
-            {mode === 'signup' ? (
+            {activeMode === 'recovery' ? (
+              <label className="field-label">
+                Confirm new password
+                <span className="relative mt-2 block">
+                  <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    className="field !pl-10"
+                    type="password"
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    placeholder="Repeat your new password"
+                    minLength={8}
+                    required
+                  />
+                </span>
+              </label>
+            ) : null}
+
+            {activeMode === 'signup' || activeMode === 'recovery' ? (
+              <p className="text-xs leading-5 text-muted-foreground">
+                Use 8 or more characters with lowercase, uppercase, a number, and a symbol.
+              </p>
+            ) : null}
+
+            {activeMode === 'signin' ? (
+              <button type="button" className="min-h-11 text-sm font-semibold text-primary hover:underline" onClick={() => changeMode('forgot')}>
+                Forgot your password?
+              </button>
+            ) : activeMode === 'forgot' ? (
+              <button type="button" className="min-h-11 text-sm font-semibold text-primary hover:underline" onClick={() => changeMode('signin')}>
+                Back to sign in
+              </button>
+            ) : null}
+
+            {activeMode === 'signup' ? (
               <p className="rounded-xl bg-secondary/60 px-4 py-3 text-xs leading-5 text-muted-foreground">
                 Your daily generation limits will reset at midnight in <strong className="text-foreground">{timezone}</strong>.
               </p>
@@ -181,7 +256,15 @@ export default function Auth() {
             {error ? (
               <Alert variant="destructive" className="">
                 <X />
-                <AlertTitle className="">Could not {mode === 'signin' ? 'sign in' : 'create your account'}</AlertTitle>
+                <AlertTitle className="">
+                  {activeMode === 'signin'
+                    ? 'Could not sign in'
+                    : activeMode === 'signup'
+                      ? 'Could not create your account'
+                      : activeMode === 'forgot'
+                        ? 'Could not send a reset link'
+                        : 'Could not update your password'}
+                </AlertTitle>
                 <AlertDescription className="">{error}</AlertDescription>
               </Alert>
             ) : null}
@@ -189,7 +272,7 @@ export default function Auth() {
             {notice ? (
               <Alert variant="default" className="">
                 <CheckCircle2 />
-                <AlertTitle className="">Confirm your email</AlertTitle>
+                <AlertTitle className="">{activeMode === 'forgot' ? 'Reset link sent' : 'Confirm your email'}</AlertTitle>
                 <AlertDescription className="">{notice}</AlertDescription>
               </Alert>
             ) : null}
@@ -197,8 +280,20 @@ export default function Auth() {
             <Button type="submit" className="w-full" size="lg" nativeButton render={undefined} disabled={submitting}>
               {submitting ? <Loader2 className="animate-spin" data-icon="inline-start" /> : null}
               {submitting
-                ? (mode === 'signin' ? 'Signing in…' : 'Creating account…')
-                : (mode === 'signin' ? 'Sign in to Recall+' : 'Create my account')}
+                ? (activeMode === 'signin'
+                    ? 'Signing in…'
+                    : activeMode === 'signup'
+                      ? 'Creating account…'
+                      : activeMode === 'forgot'
+                        ? 'Sending reset link…'
+                        : 'Updating password…')
+                : (activeMode === 'signin'
+                    ? 'Sign in to Recall+'
+                    : activeMode === 'signup'
+                      ? 'Create my account'
+                      : activeMode === 'forgot'
+                        ? 'Email me a reset link'
+                        : 'Save new password')}
               {!submitting ? <ArrowRight data-icon="inline-end" /> : null}
             </Button>
           </form>

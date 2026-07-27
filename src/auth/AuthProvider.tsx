@@ -9,13 +9,24 @@ import {
   useState,
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
-import { hydrateUserData, type RecallProfile, syncUserSnapshot } from '../data/userDataSync'
+import {
+  DataSyncConflictError,
+  hydrateUserData,
+  resolveUserDataConflict,
+  type RecallProfile,
+  syncUserSnapshot,
+} from '../data/userDataSync'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
 import {
   DATA_DIRTY_EVENT,
   getDataSyncState,
   setStorageUser,
 } from '../utils/storage'
+import {
+  getSyncRetryDelay,
+  SYNC_RETRY_BASE_MS,
+  SYNC_RETRY_LIMIT,
+} from '../utils/syncUtils'
 
 interface AuthResult {
   error: string
@@ -37,17 +48,20 @@ interface AuthContextValue {
   dataReady: boolean
   dataLoading: boolean
   dataError: string
+  dataConflict: boolean
   syncing: boolean
   signingOut: boolean
+  passwordRecovery: boolean
   signIn: (email: string, password: string) => Promise<AuthResult>
   signUp: (input: SignUpInput) => Promise<AuthResult>
+  requestPasswordReset: (email: string) => Promise<AuthResult>
+  updatePassword: (password: string) => Promise<AuthResult>
   signOut: () => Promise<AuthResult>
   retryDataSync: () => void
+  resolveDataConflict: (strategy: 'cloud' | 'local') => Promise<AuthResult>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
-const SYNC_DEBOUNCE_MS = 650
-
 function currentTimezone(): string {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
@@ -68,10 +82,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [dataOwnerId, setDataOwnerId] = useState('')
   const [dataLoading, setDataLoading] = useState(false)
   const [dataError, setDataError] = useState('')
+  const [dataConflict, setDataConflict] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [passwordRecovery, setPasswordRecovery] = useState(false)
   const [retryVersion, setRetryVersion] = useState(0)
   const syncTimerRef = useRef<number | null>(null)
+  const syncRetryCountRef = useRef(0)
+  const flushUserDataRef = useRef<() => Promise<void>>(async () => {})
+  const flushOperationRef = useRef<{ userId: string; promise: Promise<void> } | null>(null)
+  const currentUserRef = useRef<User | null>(null)
+  const sessionUserIdRef = useRef('')
+  const dataEpochRef = useRef(0)
 
   const user = session?.user ?? null
   const userId = user?.id ?? ''
@@ -80,26 +102,51 @@ export function AuthProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     if (!isSupabaseConfigured) {
       setStorageUser(null)
-      setAuthLoading(false)
       return undefined
     }
 
     let active = true
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (!active) return
+    function applySession(nextSession: Session | null) {
+      const nextUserId = nextSession?.user?.id ?? ''
+      currentUserRef.current = nextSession?.user ?? null
+      setStorageUser(nextUserId || null)
+      if (sessionUserIdRef.current !== nextUserId) {
+        sessionUserIdRef.current = nextUserId
+        dataEpochRef.current += 1
+        syncRetryCountRef.current = 0
+        if (syncTimerRef.current !== null) {
+          window.clearTimeout(syncTimerRef.current)
+          syncTimerRef.current = null
+        }
+        setSyncing(false)
+        setSigningOut(false)
+        setDataConflict(false)
+      }
       setSession(nextSession)
       setAuthLoading(false)
+      if (nextSession?.user) return
+      setProfile(null)
+      setDataOwnerId('')
+      setDataLoading(false)
+      setDataReady(false)
+    }
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (!active) return
+      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true)
+      if (event === 'SIGNED_OUT') setPasswordRecovery(false)
+      applySession(nextSession)
+      if (event === 'USER_UPDATED') setRetryVersion((value) => value + 1)
     })
 
     void supabase.auth.getSession().then(({ data, error }) => {
       if (!active) return
       if (error) {
         setDataError(`Could not restore your session: ${error.message}`)
-        setSession(null)
+        applySession(null)
       } else {
-        setSession(data.session)
+        applySession(data.session)
       }
-      setAuthLoading(false)
     })
 
     return () => {
@@ -110,61 +157,100 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (!isSupabaseConfigured) return undefined
-    if (!user) {
-      setStorageUser(null)
-      setProfile(null)
-      setDataOwnerId('')
-      setDataLoading(false)
-      setDataReady(false)
-      return undefined
-    }
+    const hydrationUser = currentUserRef.current
+    if (!userId || !hydrationUser || hydrationUser.id !== userId) return undefined
+    const activeHydrationUser = hydrationUser
 
     let active = true
-    setDataLoading(true)
-    setDataReady(false)
-    setDataOwnerId('')
-    setDataError('')
+    const hydrationEpoch = dataEpochRef.current
+    const isCurrent = () => (
+      active
+      && dataEpochRef.current === hydrationEpoch
+      && sessionUserIdRef.current === activeHydrationUser.id
+    )
+    async function hydrateActiveUser() {
+      await Promise.resolve()
+      if (!isCurrent()) return
+      setDataLoading(true)
+      setDataReady(false)
+      setDataOwnerId('')
+      setDataError('')
+      syncRetryCountRef.current = 0
 
-    void hydrateUserData(user)
-      .then((result) => {
-        if (!active) return
+      try {
+        const result = await hydrateUserData(activeHydrationUser)
+        if (!isCurrent()) return
         setProfile(result.profile)
-        setDataOwnerId(user.id)
+        setDataOwnerId(activeHydrationUser.id)
         setDataReady(true)
-      })
-      .catch((error: unknown) => {
-        if (!active) return
+        setDataConflict(false)
+      } catch (error: unknown) {
+        if (!isCurrent()) return
         setDataError(errorMessage(error, 'Could not load your Recall+ data.'))
+        setDataConflict(error instanceof DataSyncConflictError)
         setDataReady(false)
-      })
-      .finally(() => {
-        if (active) setDataLoading(false)
-      })
+      } finally {
+        if (isCurrent()) setDataLoading(false)
+      }
+    }
+    void hydrateActiveUser()
 
     return () => {
       active = false
     }
-  }, [userId, retryVersion]) // `user` changes on token refresh; the stable id owns data.
+  }, [userId, retryVersion])
 
-  const flushUserData = useCallback(async () => {
-    if (!userId || !activeDataReady) return
-    setSyncing(true)
-    try {
-      await syncUserSnapshot(userId)
-      setDataError('')
-    } catch (error) {
-      setDataError(errorMessage(error, 'Could not sync your Recall+ data.'))
-    } finally {
-      setSyncing(false)
-      if (getDataSyncState(userId).dirty) {
-        if (syncTimerRef.current !== null) window.clearTimeout(syncTimerRef.current)
-        syncTimerRef.current = window.setTimeout(() => {
-          syncTimerRef.current = null
-          void flushUserData()
-        }, SYNC_DEBOUNCE_MS)
+  const flushUserData = useCallback((): Promise<void> => {
+    if (!userId || !activeDataReady || sessionUserIdRef.current !== userId) return Promise.resolve()
+    const existing = flushOperationRef.current
+    if (existing?.userId === userId) return existing.promise
+
+    const operationEpoch = dataEpochRef.current
+    const isCurrent = () => (
+      dataEpochRef.current === operationEpoch
+      && sessionUserIdRef.current === userId
+    )
+    const promise = (async () => {
+      setSyncing(true)
+      let nextDelay: number | null = null
+      try {
+        await syncUserSnapshot(userId)
+        if (!isCurrent()) return
+        syncRetryCountRef.current = 0
+        setDataError('')
+        setDataConflict(false)
+        if (getDataSyncState(userId).dirty) nextDelay = SYNC_RETRY_BASE_MS
+      } catch (error) {
+        if (!isCurrent()) return
+        setDataError(errorMessage(error, 'Could not sync your Recall+ data.'))
+        setDataConflict(error instanceof DataSyncConflictError)
+        const nextAttempt = syncRetryCountRef.current + 1
+        syncRetryCountRef.current = nextAttempt
+        if (!(error instanceof DataSyncConflictError) && nextAttempt <= SYNC_RETRY_LIMIT) {
+          nextDelay = getSyncRetryDelay(nextAttempt - 1)
+        }
+      } finally {
+        if (isCurrent()) {
+          setSyncing(false)
+          if (getDataSyncState(userId).dirty && nextDelay !== null) {
+            if (syncTimerRef.current !== null) window.clearTimeout(syncTimerRef.current)
+            syncTimerRef.current = window.setTimeout(() => {
+              syncTimerRef.current = null
+              void flushUserDataRef.current()
+            }, nextDelay)
+          }
+        }
       }
-    }
+    })().finally(() => {
+      if (flushOperationRef.current?.promise === promise) flushOperationRef.current = null
+    })
+    flushOperationRef.current = { userId, promise }
+    return promise
   }, [activeDataReady, userId])
+
+  useEffect(() => {
+    flushUserDataRef.current = flushUserData
+  }, [flushUserData])
 
   useEffect(() => {
     if (!isSupabaseConfigured || !userId || !activeDataReady) return undefined
@@ -172,11 +258,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     function scheduleSync(event?: Event) {
       const eventUserId = (event as CustomEvent<{ userId?: string }> | undefined)?.detail?.userId
       if (eventUserId && eventUserId !== userId) return
+      syncRetryCountRef.current = 0
       if (syncTimerRef.current !== null) window.clearTimeout(syncTimerRef.current)
       syncTimerRef.current = window.setTimeout(() => {
         syncTimerRef.current = null
         void flushUserData()
-      }, SYNC_DEBOUNCE_MS)
+      }, SYNC_RETRY_BASE_MS)
     }
 
     function onStorage(event: StorageEvent) {
@@ -185,16 +272,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     function onVisibilityChange() {
       if (document.visibilityState === 'hidden' && getDataSyncState(userId).dirty) {
+        syncRetryCountRef.current = 0
         void flushUserData()
       }
     }
 
     window.addEventListener(DATA_DIRTY_EVENT, scheduleSync)
     window.addEventListener('storage', onStorage)
+    window.addEventListener('online', scheduleSync)
     document.addEventListener('visibilitychange', onVisibilityChange)
     return () => {
       window.removeEventListener(DATA_DIRTY_EVENT, scheduleSync)
       window.removeEventListener('storage', onStorage)
+      window.removeEventListener('online', scheduleSync)
       document.removeEventListener('visibilitychange', onVisibilityChange)
       if (syncTimerRef.current !== null) {
         window.clearTimeout(syncTimerRef.current)
@@ -237,19 +327,49 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   }, [])
 
+  const requestPasswordReset = useCallback(async (email: string): Promise<AuthResult> => {
+    if (!isSupabaseConfigured) {
+      return { error: 'Supabase is not configured for this Recall+ installation.' }
+    }
+    const redirectTo = typeof window === 'undefined'
+      ? undefined
+      : new URL('/auth', window.location.origin).toString()
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo })
+    return { error: error?.message || '' }
+  }, [])
+
+  const updatePassword = useCallback(async (password: string): Promise<AuthResult> => {
+    if (!isSupabaseConfigured) {
+      return { error: 'Supabase is not configured for this Recall+ installation.' }
+    }
+    const { error } = await supabase.auth.updateUser({ password })
+    if (!error) setPasswordRecovery(false)
+    return { error: error?.message || '' }
+  }, [])
+
   const signOut = useCallback(async (): Promise<AuthResult> => {
     if (!isSupabaseConfigured) return { error: '' }
+    const signingOutUserId = userId
     setSigningOut(true)
     try {
       if (userId && activeDataReady && getDataSyncState(userId).dirty) {
         try {
           await syncUserSnapshot(userId)
-        } catch {
+        } catch (error) {
           // The user-scoped local copy remains dirty and will retry next login.
+          if (sessionUserIdRef.current === signingOutUserId) {
+            setDataError(errorMessage(error, 'Could not sync before signing out. Your local copy was preserved.'))
+          }
         }
       }
+      if (sessionUserIdRef.current !== signingOutUserId) {
+        return { error: 'Your signed-in account changed. Please try again.' }
+      }
       const { error } = await supabase.auth.signOut()
-      if (!error) setStorageUser(null)
+      if (!error) {
+        setStorageUser(null)
+        setPasswordRecovery(false)
+      }
       return { error: error?.message || '' }
     } finally {
       setSigningOut(false)
@@ -258,10 +378,49 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const retryDataSync = useCallback(() => {
     if (!userId) return
-    setRetryVersion((value) => value + 1)
+    syncRetryCountRef.current = 0
+    setDataError('')
+    if (activeDataReady) {
+      void flushUserData()
+    } else {
+      setRetryVersion((value) => value + 1)
+    }
+  }, [activeDataReady, flushUserData, userId])
+
+  const resolveDataConflict = useCallback(async (
+    strategy: 'cloud' | 'local',
+  ): Promise<AuthResult> => {
+    if (!userId || sessionUserIdRef.current !== userId) {
+      return { error: 'Your signed-in account changed. Please try again.' }
+    }
+    const operationEpoch = dataEpochRef.current
+    setSyncing(true)
+    try {
+      await resolveUserDataConflict(userId, strategy)
+      if (
+        dataEpochRef.current !== operationEpoch
+        || sessionUserIdRef.current !== userId
+      ) return { error: 'Your signed-in account changed. Please try again.' }
+      setDataConflict(false)
+      setDataError('')
+      setRetryVersion((value) => value + 1)
+      return { error: '' }
+    } catch (error) {
+      const message = errorMessage(error, 'Could not resolve the data conflict.')
+      if (
+        dataEpochRef.current === operationEpoch
+        && sessionUserIdRef.current === userId
+      ) setDataError(message)
+      return { error: message }
+    } finally {
+      if (
+        dataEpochRef.current === operationEpoch
+        && sessionUserIdRef.current === userId
+      ) setSyncing(false)
+    }
   }, [userId])
 
-  const loading = authLoading || Boolean(user && (dataLoading || !activeDataReady))
+  const loading = authLoading || Boolean(user && dataLoading)
   const value = useMemo<AuthContextValue>(() => ({
     user,
     session,
@@ -271,12 +430,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
     dataReady: activeDataReady,
     dataLoading,
     dataError,
+    dataConflict,
     syncing,
     signingOut,
+    passwordRecovery,
     signIn,
     signUp,
+    requestPasswordReset,
+    updatePassword,
     signOut,
     retryDataSync,
+    resolveDataConflict,
   }), [
     user,
     session,
@@ -285,12 +449,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
     activeDataReady,
     dataLoading,
     dataError,
+    dataConflict,
     syncing,
     signingOut,
+    passwordRecovery,
     signIn,
     signUp,
+    requestPasswordReset,
+    updatePassword,
     signOut,
     retryDataSync,
+    resolveDataConflict,
   ])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

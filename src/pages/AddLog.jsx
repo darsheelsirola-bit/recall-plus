@@ -9,8 +9,8 @@ import syllabus from '../data/syllabus.json'
 import { getTodayDate } from '../utils/dateUtils'
 import { formatStudyMinutes, getLogTopics } from '../utils/logUtils'
 import { createId } from '../utils/quizUtils'
-import { scheduleFirstReview } from '../utils/spacedRepetition'
-import { getData, saveData, STORAGE_KEYS } from '../utils/storage'
+import { scheduleFirstReviewData } from '../utils/spacedRepetition'
+import { getData, saveDataBatchOrThrow, STORAGE_KEYS } from '../utils/storage'
 import { getBlocksForDate } from '../utils/studyTimetable'
 
 function formatTime(time = '') {
@@ -67,6 +67,7 @@ export default function AddLog() {
   const [notes, setNotes] = useState(initial.notes)
   const [timetableBlockId, setTimetableBlockId] = useState(initial.timetableBlockId)
   const [followedTimetable, setFollowedTimetable] = useState(initial.followedTimetable)
+  const [saveError, setSaveError] = useState('')
 
   const chapters = getChapters(subject)
   const chapterTopics = getTopics(subject, chapter)
@@ -105,6 +106,7 @@ export default function AddLog() {
   function handleSubmit(event) {
     event.preventDefault()
     if (!topics.length) return
+    setSaveError('')
     const logs = getData(STORAGE_KEYS.logs, [])
     const actualDuration = Number(timeSpent)
     const timetableFollowUp = effectiveTimetableBlockId ? {
@@ -122,21 +124,37 @@ export default function AddLog() {
     const fields = { subject, chapter, topics, topic: topics[0], date, timeSpent: actualDuration, confidence, notes: notes.trim(), timetableFollowUp }
 
     let savedLog
-    if (editingLog) {
-      savedLog = { ...editingLog, ...fields }
-      saveData(STORAGE_KEYS.logs, logs.map((log) => (log.id === editingLog.id ? { ...log, ...fields } : log)))
-    } else {
-      savedLog = { id: createId(), ...fields }
-      saveData(STORAGE_KEYS.logs, [savedLog, ...logs])
-    }
+    try {
+      savedLog = editingLog ? { ...editingLog, ...fields } : { id: createId(), ...fields }
+      const nextLogs = editingLog
+        ? logs.map((log) => (log.id === editingLog.id ? savedLog : log))
+        : [savedLog, ...logs]
 
-    const statuses = getData(STORAGE_KEYS.topicStatuses, {})
-    topics.forEach((topic) => {
-      const key = `${subject}|${chapter}|${topic}`
-      if (statuses[key] !== 'Mastered') statuses[key] = 'Studied'
-      if (editingLog) scheduleFirstReview(subject, chapter, topic, confidence)
-    })
-    saveData(STORAGE_KEYS.topicStatuses, statuses)
+      const statuses = getData(STORAGE_KEYS.topicStatuses, {})
+      let nextReviews = getData(STORAGE_KEYS.reviews, [])
+      topics.forEach((topic) => {
+        const key = `${subject}|${chapter}|${topic}`
+        if (statuses[key] !== 'Mastered') statuses[key] = 'Studied'
+        if (editingLog) {
+          nextReviews = scheduleFirstReviewData(
+            nextReviews,
+            subject,
+            chapter,
+            topic,
+            confidence,
+          ).reviews
+        }
+      })
+      const updates = [
+        [STORAGE_KEYS.logs, nextLogs],
+        [STORAGE_KEYS.topicStatuses, statuses],
+      ]
+      if (editingLog) updates.push([STORAGE_KEYS.reviews, nextReviews])
+      saveDataBatchOrThrow(updates)
+    } catch (persistenceError) {
+      setSaveError(persistenceError.message)
+      return
+    }
 
     if (editingLog) {
       navigate('/logs')
@@ -151,6 +169,7 @@ export default function AddLog() {
         title={editingLog ? 'Edit study log' : 'Study log'}
         actions={<Button variant="outline" render={<Link to="/logs" />}>View all study logs</Button>}
       />
+      {saveError ? <p role="alert" className="mb-4 rounded-xl border border-destructive/25 bg-destructive/10 p-4 text-sm font-medium text-destructive">{saveError} Your form is still here so you can retry.</p> : null}
       <form onSubmit={handleSubmit} className="grid max-w-7xl gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="p-5 sm:p-6">
           <div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-xl bg-secondary text-primary"><NotebookPen className="size-5" /></span><div><h2 className="text-lg font-semibold">Study log</h2><p className="text-sm text-muted-foreground">Pick a chapter, then tap every topic you covered.</p></div></div>
@@ -167,15 +186,15 @@ export default function AddLog() {
             {topics.length ? (
               <div className="mt-2 flex flex-wrap gap-2">
                 {topics.map((topic) => (
-                  <span key={topic} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground">
+                  <span key={topic} className="inline-flex min-h-11 items-center gap-1 rounded-full bg-primary py-0 pl-3 pr-0.5 text-sm font-semibold text-primary-foreground">
                     {topic}
-                    <button type="button" onClick={() => toggleTopic(topic)} className="grid h-4 w-4 place-items-center rounded-full bg-white/25 hover:bg-white/40" aria-label={`Remove ${topic}`}><X size={11} /></button>
+                    <button type="button" onClick={() => toggleTopic(topic)} className="grid size-11 place-items-center rounded-full bg-white/15 hover:bg-white/30" aria-label={`Remove ${topic}`}><X size={14} /></button>
                   </span>
                 ))}
               </div>
             ) : <p className="mt-2 text-sm text-muted-foreground">Tap topics below to add them.</p>}
             <div className="mt-3 flex flex-wrap gap-2">
-              {chapterTopics.map((topic) => { const active = topics.includes(topic); return <button type="button" key={topic} onClick={() => toggleTopic(topic)} className={`min-h-9 rounded-full border px-3 py-1.5 text-sm font-medium transition ${active ? 'border-primary bg-secondary text-primary' : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-primary'}`}>{active ? '✓ ' : '+ '}{topic}</button> })}
+              {chapterTopics.map((topic) => { const active = topics.includes(topic); return <button type="button" key={topic} aria-pressed={active} onClick={() => toggleTopic(topic)} className={`min-h-11 rounded-full border px-3 py-2 text-sm font-medium transition ${active ? 'border-primary bg-secondary text-primary' : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-primary'}`}>{active ? '✓ ' : '+ '}{topic}</button> })}
             </div>
           </div>
 
@@ -251,7 +270,7 @@ export default function AddLog() {
                     {chapterTopics.map((topic) => {
                       const active = topics.includes(topic)
                       return (
-                        <button type="button" key={topic} onClick={() => toggleTopic(topic)} className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition ${active ? 'border-primary bg-secondary text-primary' : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-primary'}`}>
+                        <button type="button" key={topic} aria-pressed={active} onClick={() => toggleTopic(topic)} className={`min-h-11 rounded-full border px-3 py-2 text-xs font-semibold transition ${active ? 'border-primary bg-secondary text-primary' : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-primary'}`}>
                           {active ? '✓ ' : '+ '}{topic}
                         </button>
                       )

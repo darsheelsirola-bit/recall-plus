@@ -1,6 +1,11 @@
 node_modules/
 dist/
 coverage/
+.nyc_output/
+test-results/
+playwright-report/
+.eslintcache
+*.tsbuildinfo
 .vercel/
 
 # Local environment files can contain Supabase and AI-provider secrets.

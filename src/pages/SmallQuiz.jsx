@@ -10,9 +10,16 @@ import { useGenerationUsage } from '../contexts/GenerationUsageContext'
 import { generateQuizQuestions } from '../services/groqService'
 import { GENERATION_LIMIT_MESSAGE } from '../types/generation'
 import { formatDate, getTodayDate } from '../utils/dateUtils'
-import { SMALL_QUIZ_COUNT, calculateScore, createId, createQuestionStorageKey, getTopicStatus } from '../utils/quizUtils'
-import { createOrUpdateReview } from '../utils/spacedRepetition'
-import { getData, saveData, STORAGE_KEYS } from '../utils/storage'
+import { SMALL_QUIZ_COUNT, calculateScore, createId, createQuestionStorageKey, getTopicStatus, validateQuizQuestions } from '../utils/quizUtils'
+import { createOrUpdateReviewData } from '../utils/spacedRepetition'
+import {
+  getData,
+  getStorageUser,
+  saveDataBatchOrThrow,
+  saveDataForUserOrThrow,
+  STORAGE_KEYS,
+} from '../utils/storage'
+import { createSubmissionGuard } from '../utils/submissionGuard'
 
 function daysUntil(dateString) {
   const today = new Date(`${getTodayDate()}T12:00:00`)
@@ -38,6 +45,7 @@ export default function SmallQuiz() {
   const [result, setResult] = useState(null)
   const [review, setReview] = useState(null)
   const generationRef = useRef(false)
+  const submissionGuardRef = useRef(createSubmissionGuard())
   const quizUsage = useGenerationUsage('quiz')
 
   const storageKey = createQuestionStorageKey(selection.subject, selection.chapter, selection.topic, 'small')
@@ -51,10 +59,19 @@ export default function SmallQuiz() {
     setResult(null)
     setReview(null)
     setError('')
+    submissionGuardRef.current.reset()
   }
 
   async function startQuiz() {
     if (generationRef.current || loading) return
+    const cached = getData(storageKey, [])
+    if (validateQuizQuestions(cached, SMALL_QUIZ_COUNT)) {
+      setQuestions(cached)
+      setAnswers({})
+      submissionGuardRef.current.reset()
+      setMode('active')
+      return
+    }
     if (quizUsage.exhausted) {
       setError(GENERATION_LIMIT_MESSAGE)
       return
@@ -64,11 +81,14 @@ export default function SmallQuiz() {
     generationRef.current = true
     setLoading(true)
     setError('')
+    const ownerId = getStorageUser()
     try {
       const generated = await generateQuizQuestions(selection.subject, selection.chapter, selection.topic, { count: SMALL_QUIZ_COUNT, level: 'mixed' })
-      saveData(storageKey, generated)
+      if (!ownerId || getStorageUser() !== ownerId) return
+      saveDataForUserOrThrow(ownerId, storageKey, generated)
       setQuestions(generated)
       setAnswers({})
+      submissionGuardRef.current.reset()
       setMode('active')
     } catch (generationError) {
       setError(generationError.message)
@@ -79,15 +99,31 @@ export default function SmallQuiz() {
   }
 
   function submit() {
+    if (!submissionGuardRef.current.claim()) return
     const summary = calculateScore(questions, answers)
-    const quizResult = { id: createId(), type: 'diagnostic', date: getTodayDate(), ...selection, ...summary, status: getTopicStatus(summary.percentage) }
-    saveData(STORAGE_KEYS.quizResults, [quizResult, ...getData(STORAGE_KEYS.quizResults, [])])
+    const quizResult = { id: createId(), type: 'diagnostic', date: getTodayDate(), completedAt: new Date().toISOString(), ...selection, ...summary, status: getTopicStatus(summary.percentage) }
     const statuses = getData(STORAGE_KEYS.topicStatuses, {})
     statuses[`${selection.subject}|${selection.chapter}|${selection.topic}`] = summary.percentage >= 80 ? 'Mastered' : 'Needs Revision'
-    saveData(STORAGE_KEYS.topicStatuses, statuses)
-    const nextReview = createOrUpdateReview(selection.subject, selection.chapter, selection.topic, summary.percentage)
+    const reviewUpdate = createOrUpdateReviewData(
+      getData(STORAGE_KEYS.reviews, []),
+      selection.subject,
+      selection.chapter,
+      selection.topic,
+      summary.percentage,
+    )
+    try {
+      saveDataBatchOrThrow([
+        [STORAGE_KEYS.quizResults, [quizResult, ...getData(STORAGE_KEYS.quizResults, [])]],
+        [STORAGE_KEYS.topicStatuses, statuses],
+        [STORAGE_KEYS.reviews, reviewUpdate.reviews],
+      ])
+    } catch (persistenceError) {
+      submissionGuardRef.current.reset()
+      setError(persistenceError.message)
+      return
+    }
     setResult(quizResult)
-    setReview(nextReview)
+    setReview(reviewUpdate.review)
     setMode('result')
   }
 
@@ -96,6 +132,7 @@ export default function SmallQuiz() {
     return (
       <>
         <PageHeader title="Recall check" description={`${selection.subject} · ${selection.chapter} · ${selection.topic}`} />
+        {error ? <Alert variant="destructive" className="mb-5"><X /><AlertTitle>Could not save your recall check</AlertTitle><AlertDescription>{error}</AlertDescription></Alert> : null}
         <section className="panel p-5 sm:p-7">
           <p className="text-sm font-bold text-ink/50">{questions.length} quick questions — answer them all to get your recall date.</p>
           <div className="mt-6 space-y-6">
@@ -103,12 +140,12 @@ export default function SmallQuiz() {
               <div key={question.id} className="border-t border-ink/10 pt-6 first:border-0 first:pt-0">
                 <div className="flex items-center justify-between"><p className="text-xs font-extrabold uppercase tracking-wider text-ink/40">Question {questionIndex + 1}</p><span className={`status-chip ${question.difficulty === 'easy' ? 'bg-emerald-50 text-emerald-700' : question.difficulty === 'medium' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-coral'}`}>{question.difficulty}</span></div>
                 <h2 className="mt-2 text-lg font-extrabold leading-7 text-ink">{question.question}</h2>
-                <div className="mt-4 grid gap-2.5 sm:grid-cols-2">{question.options.map((option, optionIndex) => { const selected = answers[question.id] === option; return <button key={option} onClick={() => setAnswers((current) => ({ ...current, [question.id]: option }))} className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left text-sm font-bold transition ${selected ? 'border-indigo bg-lavender text-indigo' : 'border-ink/10 bg-white text-ink hover:border-indigo/30'}`}><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border text-xs ${selected ? 'border-indigo bg-indigo text-white' : 'border-ink/15 text-ink/45'}`}>{selected ? <Check size={14} /> : String.fromCharCode(65 + optionIndex)}</span>{option}</button> })}</div>
+                <div className="mt-4 grid gap-2.5 sm:grid-cols-2" role="radiogroup" aria-label={`Answers for question ${questionIndex + 1}`}>{question.options.map((option, optionIndex) => { const selected = answers[question.id] === option; return <button type="button" role="radio" aria-checked={selected} key={option} onClick={() => setAnswers((current) => ({ ...current, [question.id]: option }))} className={`flex min-h-11 items-center gap-3 rounded-2xl border p-3.5 text-left text-sm font-bold transition ${selected ? 'border-indigo bg-lavender text-indigo' : 'border-ink/10 bg-white text-ink hover:border-indigo/30'}`}><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border text-xs ${selected ? 'border-indigo bg-indigo text-white' : 'border-ink/15 text-ink/45'}`}>{selected ? <Check size={14} /> : String.fromCharCode(65 + optionIndex)}</span>{option}</button> })}</div>
               </div>
             ))}
           </div>
           <div className="mt-8 flex items-center justify-between">
-            <button className="text-sm font-extrabold text-ink/50" onClick={() => setMode('setup')}>Cancel</button>
+            <button type="button" className="min-h-11 px-3 text-sm font-extrabold text-ink/50" onClick={() => setMode('setup')}>Cancel</button>
             <button className="btn-primary" disabled={!allAnswered} onClick={submit}>See my recall date <CheckCircle2 size={17} /></button>
           </div>
         </section>
@@ -124,7 +161,7 @@ export default function SmallQuiz() {
       <>
         <PageHeader title="Recall scheduled" description={`${selection.subject} · ${selection.topic}`} actions={<button className="btn-secondary" onClick={() => changeSelection(selection)}><RotateCcw size={17} /> Another topic</button>} />
         <section className="grid gap-5 lg:grid-cols-[260px_1fr]">
-          <div className="rounded-3xl bg-ink p-7 text-white"><p className="text-sm font-bold text-white/55">You scored</p><p className="mt-2 text-6xl font-extrabold">{result.percentage}%</p><span className={`mt-4 inline-flex rounded-full px-3 py-1 text-sm font-extrabold ${result.status === 'Strong' ? 'bg-mint text-ink' : result.status === 'Average' ? 'bg-amber-300 text-ink' : 'bg-coral text-white'}`}>{result.status}</span></div>
+          <div className="rounded-3xl bg-ink p-7 text-white"><p className="text-sm font-bold text-white/55">You scored</p><p className="mt-2 text-6xl font-extrabold">{result.percentage}%</p><span className={`mt-4 inline-flex rounded-full px-3 py-1 text-sm font-extrabold ${result.status === 'Strong' ? 'bg-mint text-white' : result.status === 'Average' ? 'bg-amber-300 text-ink' : 'bg-coral text-white'}`}>{result.status}</span></div>
           <div className="panel p-6">
             <div className={`flex items-center gap-3 rounded-2xl p-4 ${toneClass}`}><CalendarClock size={22} /><p className="text-sm font-bold leading-6">{message.text}</p></div>
             <div className="mt-5 flex flex-wrap items-end justify-between gap-4">

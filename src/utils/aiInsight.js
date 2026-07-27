@@ -1,6 +1,6 @@
 import { motivationalQuotes } from '../data/motivationalQuotes.js'
 import { psychologyTechniques } from '../data/psychologyTechniques.js'
-import { getTodayDate, getWeekStart, isDueToday, isOverdue } from './dateUtils.js'
+import { addDays, getTodayDate, getWeekStart, isDueToday, isOverdue } from './dateUtils.js'
 import { formatStudyMinutes } from './logUtils.js'
 import { getData, saveData, STORAGE_KEYS } from './storage.js'
 import { findWeakTopics } from './weakTopics.js'
@@ -46,10 +46,10 @@ function buildContext(logs, results, reviews) {
   const studyDays = new Set(logs.map((log) => log.date))
   let streak = 0
   let cursor = today
-  if (!studyDays.has(cursor)) cursor = addDaysSafe(cursor, -1)
+  if (!studyDays.has(cursor)) cursor = addDays(cursor, -1)
   while (studyDays.has(cursor)) {
     streak += 1
-    cursor = addDaysSafe(cursor, -1)
+    cursor = addDays(cursor, -1)
   }
 
   return {
@@ -64,12 +64,6 @@ function buildContext(logs, results, reviews) {
     streak,
     hasData: logs.length > 0 || results.length > 0,
   }
-}
-
-function addDaysSafe(date, days) {
-  const value = new Date(`${date}T12:00:00`)
-  value.setDate(value.getDate() + days)
-  return value.toISOString().slice(0, 10)
 }
 
 function rankTechniques(context) {

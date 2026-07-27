@@ -12,6 +12,7 @@ import StudyLogList from '../components/StudyLogList'
 import syllabus from '../data/syllabus.json'
 import { useAppData } from '../hooks/useAppData'
 import { formatDate, getStudyStreak } from '../utils/dateUtils'
+import { latestResultsByTopic } from '../utils/resultUtils'
 import { getData, STORAGE_KEYS } from '../utils/storage'
 
 export default function Progress() {
@@ -22,11 +23,7 @@ export default function Progress() {
   const results = getData(STORAGE_KEYS.quizResults, [])
   const statuses = getData(STORAGE_KEYS.topicStatuses, {})
   const average = results.length ? Math.round(results.reduce((sum, result) => sum + result.percentage, 0) / results.length) : 0
-  const latestByTopic = Object.values(results.reduce((map, result) => {
-    const key = `${result.subject}|${result.chapter}|${result.topic}`
-    if (!map[key] || result.date >= map[key].date) map[key] = result
-    return map
-  }, {}))
+  const latestByTopic = latestResultsByTopic(results)
   const strong = latestByTopic.filter((item) => item.percentage >= 80)
   const weak = latestByTopic.filter((item) => item.percentage < 50)
 
@@ -73,8 +70,8 @@ export default function Progress() {
         )}
 
         <Card className="border-0 bg-ink text-white shadow-lift">
-          <CardHeader><span className="grid size-11 place-items-center rounded-xl bg-white/10 text-mint"><Award className="size-5" /></span><CardTitle className="mt-3 text-xl text-white">{strong.length ? `${strong.length} strong topic${strong.length === 1 ? '' : 's'}` : 'Your wins will collect here'}</CardTitle><CardDescription className="text-white/55">Score 80% or more to add a topic to this list.</CardDescription></CardHeader>
-          <CardContent className="flex flex-col gap-2">{strong.slice(0, 4).map((item) => <div key={`${item.subject}-${item.topic}`} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.06] p-3"><div className="min-w-0"><p className="truncate text-sm font-semibold">{item.topic}</p><p className="text-xs text-white/45">{item.subject}</p></div><span className="font-semibold text-mint">{item.percentage}%</span></div>)}{!strong.length ? <div className="rounded-xl border border-dashed border-white/15 p-4 text-sm text-white/55">Your first strong result will feel good here.</div> : null}</CardContent>
+          <CardHeader><span className="grid size-11 place-items-center rounded-xl bg-white/10 text-teal-300"><Award className="size-5" /></span><CardTitle className="mt-3 text-xl text-white">{strong.length ? `${strong.length} strong topic${strong.length === 1 ? '' : 's'}` : 'Your wins will collect here'}</CardTitle><CardDescription className="text-white/55">Score 80% or more to add a topic to this list.</CardDescription></CardHeader>
+          <CardContent className="flex flex-col gap-2">{strong.slice(0, 4).map((item) => <div key={`${item.subject}-${item.topic}`} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.06] p-3"><div className="min-w-0"><p className="truncate text-sm font-semibold">{item.topic}</p><p className="text-xs text-white/45">{item.subject}</p></div><span className="font-semibold text-teal-300">{item.percentage}%</span></div>)}{!strong.length ? <div className="rounded-xl border border-dashed border-white/15 p-4 text-sm text-white/55">Your first strong result will feel good here.</div> : null}</CardContent>
         </Card>
       </section>
 

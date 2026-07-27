@@ -20,9 +20,20 @@ function isWeekday(value) {
   return Number.isInteger(value) && value >= 0 && value <= 6
 }
 
+function isPlainObject(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const prototype = Object.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
+}
+
+function hasOnlyKeys(value, keys) {
+  return isPlainObject(value)
+    && Object.keys(value).every((key) => keys.includes(key))
+}
+
 function normalizeDays(days) {
   if (!Array.isArray(days)) return []
-  return days.filter(isWeekday)
+  return days.filter(isWeekday).sort((left, right) => left - right)
 }
 
 function hasValidDays(days) {
@@ -76,67 +87,110 @@ function isNonEmptyText(value) {
   return typeof value === 'string' && value.trim().length > 0
 }
 
-export function validateTimetableProfile(profile) {
-  if (!profile || typeof profile !== 'object') return false
+function normalizeStrictSession(session) {
+  if (!hasOnlyKeys(session, ['days', 'startTime', 'endTime'])) return null
+  if (!hasValidDays(session.days)) return null
+  const start = parseTime(session.startTime)
+  const end = parseTime(session.endTime)
+  if (start == null || end == null || end <= start) return null
+  return {
+    days: normalizeDays(session.days),
+    startTime: session.startTime,
+    endTime: session.endTime,
+  }
+}
+
+/**
+ * Return the exact profile shape that is safe to hash and send to the
+ * provider. Unknown properties are rejected instead of being silently hashed.
+ */
+export function normalizeTimetableProfile(profile) {
+  if (!hasOnlyKeys(profile, [
+    'wakeTime',
+    'sleepTime',
+    'school',
+    'tuition',
+    'sports',
+    'mostActivePeriod',
+    'freeTimeDescription',
+    'preferredSessionMinutes',
+    'weeklySessions',
+  ])) return null
+
   if (
     profile.freeTimeDescription != null
     && (
       typeof profile.freeTimeDescription !== 'string'
       || profile.freeTimeDescription.length > 1000
     )
-  ) return false
+  ) return null
   const wake = parseTime(profile.wakeTime)
   const sleep = parseTime(profile.sleepTime)
-  if (wake == null || sleep == null || sleep <= wake) return false
-  if (!VALID_ACTIVE_PERIODS.includes(profile.mostActivePeriod)) return false
+  if (wake == null || sleep == null || sleep <= wake) return null
+  if (!VALID_ACTIVE_PERIODS.includes(profile.mostActivePeriod)) return null
   if (
     !Number.isInteger(profile.preferredSessionMinutes ?? 60)
     || (profile.preferredSessionMinutes ?? 60) < 30
     || (profile.preferredSessionMinutes ?? 60) > 180
-  ) return false
+  ) return null
   if (
     !Number.isInteger(profile.weeklySessions ?? 7)
     || (profile.weeklySessions ?? 7) < 1
     || (profile.weeklySessions ?? 7) > 14
-  ) return false
+  ) return null
 
-  const school = normalizeSession(profile.school)
-  const tuition = normalizeSession(profile.tuition)
-  const schoolStart = parseTime(school.startTime)
-  const schoolEnd = parseTime(school.endTime)
-  const tuitionStart = parseTime(tuition.startTime)
-  const tuitionEnd = parseTime(tuition.endTime)
-  if (!hasValidDays(profile.school?.days) || schoolStart == null || schoolEnd == null || schoolEnd <= schoolStart) return false
-  if (!hasValidDays(profile.tuition?.days) || tuitionStart == null || tuitionEnd == null || tuitionEnd <= tuitionStart) return false
+  const school = normalizeStrictSession(profile.school)
+  const tuition = normalizeStrictSession(profile.tuition)
+  if (!school || !tuition) return null
   if (
+    !hasOnlyKeys(profile.sports, ['enabled', 'sessions'])
+    ||
     typeof profile.sports?.enabled !== 'boolean'
     || !Array.isArray(profile.sports?.sessions)
     || profile.sports.sessions.length > 7
-  ) return false
+  ) return null
 
-  if (profile.sports.sessions.length) {
-    const validSports = profile.sports.sessions.every((session) => {
-      const normalized = normalizeSession(session)
-      const start = parseTime(normalized.startTime)
-      const end = parseTime(normalized.endTime)
-      return Boolean(hasValidDays(session.days) && start != null && end != null && end > start)
-    })
-    if (!validSports) return false
+  const sportsSessions = profile.sports.sessions.map(normalizeStrictSession)
+  if (sportsSessions.some((session) => !session)) return null
+
+  return {
+    wakeTime: profile.wakeTime,
+    sleepTime: profile.sleepTime,
+    school,
+    tuition,
+    sports: {
+      enabled: profile.sports.enabled,
+      sessions: sportsSessions,
+    },
+    mostActivePeriod: profile.mostActivePeriod,
+    freeTimeDescription: String(profile.freeTimeDescription || '').trim().replace(/\s+/g, ' '),
+    preferredSessionMinutes: profile.preferredSessionMinutes ?? 60,
+    weeklySessions: profile.weeklySessions ?? 7,
   }
+}
 
-  return true
+export function validateTimetableProfile(profile) {
+  return normalizeTimetableProfile(profile) !== null
 }
 
 export function validateTimetableBlock(block, profile) {
-  if (!block || typeof block !== 'object') return false
+  if (!hasOnlyKeys(block, [
+    'weekday',
+    'startTime',
+    'durationMinutes',
+    'subject',
+    'label',
+    'techniqueId',
+  ])) return false
   if (!isWeekday(block.weekday)) return false
-  if (!isNonEmptyText(block.label)) return false
+  if (!isNonEmptyText(block.label) || block.label.length > 160) return false
 
   const isTechnique = isTimetableTechniqueId(block.techniqueId)
   if (isTechnique) {
     if (block.subject !== TECHNIQUE_SUBJECT) return false
     if (!Number.isInteger(block.durationMinutes) || block.durationMinutes < 5 || block.durationMinutes > 180) return false
   } else {
+    if (block.techniqueId != null) return false
     if (!VALID_TIMETABLE_SUBJECTS.includes(block.subject)) return false
     if (!Number.isInteger(block.durationMinutes) || block.durationMinutes < 30 || block.durationMinutes > 180) return false
   }

@@ -1,14 +1,24 @@
 export const ERROR_CODES = Object.freeze({
   AUTH_REQUIRED: 'AUTH_REQUIRED',
   AUTH_UNAVAILABLE: 'AUTH_UNAVAILABLE',
+  INVALID_JSON: 'INVALID_JSON',
   INVALID_REQUEST: 'INVALID_REQUEST',
+  LENGTH_REQUIRED: 'LENGTH_REQUIRED',
+  PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
+  PAYLOAD_TOO_COMPLEX: 'PAYLOAD_TOO_COMPLEX',
+  UNSUPPORTED_MEDIA_TYPE: 'UNSUPPORTED_MEDIA_TYPE',
   INVALID_TIMEZONE: 'INVALID_TIMEZONE',
   INVALID_IDEMPOTENCY_KEY: 'INVALID_IDEMPOTENCY_KEY',
   METHOD_NOT_ALLOWED: 'METHOD_NOT_ALLOWED',
+  NOT_FOUND: 'NOT_FOUND',
   RATE_LIMIT_UNAVAILABLE: 'RATE_LIMIT_UNAVAILABLE',
   DAILY_GENERATION_LIMIT: 'DAILY_GENERATION_LIMIT',
+  GENERATION_ATTEMPT_LIMIT: 'GENERATION_ATTEMPT_LIMIT',
   GENERATION_IN_PROGRESS: 'GENERATION_IN_PROGRESS',
+  GENERATION_REQUEST_FAILED: 'GENERATION_REQUEST_FAILED',
   GENERATION_REPLAY_INVALID: 'GENERATION_REPLAY_INVALID',
+  AI_PROVIDER_UNAVAILABLE: 'AI_PROVIDER_UNAVAILABLE',
+  AI_PROVIDER_RESPONSE_INVALID: 'AI_PROVIDER_RESPONSE_INVALID',
   INTERNAL_ERROR: 'INTERNAL_ERROR',
 })
 
@@ -42,22 +52,15 @@ export class AppError extends Error {
 }
 
 /**
- * Preserve the existing public generator errors while preventing unexpected
- * implementation failures from leaking stack traces or database details.
+ * Only explicitly constructed AppErrors are public. In particular, an
+ * upstream provider's status and message are never trusted just because an
+ * Error happens to carry a statusCode property.
  *
  * @param {unknown} error
  * @returns {AppError}
  */
 export function toAppError(error) {
   if (error instanceof AppError) return error
-
-  if (error instanceof Error && Number.isInteger(error.statusCode)) {
-    return new AppError(error.message || 'The generation request failed.', {
-      code: typeof error.code === 'string' ? error.code : ERROR_CODES.INTERNAL_ERROR,
-      statusCode: error.statusCode,
-      cause: error,
-    })
-  }
 
   return new AppError('Something went wrong while processing this request.', {
     cause: error,

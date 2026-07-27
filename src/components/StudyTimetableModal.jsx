@@ -2,6 +2,7 @@ import { Pencil, Plus, Trash2, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { CORE_SUBJECTS } from '../constants/subjects'
+import { useDialogFocus } from '../hooks/useDialogFocus'
 import { createTimetableBlock } from '../utils/studyTimetable'
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -20,6 +21,7 @@ export default function StudyTimetableModal({ open, blocks = [], onClose, onAdd,
   const [form, setForm] = useState(EMPTY_FORM)
   const [editingId, setEditingId] = useState(null)
   const [draft, setDraft] = useState(null)
+  const dialogRef = useDialogFocus(open, onClose)
 
   const sorted = useMemo(() => [...blocks].sort((a, b) => (a.weekday - b.weekday) || a.startTime.localeCompare(b.startTime)), [blocks])
 
@@ -50,15 +52,15 @@ export default function StudyTimetableModal({ open, blocks = [], onClose, onAdd,
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Study timetable">
-      <div className="w-full max-w-3xl rounded-2xl bg-card p-6 shadow-lift">
+    <div ref={dialogRef} tabIndex="-1" className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/45 p-4 backdrop-blur-sm outline-none" role="dialog" aria-modal="true" aria-label="Study timetable">
+      <div className="max-h-[calc(100dvh-2rem)] w-full max-w-3xl overflow-y-auto rounded-2xl bg-card p-6 shadow-lift">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-primary">Study timetable</p>
             <h2 className="mt-1 text-2xl font-semibold">Add recurring study blocks</h2>
             <p className="mt-1 text-sm text-muted-foreground">These repeat weekly and appear in your Recall Calendar.</p>
           </div>
-          <Button type="button" size="icon-sm" variant="ghost" onClick={onClose} aria-label="Close"><X /></Button>
+          <Button type="button" data-dialog-autofocus size="icon-sm" variant="ghost" onClick={onClose} aria-label="Close"><X /></Button>
         </div>
 
         <form onSubmit={addBlock} className="mt-5 grid gap-3 rounded-xl border border-border bg-background p-4 sm:grid-cols-2 lg:grid-cols-3">

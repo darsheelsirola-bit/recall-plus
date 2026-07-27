@@ -8,10 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import PageHeader from '../components/PageHeader'
 import { useAppData } from '../hooks/useAppData'
-import { generateInsights, loadCachedInsights, saveCachedInsights } from '../services/insightService'
+import { generateInsights, loadCachedInsights, saveCachedInsightsForUser } from '../services/insightService'
 import { buildAiInsights } from '../utils/aiInsight'
 import { formatDate, getTodayDate } from '../utils/dateUtils'
-import { getData, STORAGE_KEYS } from '../utils/storage'
+import { getData, getStorageUser, STORAGE_KEYS } from '../utils/storage'
 import { buildChapterContexts, buildFallbackInsights, findWeakTopics, weakTopicsFingerprint } from '../utils/weakTopics'
 
 function topicLink(subject, chapter, topic, type = 'practice') {
@@ -20,7 +20,13 @@ function topicLink(subject, chapter, topic, type = 'practice') {
 }
 
 function ChapterInsightCard({ chapter }) {
-  const firstTopic = chapter.prioritizedTopics?.[0]?.topic
+  const prioritizedTopics = Array.isArray(chapter.prioritizedTopics)
+    ? chapter.prioritizedTopics
+    : []
+  const studySections = Array.isArray(chapter.studyFrom?.sections)
+    ? chapter.studyFrom.sections
+    : []
+  const firstTopic = prioritizedTopics[0]?.topic
   return (
     <article className="rounded-xl border border-border p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -34,11 +40,11 @@ function ChapterInsightCard({ chapter }) {
 
       <p className="mt-4 text-sm leading-7 text-foreground">{chapter.insight}</p>
 
-      {chapter.prioritizedTopics?.length ? (
+      {prioritizedTopics.length ? (
         <div className="mt-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Do these topics first</p>
           <ol className="mt-2 space-y-2">
-            {chapter.prioritizedTopics.map((item) => (
+            {prioritizedTopics.map((item) => (
               <li key={item.topic} className="flex gap-3 rounded-lg bg-secondary/35 px-3 py-2 text-sm">
                 <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-white">{item.order}</span>
                 <div>
@@ -58,9 +64,9 @@ function ChapterInsightCard({ chapter }) {
             Study from
           </div>
           <p className="mt-2 text-sm font-medium">{chapter.studyFrom.primary}</p>
-          {chapter.studyFrom.sections?.length ? (
+          {studySections.length ? (
             <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-              {chapter.studyFrom.sections.map((section) => <li key={section}>• {section}</li>)}
+              {studySections.map((section) => <li key={section}>• {section}</li>)}
             </ul>
           ) : null}
           {chapter.studyFrom.secondary ? (
@@ -118,16 +124,19 @@ export default function Dashboard() {
 
     setLoading(true)
     setNotice('')
+    const ownerId = getStorageUser()
     try {
       const payload = await generateInsights(chapterContexts)
-      saveCachedInsights(fingerprint, payload)
+      if (!ownerId || getStorageUser() !== ownerId) return
+      saveCachedInsightsForUser(ownerId, fingerprint, payload)
       setInsights(payload)
       if (payload.source?.startsWith('local')) {
         setNotice('Groq was busy or unreachable — showing insight cards from your saved scores. Tap Regenerate to retry.')
       }
     } catch (fetchError) {
+      if (!ownerId || getStorageUser() !== ownerId) return
       const fallback = { ...buildFallbackInsights(chapterContexts), source: 'local-error' }
-      saveCachedInsights(fingerprint, fallback)
+      saveCachedInsightsForUser(ownerId, fingerprint, fallback)
       setInsights(fallback)
       setNotice(fetchError.message || 'Could not reach Groq. Showing local insight cards instead.')
     } finally {
@@ -144,7 +153,7 @@ export default function Dashboard() {
   }, [fingerprint]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const displayHeadline = insights?.headline || fallbackHeadline
-  const hasChapterInsights = Boolean(insights?.chapters?.length)
+  const hasChapterInsights = Array.isArray(insights?.chapters) && insights.chapters.length > 0
 
   return (
     <>

@@ -67,6 +67,7 @@ export function GenerationUsageProvider({ children }: PropsWithChildren) {
   const channelRef = useRef<BroadcastChannel | null>(null)
 
   const refresh = useCallback(async () => {
+    await Promise.resolve()
     if (!session || !user) {
       setUsage({ quiz: EMPTY_STATUS, timetable: EMPTY_STATUS })
       setLoading(false)
@@ -75,6 +76,7 @@ export function GenerationUsageProvider({ children }: PropsWithChildren) {
 
     if (requestRef.current) return requestRef.current
 
+    setLoading(true)
     const request = (async () => {
       setError('')
       try {
@@ -102,8 +104,8 @@ export function GenerationUsageProvider({ children }: PropsWithChildren) {
   }, [session, user])
 
   useEffect(() => {
-    setLoading(true)
-    void refresh()
+    const timer = window.setTimeout(() => { void refresh() }, 0)
+    return () => window.clearTimeout(timer)
   }, [refresh])
 
   useEffect(() => {

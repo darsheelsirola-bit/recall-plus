@@ -1,9 +1,10 @@
-import { GripVertical, Loader2, Sparkles, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Loader2, Sparkles, X } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import GenerationLimitStatus from './GenerationLimitStatus'
 import { SUBJECT_COLORS } from '../constants/subjects'
 import { useGenerationUsage } from '../contexts/GenerationUsageContext'
+import { useDialogFocus } from '../hooks/useDialogFocus'
 import { buildFallbackTimetable } from '../utils/studyTimetable'
 import { generateOptimalTimetable } from '../services/timetableService'
 import { GENERATION_LIMIT_MESSAGE } from '../types/generation'
@@ -40,7 +41,8 @@ function DayPicker({ value = [], onChange }) {
             key={label}
             type="button"
             onClick={() => onChange(selected ? value.filter((item) => item !== day) : [...value, day])}
-            className={`rounded-full border px-3 py-1 text-xs font-semibold ${selected ? 'border-primary bg-secondary text-primary' : 'border-border text-muted-foreground'}`}
+            aria-pressed={selected}
+            className={`min-h-11 min-w-11 rounded-full border px-3 py-2 text-xs font-semibold ${selected ? 'border-primary bg-secondary text-primary' : 'border-border text-muted-foreground'}`}
           >
             {label}
           </button>
@@ -94,9 +96,9 @@ export default function OptimalStudyWizard({ open, initialProfile, onClose, onAp
   const [result, setResult] = useState(null)
   const [profile, setProfile] = useState(() => ({ ...DEFAULT_PROFILE, ...initialProfile }))
   const [usedFallback, setUsedFallback] = useState(false)
-  const [draggingIndex, setDraggingIndex] = useState(null)
   const [expandedSubjects, setExpandedSubjects] = useState(() => Object.fromEntries(SUBJECTS.map((subject) => [subject, true])))
   const generationRef = useRef(false)
+  const dialogRef = useDialogFocus(open, onClose)
   const timetableUsage = useGenerationUsage('timetable')
   const generationBlocked = timetableUsage.loading || timetableUsage.inProgress || timetableUsage.exhausted || Boolean(timetableUsage.error)
 
@@ -228,8 +230,8 @@ export default function OptimalStudyWizard({ open, initialProfile, onClose, onAp
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Find optimal study timetable">
-      <div className="max-h-[92vh] w-full max-w-3xl rounded-2xl bg-card p-6 shadow-lift">
+    <div ref={dialogRef} tabIndex="-1" className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/45 p-4 backdrop-blur-sm outline-none" role="dialog" aria-modal="true" aria-label="Find optimal study timetable">
+      <div className="max-h-[calc(100dvh-2rem)] w-full max-w-3xl overflow-y-auto rounded-2xl bg-card p-6 shadow-lift">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-primary">Find optimal study</p>
@@ -253,7 +255,7 @@ export default function OptimalStudyWizard({ open, initialProfile, onClose, onAp
             >
               {step === 0 ? 'Back' : 'Previous step'}
             </Button>
-            <Button type="button" size="icon-sm" variant="ghost" onClick={onClose} aria-label="Close wizard"><X /></Button>
+            <Button type="button" data-dialog-autofocus size="icon-sm" variant="ghost" onClick={onClose} aria-label="Close wizard"><X /></Button>
           </div>
         </div>
 
@@ -338,21 +340,20 @@ export default function OptimalStudyWizard({ open, initialProfile, onClose, onAp
                   </div>
                   {expanded ? (
                     <div className="mt-3 space-y-2">
-                      {slots.length ? slots.map(({ block, index }) => (
+                      {slots.length ? slots.map(({ block, index }, slotPosition) => (
                         <div
                           key={`${subject}-${index}`}
-                          draggable
-                          onDragStart={() => setDraggingIndex(index)}
-                          onDragOver={(event) => event.preventDefault()}
-                          onDrop={() => { if (draggingIndex != null) moveBlock(draggingIndex, index); setDraggingIndex(null) }}
                           className="rounded-lg border border-border bg-background p-2"
                         >
-                          <div className="grid gap-2 sm:grid-cols-[24px_1fr_92px_108px_92px] sm:items-center">
-                            <button type="button" className="grid h-6 w-6 place-items-center rounded border border-border text-muted-foreground" title="Move slot"><GripVertical className="size-3.5" /></button>
-                            <input className="field h-8 text-sm" value={sanitizeStudyLabel(block.label, subject)} onChange={(event) => updateResultBlock(index, { label: event.target.value })} />
-                            <select className="field h-8 text-sm" value={block.weekday} onChange={(event) => updateResultBlock(index, { weekday: Number(event.target.value) })}>{DAY_LABELS.map((label, day) => <option key={label} value={day}>{label}</option>)}</select>
-                            <input className="field h-8 text-sm" type="time" value={block.startTime} onChange={(event) => updateResultBlock(index, { startTime: event.target.value })} />
-                            <input className="field h-8 text-sm" type="number" min="30" max="180" step="5" value={block.durationMinutes} onChange={(event) => updateResultBlock(index, { durationMinutes: event.target.value })} />
+                          <div className="grid gap-2 sm:grid-cols-[96px_1fr_92px_108px_92px] sm:items-center">
+                            <div className="flex gap-2" aria-label={`Reorder ${subject} slot`}>
+                              <Button type="button" size="icon-sm" variant="outline" aria-label={`Move ${subject} slot up`} disabled={slotPosition === 0} onClick={() => moveBlock(index, slots[slotPosition - 1].index)}><ChevronUp /></Button>
+                              <Button type="button" size="icon-sm" variant="outline" aria-label={`Move ${subject} slot down`} disabled={slotPosition === slots.length - 1} onClick={() => moveBlock(index, slots[slotPosition + 1].index)}><ChevronDown /></Button>
+                            </div>
+                            <input aria-label={`${subject} slot label`} className="field h-11 text-sm" value={sanitizeStudyLabel(block.label, subject)} onChange={(event) => updateResultBlock(index, { label: event.target.value })} />
+                            <select aria-label={`${subject} slot day`} className="field h-11 text-sm" value={block.weekday} onChange={(event) => updateResultBlock(index, { weekday: Number(event.target.value) })}>{DAY_LABELS.map((label, day) => <option key={label} value={day}>{label}</option>)}</select>
+                            <input aria-label={`${subject} slot start time`} className="field h-11 text-sm" type="time" value={block.startTime} onChange={(event) => updateResultBlock(index, { startTime: event.target.value })} />
+                            <input aria-label={`${subject} slot duration in minutes`} className="field h-11 text-sm" type="number" min="30" max="180" step="5" value={block.durationMinutes} onChange={(event) => updateResultBlock(index, { durationMinutes: event.target.value })} />
                           </div>
                         </div>
                       )) : <p className="rounded-lg border border-dashed border-border bg-background p-3 text-xs text-muted-foreground">No slots for {subject}. Increase frequency to add new study slots.</p>}

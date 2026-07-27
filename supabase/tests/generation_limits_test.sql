@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_catalog;
 
-select plan(32);
+select plan(33);
 
 -- Auth users are inserted inside this transaction so the real signup trigger,
 -- profile creation, timezone validation, and cascade relationships are tested.
@@ -83,12 +83,12 @@ select ok(
 select ok(
   has_function_privilege(
     'authenticated',
-    'public.initialize_recall_timezone(text)',
+    'public.initialize_recall_timezone(uuid,text)',
     'EXECUTE'
   )
   and not has_function_privilege(
     'anon',
-    'public.initialize_recall_timezone(text)',
+    'public.initialize_recall_timezone(uuid,text)',
     'EXECUTE'
   )
   and has_column_privilege(
@@ -109,7 +109,7 @@ select ok(
     'timezone_initialized',
     'UPDATE'
   ),
-  'authenticated clients initialize timezone only through the narrow one-time RPC'
+  'authenticated clients initialize timezone only through the intended-user-bound one-time RPC'
 );
 
 select set_config(
@@ -119,13 +119,19 @@ select set_config(
 );
 
 select is(
-  public.initialize_recall_timezone('Asia/Kolkata'),
+  public.initialize_recall_timezone(
+    '00000000-0000-0000-0000-000000000102',
+    'Asia/Kolkata'
+  ),
   'Asia/Kolkata',
   'an authenticated user can initialize a missing timezone once'
 );
 
 select is(
-  public.initialize_recall_timezone('UTC'),
+  public.initialize_recall_timezone(
+    '00000000-0000-0000-0000-000000000102',
+    'UTC'
+  ),
   'Asia/Kolkata',
   'a second initialization cannot hop timezone to reset limits'
 );
@@ -156,9 +162,16 @@ select ok(
   'an authenticated user can read only their own app-data snapshot'
 );
 
-update public.user_app_data
-set data = '{"crossUserWrite":true}'::jsonb
-where user_id = '00000000-0000-0000-0000-000000000102';
+select throws_ok(
+  $statement$
+    update public.user_app_data
+    set data = '{"crossUserWrite":true}'::jsonb
+    where user_id = '00000000-0000-0000-0000-000000000102'
+  $statement$,
+  '42501',
+  null::text,
+  'authenticated users cannot bypass the snapshot CAS RPC with direct writes'
+);
 
 reset role;
 
@@ -174,7 +187,7 @@ select is(
 
 select ok(
   (
-    select count(*) = 5 and bool_and(classes.relrowsecurity)
+    select count(*) = 6 and bool_and(classes.relrowsecurity)
     from pg_catalog.pg_class as classes
     join pg_catalog.pg_namespace as namespaces
       on namespaces.oid = classes.relnamespace
@@ -184,7 +197,8 @@ select ok(
         'user_app_data',
         'daily_generation_usage',
         'generation_limit_state',
-        'generation_attempts'
+        'generation_attempts',
+        'generation_attempt_rate_limits'
       )
   ),
   'RLS is enabled on every exposed Recall+ table'
@@ -227,6 +241,21 @@ select ok(
     'authenticated',
     'public.get_generation_status(uuid)',
     'EXECUTE'
+  )
+  and not has_function_privilege(
+    'authenticated',
+    'public.reserve_insight_generation(uuid,uuid,text)',
+    'EXECUTE'
+  )
+  and not has_function_privilege(
+    'authenticated',
+    'public.commit_insight_generation(uuid,uuid,jsonb)',
+    'EXECUTE'
+  )
+  and not has_function_privilege(
+    'authenticated',
+    'public.release_insight_generation(uuid,uuid,text)',
+    'EXECUTE'
   ),
   'authenticated clients cannot execute any limiter RPC directly'
 );
@@ -250,6 +279,21 @@ select ok(
   and has_function_privilege(
     'service_role',
     'public.get_generation_status(uuid)',
+    'EXECUTE'
+  )
+  and has_function_privilege(
+    'service_role',
+    'public.reserve_insight_generation(uuid,uuid,text)',
+    'EXECUTE'
+  )
+  and has_function_privilege(
+    'service_role',
+    'public.commit_insight_generation(uuid,uuid,jsonb)',
+    'EXECUTE'
+  )
+  and has_function_privilege(
+    'service_role',
+    'public.release_insight_generation(uuid,uuid,text)',
     'EXECUTE'
   ),
   'service_role can execute every limiter RPC'
@@ -604,11 +648,18 @@ select ok(
 from recall_midnight_commit;
 
 select ok(
-  has_table_privilege('authenticated', 'public.user_app_data', 'SELECT')
-  and has_table_privilege('authenticated', 'public.user_app_data', 'INSERT')
-  and has_table_privilege('authenticated', 'public.user_app_data', 'UPDATE')
+  has_column_privilege('authenticated', 'public.user_app_data', 'data', 'SELECT')
+  and has_column_privilege('authenticated', 'public.user_app_data', 'version', 'SELECT')
+  and not has_table_privilege('authenticated', 'public.user_app_data', 'INSERT')
+  and not has_table_privilege('authenticated', 'public.user_app_data', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.user_app_data', 'DELETE')
+  and has_function_privilege(
+    'authenticated',
+    'public.upsert_recall_app_data(uuid,jsonb,bigint)',
+    'EXECUTE'
+  )
   and not has_table_privilege('anon', 'public.user_app_data', 'SELECT'),
-  'authenticated users have RLS-protected app-data access while anon has none'
+  'authenticated users read their RLS-protected snapshot and write only through the CAS RPC'
 );
 
 select * from finish();

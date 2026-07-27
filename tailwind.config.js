@@ -25,8 +25,8 @@ export default {
         canvas: '#FFFFFF',
         ink: '#10162F',
         indigo: '#625BF6',
-        mint: '#14B8A6',
-        coral: '#FB7185',
+        mint: '#0F766E',
+        coral: '#BE123C',
         lavender: '#EEEDFF',
       },
       fontFamily: {

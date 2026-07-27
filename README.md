@@ -17,7 +17,7 @@ The production architecture uses:
 - Synced per-user app data through Supabase
 - Automatic spaced-repetition schedules at 1, 3, 7, 14, and 30 days
 - Strong, Average, and Weak topic classification
-- JSON backup import and export
+- Account-scoped JSON backup import and export from Settings
 - Responsive desktop and mobile navigation
 - Separate daily limits of 10 successful quiz generations and 10 successful timetable generations
 - Local-calendar-day resets based on the user's validated IANA timezone
@@ -40,8 +40,8 @@ The daily quota is not stored in `localStorage`. Supabase is authoritative for a
 
 ## Prerequisites
 
-- Node.js 22 or newer
-- npm
+- Node.js 24.16.0 (pinned in `.nvmrc` and `.node-version`)
+- npm 11.13.0 (pinned by `packageManager` and the CI workflow)
 - Git
 - A Supabase project
 - The [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started)
@@ -63,8 +63,12 @@ supabase --version
 Run these commands from the directory containing `package.json`:
 
 ```bash
-npm install
+npm ci
 ```
+
+`npm ci` installs exactly the versions in `package-lock.json`. Use `npm install`
+only when intentionally changing dependencies, and commit the resulting lockfile
+with the dependency change.
 
 Create the local environment file.
 
@@ -86,6 +90,8 @@ Fill in `.env` with values from the Supabase project and Groq:
 # Public browser configuration
 VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
 VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_OR_PUBLISHABLE_KEY
+# Alternatively, use VITE_SUPABASE_PUBLISHABLE_KEY instead of
+# VITE_SUPABASE_ANON_KEY when the Supabase project provides a publishable key.
 
 # Server-only Supabase configuration
 SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
@@ -93,7 +99,7 @@ SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_OR_PUBLISHABLE_KEY
 SUPABASE_SERVICE_ROLE_KEY=YOUR_SUPABASE_SERVICE_ROLE_KEY
 
 # Server-only AI provider configuration
-GROQ_QUIZ_API_KEY=YOUR_QUIZ_GROQ_KEY
+GROQ_QUIZ_API_KEY=YOUR_QUIZ_AND_INSIGHTS_GROQ_KEY
 GROQ_TIMETABLE_API_KEY=YOUR_TIMETABLE_GROQ_KEY
 GROQ_MODEL=llama-3.3-70b-versatile
 GROQ_REQUEST_TIMEOUT_MS=20000
@@ -112,16 +118,28 @@ In the Supabase Dashboard:
 2. Set the development Site URL to `http://localhost:5173`.
 3. Add `http://localhost:5173` to the allowed redirect URLs.
 4. Keep anonymous sign-ins disabled.
-5. Decide whether email confirmation is required for the project and configure the email templates accordingly.
+5. Require email confirmation and enable secure password changes.
+6. Require passwords of at least eight characters with lowercase, uppercase,
+   digits, and symbols.
+7. Keep the email send frequency at one minute or slower.
+8. Enable leaked-password protection when the Supabase plan supports it.
+9. Enable CAPTCHA when public signup abuse is a realistic risk, especially in
+   Production.
 
-Add the production URL after the Vercel project is created. If Vercel Preview deployments will be used for authentication, add only the preview URL pattern or exact preview URLs allowed by the project's security policy.
+The checked-in local Supabase configuration uses these password, confirmation,
+secure-change, and frequency settings. Match them manually in every hosted
+Supabase project because local configuration does not configure the hosted Auth
+dashboard. Add the exact Production URL after Vercel creates it. If Preview
+deployments use authentication, allow only the exact Preview URLs or the
+narrowest acceptable Preview pattern; do not use an unrestricted redirect
+wildcard.
 
 ### Apply the Supabase migration
 
-The production schema is defined in:
+The production schema is defined by the ordered migrations in:
 
 ```text
-supabase/migrations/20260726174226_secure_user_data_and_generation_limits.sql
+supabase/migrations/
 ```
 
 Link the repository to the intended Supabase project, review the pending migration, and then apply it:
@@ -133,7 +151,20 @@ supabase db push --dry-run
 supabase db push
 ```
 
-The migration creates the profile and synchronized app-data tables, RLS policies, separate quiz and timetable usage records, request reservations, cached result replay, and service-role-only quota RPCs.
+The ordered production migrations are:
+
+- `20260726190818_secure_user_data_and_generation_limits.sql` creates profiles,
+  synchronized app data, RLS policies, independent quiz and timetable counters,
+  atomic reservations, cached result replay, and service-role-only quota RPCs.
+- `20260727094001_harden_generation_attempts_and_user_data.sql` adds optimistic
+  snapshot versions, bounded stored payloads, durable attempt throttles,
+  insight reservations, stricter grants, and user-bound RPC signatures.
+- `20260727094206_validate_hardening_size_constraints.sql` validates the
+  snapshot and generation-result size constraints after the production
+  preflight confirms that historical rows fit the new bounds.
+- `20260727094712_harden_default_function_privileges.sql` removes PostgreSQL's
+  global implicit `PUBLIC` execute default for future functions. Approved RPCs
+  continue to receive explicit grants.
 
 Always inspect the dry-run output before applying a production migration. Do not run `supabase db reset --linked` against a production project because it is destructive.
 
@@ -170,17 +201,37 @@ npm start
 | Variable | Exposure | Required | Purpose |
 | --- | --- | --- | --- |
 | `VITE_SUPABASE_URL` | Browser | Yes | Supabase project URL used by the browser client |
-| `VITE_SUPABASE_ANON_KEY` | Browser | Yes | Supabase anon/publishable key; access remains controlled by RLS |
+| `VITE_SUPABASE_ANON_KEY` | Browser | One browser key is required | Supabase legacy anon key; access remains controlled by RLS |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Browser | One browser key is required | Supabase publishable key; use instead of `VITE_SUPABASE_ANON_KEY` |
 | `SUPABASE_URL` | Server | Yes | Supabase project URL used by API functions |
 | `SUPABASE_ANON_KEY` | Server | Yes | Used while validating authenticated requests |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server secret | Yes | Executes protected persistence and generation-limit RPCs |
-| `GROQ_QUIZ_API_KEY` | Server secret | Yes | Calls Groq for quiz generation only |
+| `GROQ_QUIZ_API_KEY` | Server secret | Yes | Calls Groq for quiz and dashboard insight generation |
 | `GROQ_TIMETABLE_API_KEY` | Server secret | Yes | Calls Groq for timetable generation only |
 | `GROQ_MODEL` | Server | No | Overrides the default Groq model |
 | `GROQ_REQUEST_TIMEOUT_MS` | Server | No | Per-attempt Groq timeout, clamped to 5–30 seconds |
 | `PORT` | Local server | No | Express port; defaults to `8787` |
+| `ENABLE_EXPERIMENTAL_COREPACK` | Vercel build | On Vercel | Set to `1` so Vercel honors the exact npm version in `packageManager` |
 
-For Vercel, configure all variables except `PORT` for Production. Configure the same set for Preview if Preview deployments must be functional. A separate Supabase project for Preview is recommended so test accounts, data, and quotas cannot affect production.
+Use the following environment scopes:
+
+| Environment | File or scope | Required configuration |
+| --- | --- | --- |
+| Local development | Untracked `.env` | All required browser and server variables, plus optional `PORT`, model, and timeout |
+| Vercel Preview | Preview scope | All required browser and server variables plus `ENABLE_EXPERIMENTAL_COREPACK=1`; use preview-only Supabase and Groq credentials |
+| Vercel Production | Production scope | All required browser and server variables plus `ENABLE_EXPERIMENTAL_COREPACK=1`; use production-only credentials |
+
+Do not share the Supabase service-role key or Groq keys between Preview and
+Production unless that risk has been explicitly reviewed. A separate Preview
+Supabase project keeps test accounts, data, quotas, and destructive migration
+testing away from production.
+
+On Vercel, the build fails before compilation when a required variable is
+missing, the browser and server Supabase URLs differ, a public setting matches
+or resembles a private credential, the anon key equals the service-role key, the
+two Groq keys are identical, the timeout is outside 5-30 seconds, Corepack is not
+enabled, or a secret-looking variable uses the public `VITE_` prefix. The
+validator reports variable names and reasons only; it never prints values.
 
 ## Push to GitHub
 
@@ -214,12 +265,23 @@ See GitHub's [guide for adding locally hosted code](https://docs.github.com/en/m
    - Use `.` if the GitHub repository was initialized inside this app directory.
    - Use `recall-plus-groq-updated` if a parent workspace was pushed as the repository root.
 3. Use the Vite framework preset.
-4. Set the project Node.js version to 22.x.
+4. Set the project Node.js version to 24.x.
 5. Add the environment variables listed above for the appropriate Production and Preview scopes.
 6. Apply the Supabase migration before the first functional deployment.
 7. Deploy the project.
 
-The checked-in `vercel.json` supplies `npm install`, `npm run build`, the `dist` output directory, SPA rewrites, and the generation-function duration. Vercel's Git integration creates Preview deployments for non-production branches and deploys the configured production branch, normally `main`, after successful pushes.
+The checked-in `vercel.json` supplies `npm ci`, the full `npm run vercel:build`
+quality gate, the `dist` output directory, SPA rewrites, and the
+generation-function duration. Vercel's Git integration creates Preview
+deployments for non-production branches and deploys the configured production
+branch, normally `main`, after successful pushes. The Vercel build also rejects
+any high- or critical-severity dependency advisory not covered by the narrow,
+guarded exception documented below.
+
+Vercel guarantees the Node 24 major and rolls forward security patch releases;
+local development and CI use the exact `24.16.0` pin. With
+`ENABLE_EXPERIMENTAL_COREPACK=1`, Vercel honors the exact npm `11.13.0`
+`packageManager` pin while still running the checked-in `npm ci` install command.
 
 After Vercel assigns the production domain:
 
@@ -235,17 +297,60 @@ Run the complete local quality gate before pushing or deploying:
 
 ```bash
 npm run check
+npm run audit:all
 ```
 
 The equivalent individual commands are:
 
 ```bash
+npm run verify:router
 npm run typecheck
 npm run lint
 npm test
 npm run build
 npm run scan:secrets
+npm run scan:history
+npm run audit:all
 ```
+
+`verify:router` guards the declarative SPA API while `react-router-dom` remains
+exact-pinned to `7.18.1`. The working-tree scan checks source and build output
+without printing credential values. The history scan checks every reachable Git
+blob when a complete checkout is available. CI checks out full history so the
+history scan cannot silently cover only a shallow clone.
+
+Database migrations and pgTAP tests can be verified with Docker running:
+
+```bash
+supabase db start
+supabase test db
+```
+
+The GitHub Actions workflow runs `npm ci`, the complete application quality gate,
+the dependency audit policy, a clean local Supabase database, all ordered
+migrations, and `supabase test db` for pull requests and pushes to `main`.
+
+### Temporary React Router audit exception
+
+Raw `npm audit` reports high-severity
+[`GHSA-qwww-vcr4-c8h2`](https://github.com/advisories/GHSA-qwww-vcr4-c8h2)
+for React Router 7.18.1. The advisory states that it affects only unstable React
+Server Components APIs. Its listed 8.3.0 patch is not currently published to
+npm, so attempting that version would make clean installs fail.
+
+`npm run audit:all` still executes a fresh npm audit and fails closed. It permits
+only that exact advisory while all of these controls remain true:
+
+- `react-router-dom` and its `react-router` dependency resolve exactly to
+  `7.18.1`.
+- No runtime source imports `react-router` directly, uses an unstable RSC
+  identifier, enables the `react-server` condition, or depends on a
+  `react-server-dom-*` package.
+- No other high- or critical-severity advisory is present.
+
+Any failed audit request, changed router version, RSC usage, or additional
+high/critical advisory fails CI and Vercel. Remove this narrow exception as soon
+as a compatible patched release is available on npm.
 
 The rate-limit test coverage verifies:
 

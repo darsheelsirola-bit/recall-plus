@@ -6,11 +6,13 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Progress } from '@/components/ui/progress'
 import StudyTimeChart from '../components/StudyTimeChart'
+import { useAuth } from '../auth/AuthProvider'
 import syllabus from '../data/syllabus.json'
 import { useAppData } from '../hooks/useAppData'
-import { formatDate, getStudyStreak, getTodayDate } from '../utils/dateUtils'
+import { addDays, formatDate, getStudyStreak, getTodayDate, getWeekStart } from '../utils/dateUtils'
 import { formatStudyMinutes, getLogTopicsLabel } from '../utils/logUtils'
 import { buildRecallQueue, suggestNewTopics } from '../utils/recallPlan'
+import { latestResultsByTopic } from '../utils/resultUtils'
 import { getData, STORAGE_KEYS } from '../utils/storage'
 
 const ALL_TOPICS = syllabus.flatMap((subject) =>
@@ -36,12 +38,7 @@ function buildFocus(reviews, logs, results) {
     add({ label: 'Recall', ...review, meta: formatStudyMinutes(review.reviseMinutes, { compact: true }), to: `/small-quiz?${params(review)}` }),
   )
 
-  const latest = {}
-  results.forEach((result) => {
-    const key = `${result.subject}|${result.chapter}|${result.topic}`
-    if (!latest[key] || result.date >= latest[key].date) latest[key] = result
-  })
-  Object.values(latest).filter((result) => result.percentage < 50).forEach((weak) =>
+  latestResultsByTopic(results).filter((result) => result.percentage < 50).forEach((weak) =>
     add({ label: 'Practice', ...weak, meta: `${weak.percentage}%`, to: `/quiz?${params(weak)}` }),
   )
 
@@ -60,25 +57,35 @@ const quickActions = [
 
 export default function Home() {
   useAppData()
+  const { profile } = useAuth()
   const logs = getData(STORAGE_KEYS.logs, [])
   const reviews = getData(STORAGE_KEYS.reviews, [])
   const results = getData(STORAGE_KEYS.quizResults, [])
   const focus = buildFocus(reviews, logs, results)
+  const dueRecallCount = buildRecallQueue(reviews, logs).length
   const primary = focus[0]
   const streak = getStudyStreak(logs)
   const todayMinutes = logs.filter((log) => log.date === getTodayDate()).reduce((sum, log) => sum + Number(log.timeSpent || 0), 0)
   const average = results.length ? Math.round(results.reduce((sum, result) => sum + result.percentage, 0) / results.length) : 0
-  const weeklyGoal = Math.min(100, Math.round((logs.reduce((sum, log) => sum + Number(log.timeSpent || 0), 0) / 1200) * 100))
+  const weekStart = getWeekStart()
+  const weekEnd = addDays(weekStart, 6)
+  const weekMinutes = logs
+    .filter((log) => log.date >= weekStart && log.date <= weekEnd)
+    .reduce((sum, log) => sum + Number(log.timeSpent || 0), 0)
+  const weeklyGoal = Math.min(100, Math.round((weekMinutes / 1200) * 100))
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+  const displayName = profile?.displayName?.trim() || 'Student'
 
   return (
     <>
       <section className="mb-2 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-2xl font-semibold tracking-[-0.035em] text-primary sm:text-3xl">Good morning, Aarav</p>
+        <p className="min-w-0 text-2xl font-semibold tracking-[-0.035em] text-primary sm:text-3xl">{greeting}, {displayName}</p>
         <p className="shrink-0 text-sm font-semibold text-muted-foreground sm:text-base">{formatDate(getTodayDate(), { weekday: 'long', day: 'numeric', month: 'short' })}</p>
       </section>
 
       <section className="mb-4">
-        <h1 className="whitespace-nowrap text-[clamp(2.5rem,5vw,4.5rem)] font-semibold leading-none tracking-[-0.065em] text-ink">
+        <h1 className="text-[clamp(2.25rem,10vw,4.5rem)] font-semibold leading-[0.95] tracking-[-0.06em] text-ink">
           Remember more. <span className="bg-gradient-to-r from-primary via-blue-500 to-mint bg-clip-text text-transparent">Stress less.</span>
         </h1>
       </section>
@@ -110,7 +117,7 @@ export default function Home() {
               [Clock3, formatStudyMinutes(todayMinutes, { compact: true }), 'Today', 'bg-accent text-mint'],
               [Target, `${average}%`, 'Quiz average', 'bg-secondary text-primary'],
               [Flame, streak, 'Day streak', 'bg-amber-50 text-amber-600'],
-              [Brain, focus.filter((item) => item.label === 'Recall').length, 'Due recalls', 'bg-rose-50 text-coral'],
+              [Brain, dueRecallCount, 'Due recalls', 'bg-rose-50 text-coral'],
             ].map(([Icon, value, label, tone]) => (
               <div key={label} className="rounded-xl border border-border bg-background p-3">
                 <span className={`grid size-9 place-items-center rounded-lg ${tone}`}><Icon className="size-4" /></span>

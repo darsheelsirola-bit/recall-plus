@@ -50,3 +50,14 @@ export function sendMethodNotAllowed(response, methods) {
     statusCode: 405,
   }))
 }
+
+/**
+ * Shared by Express's /api fallback and Vercel's catch-all function so unknown
+ * API routes never fall through to the SPA or return a platform HTML page.
+ */
+export function sendApiNotFound(response) {
+  return sendError(response, new AppError('API route not found.', {
+    code: ERROR_CODES.NOT_FOUND,
+    statusCode: 404,
+  }))
+}

@@ -1,31 +1,37 @@
-import { useEffect } from 'react'
+import { Component, lazy, Suspense, useEffect, useRef } from 'react'
 import { CloudOff, Loader2, RefreshCw } from 'lucide-react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useAuth } from './auth/AuthProvider'
 import Navbar from './components/Navbar'
 import { GenerationUsageProvider } from './contexts/GenerationUsageContext'
 import { isSupabaseConfigured } from './lib/supabase'
-import AddLog from './pages/AddLog'
 import Auth from './pages/Auth'
-import Dashboard from './pages/Dashboard'
-import Home from './pages/Home'
-import PastTestResults from './pages/PastTestResults'
-import PostStudyQuiz from './pages/PostStudyQuiz'
-import Progress from './pages/Progress'
-import Psychology from './pages/Psychology'
-import PsychologyTechniqueDetail from './pages/PsychologyTechniqueDetail'
-import Quiz from './pages/Quiz'
-import RecallCalendar from './pages/RecallCalendar'
-import SmallQuiz from './pages/SmallQuiz'
-import StudyLogsPage from './pages/StudyLogsPage'
-import Syllabus from './pages/Syllabus'
 import { Button } from './components/ui/button'
 
-function ScrollToTop() {
+const AddLog = lazy(() => import('./pages/AddLog'))
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Home = lazy(() => import('./pages/Home'))
+const PastTestResults = lazy(() => import('./pages/PastTestResults'))
+const PostStudyQuiz = lazy(() => import('./pages/PostStudyQuiz'))
+const Progress = lazy(() => import('./pages/Progress'))
+const Psychology = lazy(() => import('./pages/Psychology'))
+const PsychologyTechniqueDetail = lazy(() => import('./pages/PsychologyTechniqueDetail'))
+const Quiz = lazy(() => import('./pages/Quiz'))
+const RecallCalendar = lazy(() => import('./pages/RecallCalendar'))
+const Settings = lazy(() => import('./pages/Settings'))
+const SmallQuiz = lazy(() => import('./pages/SmallQuiz'))
+const StudyLogsPage = lazy(() => import('./pages/StudyLogsPage'))
+const Syllabus = lazy(() => import('./pages/Syllabus'))
+
+function RouteFocusManager({ targetRef }) {
   const { pathname } = useLocation()
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' })
-  }, [pathname])
+    const frame = window.requestAnimationFrame(() => {
+      targetRef.current?.focus({ preventScroll: true })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [pathname, targetRef])
   return null
 }
 
@@ -43,7 +49,86 @@ function LoadingScreen({ message = 'Opening your Recall+ workspace…' }) {
   )
 }
 
-function DataSyncError({ message, onRetry, onSignOut }) {
+function RouteLoading() {
+  return (
+    <div className="grid min-h-[45vh] place-items-center" role="status" aria-label="Loading page">
+      <Loader2 className="size-6 animate-spin text-primary" />
+    </div>
+  )
+}
+
+class RouteErrorBoundary extends Component {
+  state = { error: null }
+
+  static getDerivedStateFromError(error) {
+    return { error }
+  }
+
+  componentDidUpdate(previousProps) {
+    if (
+      previousProps.resetKey !== this.props.resetKey
+      && this.state.error
+    ) this.setState({ error: null })
+  }
+
+  render() {
+    if (!this.state.error) return this.props.children
+    return (
+      <section role="alert" className="mx-auto my-10 max-w-xl rounded-2xl border border-border bg-card p-6 text-center shadow-soft">
+        <CloudOff className="mx-auto size-8 text-coral" />
+        <h1 className="mt-4 text-xl font-semibold">This page could not finish loading</h1>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          Your saved study data is safe. Reload the latest app files, or return home and try again.
+        </p>
+        <div className="mt-5 flex flex-wrap justify-center gap-3">
+          <Button type="button" onClick={() => window.location.reload()}>
+            <RefreshCw data-icon="inline-start" /> Reload page
+          </Button>
+          <Button type="button" variant="outline" onClick={() => window.location.assign('/')}>
+            Return home
+          </Button>
+        </div>
+      </section>
+    )
+  }
+}
+
+function DataConflictActions({ onUseCloud, onKeepLocal }) {
+  return (
+    <>
+      <Button
+        type="button"
+        onClick={() => {
+          if (window.confirm('Replace this device’s unsynced copy with the newer cloud copy?')) {
+            onUseCloud()
+          }
+        }}
+      >
+        Use cloud copy
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => {
+          if (window.confirm('Replace the newer cloud copy with this device’s preserved data?')) {
+            onKeepLocal()
+          }
+        }}
+      >
+        Keep this device’s copy
+      </Button>
+    </>
+  )
+}
+
+function DataSyncError({
+  conflict,
+  message,
+  onKeepLocal,
+  onRetry,
+  onSignOut,
+  onUseCloud,
+}) {
   return (
     <main className="grid min-h-dvh place-items-center bg-background p-6">
       <section className="w-full max-w-lg rounded-3xl border border-border bg-card p-8 text-center shadow-lift">
@@ -53,10 +138,16 @@ function DataSyncError({ message, onRetry, onSignOut }) {
         <h1 className="mt-5 text-2xl font-semibold">We could not open your synced workspace</h1>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">{message}</p>
         <p className="mt-2 text-xs leading-5 text-muted-foreground">
-          Your user-scoped copy on this device is preserved. Retry before entering the app so another account’s data is never shown.
+          {conflict
+            ? 'Your device and cloud copies both remain preserved. Choose which copy should become authoritative.'
+            : 'Your user-scoped copy on this device is preserved. Retry before entering the app so another account’s data is never shown.'}
         </p>
         <div className="mt-7 flex flex-wrap justify-center gap-3">
-          <Button onClick={onRetry}><RefreshCw data-icon="inline-start" /> Retry</Button>
+          {conflict ? (
+            <DataConflictActions onUseCloud={onUseCloud} onKeepLocal={onKeepLocal} />
+          ) : (
+            <Button onClick={onRetry}><RefreshCw data-icon="inline-start" /> Retry</Button>
+          )}
           <Button variant="outline" onClick={onSignOut}>Sign out</Button>
         </div>
       </section>
@@ -84,40 +175,64 @@ function ConfigurationError() {
 }
 
 function ProtectedAppShell() {
-  const { dataError, dataReady, syncing } = useAuth()
+  const {
+    dataConflict,
+    dataError,
+    dataReady,
+    resolveDataConflict,
+    syncing,
+  } = useAuth()
+  const { pathname } = useLocation()
+  const mainRef = useRef(null)
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <Navbar />
-      <main className="min-h-dvh pb-20 lg:ml-28 lg:pb-0">
+      <main ref={mainRef} tabIndex="-1" aria-label="Recall Plus workspace" className="min-h-dvh pb-[calc(9rem+env(safe-area-inset-bottom))] outline-none md:pb-[calc(5rem+env(safe-area-inset-bottom))] lg:ml-28 lg:pb-0">
         <div className="mx-auto w-full max-w-[1520px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-          <ScrollToTop />
+          <RouteFocusManager targetRef={mainRef} />
           {dataReady && dataError ? (
-            <div role="status" className="mb-4 flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <div role="status" className="mb-4 flex flex-wrap items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
               <CloudOff className="mt-0.5 size-4 shrink-0" />
-              <span><strong>Saved on this device.</strong> Cloud sync will retry automatically. {dataError}</span>
+              <span className="min-w-0 flex-1">
+                <strong>Saved on this device.</strong>{' '}
+                {dataConflict ? 'The cloud copy also changed.' : 'Cloud sync will retry automatically.'} {dataError}
+              </span>
+              {dataConflict ? (
+                <span className="flex flex-wrap gap-2">
+                  <DataConflictActions
+                    onUseCloud={() => { void resolveDataConflict('cloud') }}
+                    onKeepLocal={() => { void resolveDataConflict('local') }}
+                  />
+                </span>
+              ) : null}
             </div>
           ) : null}
           {syncing ? <p className="mb-3 text-right text-xs text-muted-foreground">Syncing your latest changes…</p> : null}
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/syllabus" element={<Syllabus />} />
-            <Route path="/add-log" element={<AddLog />} />
-            <Route path="/logs" element={<StudyLogsPage />} />
-            <Route path="/post-study-quiz" element={<PostStudyQuiz />} />
-            <Route path="/small-quiz" element={<SmallQuiz />} />
-            <Route path="/review" element={<Navigate to="/recall-calendar" replace />} />
-            <Route path="/recall" element={<Navigate to="/recall-calendar" replace />} />
-            <Route path="/recall-calendar" element={<RecallCalendar />} />
-            <Route path="/quiz" element={<Quiz />} />
-            <Route path="/quiz/results" element={<PastTestResults />} />
-            <Route path="/quiz/results/:resultId" element={<PastTestResults />} />
-            <Route path="/psychology" element={<Psychology />} />
-            <Route path="/psychology/:techniqueId" element={<PsychologyTechniqueDetail />} />
-            <Route path="/progress" element={<Progress />} />
-            <Route path="/auth" element={<Navigate to="/" replace />} />
-            <Route path="*" element={<Home />} />
-          </Routes>
+          <RouteErrorBoundary resetKey={pathname}>
+            <Suspense fallback={<RouteLoading />}>
+              <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/syllabus" element={<Syllabus />} />
+              <Route path="/add-log" element={<AddLog />} />
+              <Route path="/logs" element={<StudyLogsPage />} />
+              <Route path="/post-study-quiz" element={<PostStudyQuiz />} />
+              <Route path="/small-quiz" element={<SmallQuiz />} />
+              <Route path="/review" element={<Navigate to="/recall-calendar" replace />} />
+              <Route path="/recall" element={<Navigate to="/recall-calendar" replace />} />
+              <Route path="/recall-calendar" element={<RecallCalendar />} />
+              <Route path="/quiz" element={<Quiz />} />
+              <Route path="/quiz/results" element={<PastTestResults />} />
+              <Route path="/quiz/results/:resultId" element={<PastTestResults />} />
+              <Route path="/psychology" element={<Psychology />} />
+              <Route path="/psychology/:techniqueId" element={<PsychologyTechniqueDetail />} />
+              <Route path="/progress" element={<Progress />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/auth" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
+          </RouteErrorBoundary>
         </div>
       </main>
     </div>
@@ -132,11 +247,16 @@ export default function App() {
     dataLoading,
     dataReady,
     dataError,
+    dataConflict,
+    passwordRecovery,
+    resolveDataConflict,
     retryDataSync,
     signOut,
   } = useAuth()
 
   if (!isSupabaseConfigured) return <ConfigurationError />
+
+  if (passwordRecovery) return <Auth />
 
   if (isSupabaseConfigured && loading) {
     return <LoadingScreen message={dataLoading ? 'Syncing your study plan…' : undefined} />
@@ -146,7 +266,16 @@ export default function App() {
 
   if (isSupabaseConfigured && !dataReady) {
     if (dataError) {
-      return <DataSyncError message={dataError} onRetry={retryDataSync} onSignOut={() => { void signOut() }} />
+      return (
+        <DataSyncError
+          conflict={dataConflict}
+          message={dataError}
+          onRetry={retryDataSync}
+          onSignOut={() => { void signOut() }}
+          onUseCloud={() => { void resolveDataConflict('cloud') }}
+          onKeepLocal={() => { void resolveDataConflict('local') }}
+        />
+      )
     }
     return <LoadingScreen message="Syncing your study plan…" />
   }

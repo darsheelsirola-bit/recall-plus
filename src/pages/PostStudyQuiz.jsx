@@ -12,9 +12,16 @@ import { useGenerationUsage } from '../contexts/GenerationUsageContext'
 import { generateQuizQuestions } from '../services/groqService'
 import { GENERATION_LIMIT_MESSAGE } from '../types/generation'
 import { addDays, formatDate, getTodayDate } from '../utils/dateUtils'
-import { calculateScore, createId, getTopicStatus } from '../utils/quizUtils'
+import { calculateScore, createId, getTopicStatus, validateQuizQuestions } from '../utils/quizUtils'
 import { getPostStudyGap, upsertPostStudyRecalls } from '../utils/recallCalendar'
-import { getData, saveData, STORAGE_KEYS } from '../utils/storage'
+import {
+  getData,
+  getStorageUser,
+  saveDataBatchOrThrow,
+  saveDataForUserOrThrow,
+  STORAGE_KEYS,
+} from '../utils/storage'
+import { createSubmissionGuard } from '../utils/submissionGuard'
 
 function fallbackQuestions(subject, topics) {
   const focus = topics.join(', ')
@@ -33,6 +40,11 @@ function fallbackQuestions(subject, topics) {
   ]
 }
 
+function savedPostStudyQuestions(logId) {
+  const saved = getData(`post_study_questions_${logId}`, [])
+  return validateQuizQuestions(saved, 10) ? saved : null
+}
+
 export default function PostStudyQuiz() {
   const [searchParams] = useSearchParams()
   const logId = searchParams.get('logId')
@@ -43,26 +55,25 @@ export default function PostStudyQuiz() {
   const [loading, setLoading] = useState(Boolean(log))
   const [mode, setMode] = useState(log ? 'loading' : 'missing')
   const [notice, setNotice] = useState('')
+  const [saveError, setSaveError] = useState('')
   const [result, setResult] = useState(null)
   const [dueDate, setDueDate] = useState('')
   const generationRef = useRef(false)
-  const initialGenerationRef = useRef(false)
+  const submissionGuardRef = useRef(createSubmissionGuard())
   const quizUsage = useGenerationUsage('quiz')
   const generationBlocked = quizUsage.loading || quizUsage.inProgress || quizUsage.exhausted || Boolean(quizUsage.error)
 
   async function buildQuiz() {
     if (!log || generationRef.current || (loading && mode !== 'loading')) return
     if (quizUsage.exhausted) {
-      const saved = getData(`post_study_questions_${log.id}`, [])
-      setQuestions(saved.length === 10 ? saved : fallbackQuestions(log.subject, topics))
+      setQuestions(savedPostStudyQuestions(log.id) || fallbackQuestions(log.subject, topics))
       setNotice(GENERATION_LIMIT_MESSAGE)
       setLoading(false)
       setMode('active')
       return
     }
     if (quizUsage.error) {
-      const saved = getData(`post_study_questions_${log.id}`, [])
-      setQuestions(saved.length === 10 ? saved : fallbackQuestions(log.subject, topics))
+      setQuestions(savedPostStudyQuestions(log.id) || fallbackQuestions(log.subject, topics))
       setNotice('Generation limits could not be verified, so a safe saved or local recall check is being used instead.')
       setLoading(false)
       setMode('active')
@@ -73,14 +84,18 @@ export default function PostStudyQuiz() {
     generationRef.current = true
     setLoading(true)
     setNotice('')
+    setSaveError('')
     setAnswers({})
+    submissionGuardRef.current.reset()
+    const ownerId = getStorageUser()
     try {
       const generated = await generateQuizQuestions(log.subject, log.chapter, topics.join(', '), { count: 10, level: 'mixed' })
+      if (!ownerId || getStorageUser() !== ownerId) return
       setQuestions(generated)
-      saveData(`post_study_questions_${log.id}`, generated)
+      saveDataForUserOrThrow(ownerId, `post_study_questions_${log.id}`, generated)
     } catch (error) {
-      const saved = getData(`post_study_questions_${log.id}`, [])
-      const usable = saved.length === 10 ? saved : fallbackQuestions(log.subject, topics)
+      if (!ownerId || getStorageUser() !== ownerId) return
+      const usable = savedPostStudyQuestions(log.id) || fallbackQuestions(log.subject, topics)
       setQuestions(usable)
       setNotice(`The AI quiz was unavailable, so a safe ten-question recall check is being used instead. Reason: ${error.message}`)
     } finally {
@@ -91,24 +106,32 @@ export default function PostStudyQuiz() {
   }
 
   useEffect(() => {
-    if (!log || quizUsage.loading || quizUsage.inProgress || initialGenerationRef.current) return undefined
-    initialGenerationRef.current = true
+    if (!log || mode !== 'loading' || quizUsage.loading || quizUsage.inProgress) return undefined
     const timer = window.setTimeout(() => buildQuiz(), 0)
     return () => window.clearTimeout(timer)
-  }, [quizUsage.loading, quizUsage.inProgress]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [log?.id, mode, quizUsage.loading, quizUsage.inProgress]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function submitQuiz() {
+    if (!submissionGuardRef.current.claim()) return
     const summary = calculateScore(questions, answers)
     const quizResult = {
-      id: createId(), type: 'post-study', date: getTodayDate(), sourceLogId: log.id,
+      id: createId(), type: 'post-study', date: getTodayDate(), completedAt: new Date().toISOString(), sourceLogId: log.id,
       subject: log.subject, chapter: log.chapter, topic: topics.join(', '), topics,
       confidence: log.confidence, ...summary, status: getTopicStatus(summary.percentage),
     }
-    saveData(STORAGE_KEYS.quizResults, [quizResult, ...getData(STORAGE_KEYS.quizResults, [])])
-    saveData(STORAGE_KEYS.reviews, upsertPostStudyRecalls(getData(STORAGE_KEYS.reviews, []), log, quizResult))
     const statuses = getData(STORAGE_KEYS.topicStatuses, {})
     topics.forEach((topic) => { statuses[`${log.subject}|${log.chapter}|${topic}`] = summary.percentage >= 80 ? 'Mastered' : 'Needs Revision' })
-    saveData(STORAGE_KEYS.topicStatuses, statuses)
+    try {
+      saveDataBatchOrThrow([
+        [STORAGE_KEYS.quizResults, [quizResult, ...getData(STORAGE_KEYS.quizResults, [])]],
+        [STORAGE_KEYS.reviews, upsertPostStudyRecalls(getData(STORAGE_KEYS.reviews, []), log, quizResult)],
+        [STORAGE_KEYS.topicStatuses, statuses],
+      ])
+    } catch (persistenceError) {
+      submissionGuardRef.current.reset()
+      setSaveError(persistenceError.message)
+      return
+    }
     setResult(quizResult)
     setDueDate(addDays(getTodayDate(), getPostStudyGap(summary.percentage, log.confidence)))
     setMode('result')
@@ -121,5 +144,80 @@ export default function PostStudyQuiz() {
   if (mode === 'result' && result) return <><PageHeader title="Recall scheduled" description={`${log.subject} · ${topics.join(', ')}`} /><div className="grid gap-5 lg:grid-cols-[280px_1fr]"><Card className="border-0 bg-ink text-white"><CardContent className="p-7"><p className="text-sm text-white/55">Quick Check score</p><p className="mt-2 text-6xl font-semibold">{result.score}/10</p><Badge className="mt-5 bg-white/10 text-white">{log.confidence} confidence</Badge></CardContent></Card><Card><CardHeader><span className="grid size-11 place-items-center rounded-xl bg-secondary text-primary"><CalendarClock className="size-5" /></span><CardTitle className="mt-3 text-2xl">Next revision: {formatDate(dueDate)}</CardTitle></CardHeader><CardContent><p className="text-muted-foreground">Schedule now follows active recall + spaced repetition: weaker retrieval is reviewed sooner, stronger retrieval is spaced further.</p><Button className="mt-6" render={<Link to="/recall-calendar" />}>Open Recall Calendar <ArrowRight data-icon="inline-end" /></Button></CardContent></Card></div><div className="mt-6 space-y-4">{questions.map((question, index) => { const correct = answers[question.id] === question.answer; return <Card key={question.id}><CardContent className="flex gap-4 p-5"><span className={`grid size-9 shrink-0 place-items-center rounded-full ${correct ? 'bg-accent text-mint' : 'bg-rose-50 text-coral'}`}>{correct ? <Check className="size-4" /> : <X className="size-4" />}</span><div><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Question {index + 1} · {question.difficulty}</p><p className="mt-1 font-semibold">{question.question}</p><p className="mt-3 text-sm text-muted-foreground"><strong className="text-foreground">Answer:</strong> {question.answer}</p><p className="mt-1 text-sm text-muted-foreground">{question.explanation}</p></div></CardContent></Card> })}</div></>
 
   const allAnswered = Object.keys(answers).length === questions.length
-  return <><PageHeader title="Quick Check" description={`${log.subject} · ${log.chapter} · ${topics.join(', ')}`} actions={<Badge variant="outline">{log.confidence} confidence</Badge>} />{notice ? <Alert className="mb-5"><Sparkles /><AlertTitle>Fallback quiz ready</AlertTitle><AlertDescription>{notice}</AlertDescription></Alert> : null}<Card><CardHeader><div className="flex items-center justify-between gap-4"><div><CardTitle>Ten questions before you move on</CardTitle><p className="mt-1 text-sm text-muted-foreground">Groq-generated recall check</p><GenerationLimitStatus feature="quiz" className="mt-2" /></div><Button variant="outline" onClick={buildQuiz} disabled={loading || generationBlocked}><RotateCcw className={loading ? 'animate-spin' : ''} data-icon="inline-start" /> {loading ? 'Regenerating…' : 'Regenerate'}</Button></div></CardHeader><CardContent className="space-y-7">{questions.map((question, index) => <section key={question.id} className="border-t border-border pt-6 first:border-0 first:pt-0"><div className="flex items-center justify-between"><p className="text-sm font-semibold text-muted-foreground">Question {index + 1}</p><Badge variant="outline" className="capitalize">{question.difficulty === 'medium' ? 'Moderate' : question.difficulty}</Badge></div><h2 className="mt-2 text-lg font-semibold">{question.question}</h2><div className="mt-4 grid gap-2 md:grid-cols-2">{question.options.map((option) => { const selected = answers[question.id] === option; return <button type="button" key={option} onClick={() => setAnswers((current) => ({ ...current, [question.id]: option }))} className={`flex min-h-12 items-center gap-3 rounded-xl border p-3 text-left text-sm transition ${selected ? 'border-primary bg-secondary text-primary' : 'border-border hover:border-primary/40'}`}><span className={`grid size-6 shrink-0 place-items-center rounded-full border ${selected ? 'border-primary bg-primary text-white' : 'border-border'}`}>{selected ? <Check className="size-3.5" /> : null}</span>{option}</button> })}</div></section>)}<div className="flex justify-end"><Button disabled={!allAnswered} onClick={submitQuiz}>Schedule my recall <CheckCircle2 data-icon="inline-end" /></Button></div></CardContent></Card></>
+  return (
+    <>
+      <PageHeader
+        title="Quick Check"
+        description={`${log.subject} · ${log.chapter} · ${topics.join(', ')}`}
+        actions={<Badge variant="outline">{log.confidence} confidence</Badge>}
+      />
+      {notice ? (
+        <Alert className="mb-5">
+          <Sparkles />
+          <AlertTitle>Fallback quiz ready</AlertTitle>
+          <AlertDescription>{notice}</AlertDescription>
+        </Alert>
+      ) : null}
+      {saveError ? (
+        <Alert variant="destructive" className="mb-5">
+          <X />
+          <AlertTitle>Could not save your Quick Check</AlertTitle>
+          <AlertDescription>{saveError}</AlertDescription>
+        </Alert>
+      ) : null}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle>Ten questions before you move on</CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">Groq-generated recall check</p>
+              <GenerationLimitStatus feature="quiz" className="mt-2" />
+            </div>
+            <Button variant="outline" onClick={buildQuiz} disabled={loading || generationBlocked}>
+              <RotateCcw className={loading ? 'animate-spin' : ''} data-icon="inline-start" />
+              {loading ? 'Regenerating…' : 'Regenerate'}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-7">
+          {questions.map((question, index) => (
+            <section key={question.id} className="border-t border-border pt-6 first:border-0 first:pt-0">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-muted-foreground">Question {index + 1}</p>
+                <Badge variant="outline" className="capitalize">
+                  {question.difficulty === 'medium' ? 'Moderate' : question.difficulty}
+                </Badge>
+              </div>
+              <h2 className="mt-2 text-lg font-semibold">{question.question}</h2>
+              <div className="mt-4 grid gap-2 md:grid-cols-2" role="radiogroup" aria-label={`Answers for question ${index + 1}`}>
+                {question.options.map((option) => {
+                  const selected = answers[question.id] === option
+                  return (
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      key={option}
+                      onClick={() => setAnswers((current) => ({ ...current, [question.id]: option }))}
+                      className={`flex min-h-12 items-center gap-3 rounded-xl border p-3 text-left text-sm transition ${selected ? 'border-primary bg-secondary text-primary' : 'border-border hover:border-primary/40'}`}
+                    >
+                      <span className={`grid size-6 shrink-0 place-items-center rounded-full border ${selected ? 'border-primary bg-primary text-white' : 'border-border'}`}>
+                        {selected ? <Check className="size-3.5" /> : null}
+                      </span>
+                      {option}
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+          ))}
+          <div className="flex justify-end">
+            <Button disabled={!allAnswered} onClick={submitQuiz}>
+              Schedule my recall <CheckCircle2 data-icon="inline-end" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </>
+  )
 }

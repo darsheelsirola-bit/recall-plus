@@ -1,6 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { validateGeneratedTimetable, validateTimetableProfile } from '../shared/timetableValidation.js'
+import {
+  normalizeTimetableProfile,
+  validateGeneratedTimetable,
+  validateTimetableProfile,
+} from '../shared/timetableValidation.js'
 
 const profile = {
   wakeTime: '06:00',
@@ -29,6 +33,31 @@ test('profile validator rejects reversed times and oversized day arrays', () => 
     ...profile,
     tuition: { ...profile.tuition, days: [0, 1, 2, 3, 4, 5, 6, 0] },
   }), false)
+})
+
+test('profile validator rejects unknown properties at every level', () => {
+  assert.equal(validateTimetableProfile({ ...profile, attackerControlled: 'ignored before' }), false)
+  assert.equal(validateTimetableProfile({
+    ...profile,
+    school: { ...profile.school, hidden: 'ignored before' },
+  }), false)
+  assert.equal(validateTimetableProfile({
+    ...profile,
+    sports: {
+      ...profile.sports,
+      sessions: [{ ...profile.sports.sessions[0], hidden: 'ignored before' }],
+    },
+  }), false)
+})
+
+test('profile normalization returns a canonical allowlisted shape', () => {
+  const normalized = normalizeTimetableProfile({
+    ...profile,
+    school: { ...profile.school, days: [4, 2, 0, 3, 1] },
+    freeTimeDescription: '  Free after school  ',
+  })
+  assert.deepEqual(normalized.school.days, [0, 1, 2, 3, 4])
+  assert.equal(normalized.freeTimeDescription, 'Free after school')
 })
 
 test('generated timetable validation rejects blocked overlaps', () => {
@@ -68,4 +97,22 @@ test('technique block rejects invalid technique id', () => {
     label: 'Spaced repetition ladder',
   }
   assert.equal(validateGeneratedTimetable([block], profile), false)
+})
+
+test('generated timetable rejects unknown fields and oversized labels', () => {
+  assert.equal(validateGeneratedTimetable([{
+    weekday: 6,
+    startTime: '19:00',
+    durationMinutes: 60,
+    subject: 'Physics',
+    label: 'Physics recall',
+    hidden: 'provider-controlled',
+  }], profile), false)
+  assert.equal(validateGeneratedTimetable([{
+    weekday: 6,
+    startTime: '19:00',
+    durationMinutes: 60,
+    subject: 'Physics',
+    label: 'x'.repeat(161),
+  }], profile), false)
 })

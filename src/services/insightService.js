@@ -1,7 +1,11 @@
 import { getTodayDate } from '../utils/dateUtils.js'
 import { buildFallbackInsights } from '../utils/weakTopics.js'
-import { getData, saveData, STORAGE_KEYS } from '../utils/storage.js'
-import { authenticatedFetch } from './apiClient'
+import { getData, saveDataForUser, STORAGE_KEYS } from '../utils/storage.js'
+import {
+  assertCurrentIdentity,
+  authenticatedFetch,
+  getAuthenticatedIdentity,
+} from './apiClient'
 
 function localInsights(chapterContexts, source) {
   return { ...buildFallbackInsights(chapterContexts), source }
@@ -11,15 +15,16 @@ export async function generateInsights(chapterContexts) {
   if (!chapterContexts?.length) return localInsights([], 'local-empty')
 
   try {
+    const identity = await getAuthenticatedIdentity()
     const response = await authenticatedFetch('/api/generate-insights', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chapterContexts }),
-    })
+    }, identity)
     const data = await response.json().catch(() => ({}))
+    await assertCurrentIdentity(identity)
 
     if (!response.ok) {
-      console.warn('[insights] API error', response.status, data.error)
       return localInsights(chapterContexts, response.status === 429 ? 'local-rate-limit' : 'local-api-error')
     }
 
@@ -29,7 +34,7 @@ export async function generateInsights(chapterContexts) {
 
     return data
   } catch (error) {
-    console.warn('[insights] fetch failed', error)
+    if (error?.code === 'AUTH_SESSION_CHANGED') throw error
     return localInsights(chapterContexts, 'local-offline')
   }
 }
@@ -37,11 +42,20 @@ export async function generateInsights(chapterContexts) {
 export function loadCachedInsights(fingerprint, today = getTodayDate()) {
   const cache = getData(STORAGE_KEYS.insightCache, null)
   if (!cache || cache.date !== today || cache.fingerprint !== fingerprint) return null
+  if (
+    !cache.payload
+    || typeof cache.payload !== 'object'
+    || (cache.payload.chapters !== undefined && !Array.isArray(cache.payload.chapters))
+  ) return null
   return cache.payload
 }
 
-export function saveCachedInsights(fingerprint, payload, today = getTodayDate()) {
-  saveData(STORAGE_KEYS.insightCache, { date: today, fingerprint, payload })
+export function saveCachedInsightsForUser(userId, fingerprint, payload, today = getTodayDate()) {
+  return saveDataForUser(userId, STORAGE_KEYS.insightCache, {
+    date: today,
+    fingerprint,
+    payload,
+  })
 }
 
 export function shouldRefreshInsights(fingerprint, today = getTodayDate()) {

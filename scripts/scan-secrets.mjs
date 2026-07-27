@@ -1,7 +1,14 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { extname, join, relative } from 'node:path'
+import {
+  addKnownSecrets,
+  inspectContentForSecrets,
+  knownSecretsFromProcessEnvironment,
+  parseEnvironmentAssignments,
+} from './secret-patterns.mjs'
 
 const root = process.cwd()
+const maximumTextFileBytes = 5 * 1024 * 1024
 const ignoredDirectories = new Set([
   '.git',
   '.supabase',
@@ -11,109 +18,91 @@ const ignoredDirectories = new Set([
 ])
 const textExtensions = new Set([
   '',
+  '.cjs',
   '.css',
+  '.cts',
   '.example',
   '.html',
   '.js',
   '.jsx',
   '.json',
+  '.lock',
   '.md',
   '.mjs',
+  '.mts',
+  '.ps1',
+  '.sh',
   '.sql',
+  '.svg',
   '.toml',
   '.ts',
   '.tsx',
   '.txt',
+  '.xml',
   '.yaml',
   '.yml',
 ])
-const secretKeyPattern =
-  /^(AI_API_KEY|GROQ_[A-Z0-9_]*API_KEY|OPENAI_API_KEY|SUPABASE_SERVICE_ROLE_KEY)$/
-const placeholderPattern =
-  /^(|changeme|example|placeholder|your[-_]|your[A-Z0-9_-]*key)/i
-const credentialPatterns = [
-  { name: 'Groq API key', pattern: /\bgsk_[A-Za-z0-9_-]{20,}\b/g },
-  { name: 'OpenAI API key', pattern: /\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b/g },
-  { name: 'Google API key', pattern: /\bAIza[A-Za-z0-9_-]{30,}\b/g },
-]
 
-function isEnvironmentFile(fileName) {
-  return fileName === '.env' || (fileName.startsWith('.env.') && fileName !== '.env.example')
+function isPrivateEnvironmentFile(fileName) {
+  return fileName === '.env'
+    || (fileName.startsWith('.env.') && fileName !== '.env.example' && fileName !== '.env.sample')
 }
 
-function parseEnvironmentSecrets() {
-  const envPath = join(root, '.env')
-  if (!existsSync(envPath)) return []
-
-  return readFileSync(envPath, 'utf8')
-    .split(/\r?\n/)
-    .map((line) => line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/))
-    .filter(Boolean)
-    .map((match) => ({
-      name: match[1],
-      value: match[2].replace(/^(['"])(.*)\1$/, '$2').trim(),
-    }))
-    .filter(({ name, value }) => secretKeyPattern.test(name) && value.length >= 12)
-}
-
-function collectTextFiles(directory, files = []) {
+function collectFiles(directory, result = { environmentFiles: [], textFiles: [] }) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     if (entry.isDirectory() && ignoredDirectories.has(entry.name)) continue
 
     const absolutePath = join(directory, entry.name)
     if (entry.isDirectory()) {
-      collectTextFiles(absolutePath, files)
-    } else if (!isEnvironmentFile(entry.name) && textExtensions.has(extname(entry.name))) {
-      files.push(absolutePath)
+      collectFiles(absolutePath, result)
+      continue
+    }
+
+    if (isPrivateEnvironmentFile(entry.name)) {
+      result.environmentFiles.push(absolutePath)
+      continue
+    }
+
+    if (textExtensions.has(extname(entry.name)) && statSync(absolutePath).size <= maximumTextFileBytes) {
+      result.textFiles.push(absolutePath)
     }
   }
-  return files
+  return result
 }
 
-const knownSecrets = parseEnvironmentSecrets()
+const { environmentFiles, textFiles } = collectFiles(root)
+const knownSecrets = knownSecretsFromProcessEnvironment()
+for (const environmentFile of environmentFiles) {
+  addKnownSecrets(
+    knownSecrets,
+    parseEnvironmentAssignments(readFileSync(environmentFile, 'utf8')),
+  )
+}
+
+const findingKeys = new Set()
 const findings = []
 let checkedFiles = 0
 
-for (const absolutePath of collectTextFiles(root)) {
+for (const absolutePath of textFiles) {
+  const content = readFileSync(absolutePath)
+  if (content.includes(0)) continue
+
   const file = relative(root, absolutePath)
-  const content = readFileSync(absolutePath, 'utf8')
   checkedFiles += 1
-
-  for (const secret of knownSecrets) {
-    if (content.includes(secret.value)) {
-      findings.push({ file, type: `value from ${secret.name}` })
-    }
-  }
-
-  for (const credential of credentialPatterns) {
-    for (const match of content.matchAll(credential.pattern)) {
-      if (!placeholderPattern.test(match[0])) {
-        findings.push({ file, type: credential.name })
-      }
-    }
-  }
-
-  for (const line of content.split(/\r?\n/)) {
-    const assignment = line.match(
-      /^\s*(AI_API_KEY|GROQ_[A-Z0-9_]*API_KEY|OPENAI_API_KEY|SUPABASE_SERVICE_ROLE_KEY)\s*=\s*(.*?)\s*$/,
-    )
-    if (!assignment) continue
-
-    const value = assignment[2].replace(/^(['"])(.*)\1$/, '$2').trim()
-    if (!placeholderPattern.test(value)) {
-      findings.push({ file, type: `literal ${assignment[1]} assignment` })
-    }
+  for (const type of inspectContentForSecrets(content.toString('utf8'), knownSecrets)) {
+    const findingKey = `${file}\0${type}`
+    if (findingKeys.has(findingKey)) continue
+    findingKeys.add(findingKey)
+    findings.push({ file, type })
   }
 }
 
 if (findings.length > 0) {
   console.error(`Secret scan failed with ${findings.length} potential finding(s):`)
-  for (const finding of findings) {
-    console.error(`- ${finding.file}: ${finding.type}`)
-  }
+  for (const finding of findings) console.error(`- ${finding.file}: ${finding.type}`)
   process.exitCode = 1
 } else {
   console.log(
-    `Secret scan passed: checked ${checkedFiles} text files; no known or patterned credentials found.`,
+    `Secret scan passed: checked ${checkedFiles} text files and ${environmentFiles.length} private environment file(s); no known or patterned credentials found.`,
   )
 }
