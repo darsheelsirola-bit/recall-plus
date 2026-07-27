@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_catalog;
 
-select plan(33);
+select plan(38);
 
 -- Auth users are inserted inside this transaction so the real signup trigger,
 -- profile creation, timezone validation, and cascade relationships are tested.
@@ -34,7 +34,7 @@ values
   '',
   clock_timestamp(),
   '{"provider":"email","providers":["email"]}'::jsonb,
-  '{"display_name":"Limiter One","timezone":"Asia/Kolkata"}'::jsonb,
+  '{"display_name":"Limiter One","timezone":"America/New_York"}'::jsonb,
   clock_timestamp(),
   clock_timestamp(),
   '',
@@ -67,17 +67,17 @@ select ok(
     from public.recall_profiles
     where id = '00000000-0000-0000-0000-000000000101'
   ),
-  'signup captures valid IANA timezone metadata as initialized'
+  'signup ignores browser timezone metadata and uses canonical India time'
 );
 
 select ok(
   (
-    select recall_profiles.timezone = 'UTC'
-      and not recall_profiles.timezone_initialized
+    select recall_profiles.timezone = 'Asia/Kolkata'
+      and recall_profiles.timezone_initialized
     from public.recall_profiles
     where id = '00000000-0000-0000-0000-000000000102'
   ),
-  'signup safely defaults missing timezone metadata to uninitialized UTC'
+  'signup without timezone metadata still uses canonical India time'
 );
 
 select ok(
@@ -124,16 +124,19 @@ select is(
     'Asia/Kolkata'
   ),
   'Asia/Kolkata',
-  'an authenticated user can initialize a missing timezone once'
+  'an authenticated user can idempotently confirm the canonical timezone'
 );
 
-select is(
-  public.initialize_recall_timezone(
-    '00000000-0000-0000-0000-000000000102',
-    'UTC'
-  ),
-  'Asia/Kolkata',
-  'a second initialization cannot hop timezone to reset limits'
+select throws_ok(
+  $statement$
+    select public.initialize_recall_timezone(
+      '00000000-0000-0000-0000-000000000102',
+      'UTC'
+    )
+  $statement$,
+  '22023',
+  'Invalid IANA timezone.',
+  'the timezone RPC rejects attempts to leave canonical India time'
 );
 
 select ok(
@@ -152,6 +155,76 @@ select set_config(
   true
 );
 set local role authenticated;
+
+update public.recall_profiles
+set display_name = 'Limiter One Updated'
+where id = '00000000-0000-0000-0000-000000000101';
+
+select is(
+  (
+    select display_name
+    from public.recall_profiles
+    where id = '00000000-0000-0000-0000-000000000101'
+  ),
+  'Limiter One Updated',
+  'an authenticated user can update their own valid display name'
+);
+
+update public.recall_profiles
+set display_name = 'Cross Account Change'
+where id = '00000000-0000-0000-0000-000000000102';
+
+reset role;
+
+select is(
+  (
+    select display_name
+    from public.recall_profiles
+    where id = '00000000-0000-0000-0000-000000000102'
+  ),
+  'Limiter Two',
+  'an authenticated user cannot update another profile'
+);
+
+select set_config(
+  'request.jwt.claim.sub',
+  '00000000-0000-0000-0000-000000000101',
+  true
+);
+set local role authenticated;
+
+select throws_ok(
+  $statement$
+    update public.recall_profiles
+    set display_name = 'A'
+    where id = '00000000-0000-0000-0000-000000000101'
+  $statement$,
+  '23514',
+  null::text,
+  'a one-character display name is rejected'
+);
+
+select throws_ok(
+  $statement$
+    update public.recall_profiles
+    set display_name = repeat('x', 51)
+    where id = '00000000-0000-0000-0000-000000000101'
+  $statement$,
+  '23514',
+  null::text,
+  'a display name longer than 50 characters is rejected'
+);
+
+select throws_ok(
+  $statement$
+    update public.recall_profiles
+    set display_name = '  Padded Name  '
+    where id = '00000000-0000-0000-0000-000000000101'
+  $statement$,
+  '23514',
+  null::text,
+  'an untrimmed display name is rejected'
+);
 
 select ok(
   (

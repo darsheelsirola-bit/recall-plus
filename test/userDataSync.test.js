@@ -273,11 +273,61 @@ test('timezone initialization RPC is bound to the intended user', async (t) => {
   )
   assert.ok(timezoneCall)
   assert.equal(timezoneCall.args.p_user_id, subject)
-  assert.equal(typeof timezoneCall.args.p_timezone, 'string')
+  assert.equal(timezoneCall.args.p_timezone, 'Asia/Kolkata')
   assert.equal(result.profile.timezone, 'Asia/Kolkata')
   assert.ok(
     rpcCalls
       .filter(({ name }) => name === 'upsert_recall_app_data')
       .every(({ args }) => args.p_user_id === subject),
   )
+})
+
+test('display-name updates are trimmed and bound to the current session user', async (t) => {
+  const { supabase, sync } = await createHarness(t)
+  let subject = 'account-a'
+  const updates = []
+
+  t.mock.method(
+    supabase.auth,
+    'getSession',
+    async () => sessionResult(subject),
+  )
+  t.mock.method(supabase, 'from', (table) => {
+    assert.equal(table, 'recall_profiles')
+    const builder = {}
+    builder.update = (value) => {
+      updates.push(value)
+      return builder
+    }
+    builder.eq = (column, value) => {
+      assert.equal(column, 'id')
+      assert.equal(value, 'account-a')
+      return builder
+    }
+    builder.select = (columns) => {
+      assert.equal(columns, 'display_name')
+      return builder
+    }
+    builder.single = async () => ({
+      data: { display_name: 'Updated Student' },
+      error: null,
+    })
+    return builder
+  })
+
+  assert.equal(
+    await sync.updateRecallProfileDisplayName(
+      'account-a',
+      '  Updated Student  ',
+    ),
+    'Updated Student',
+  )
+  assert.deepEqual(updates, [{ display_name: 'Updated Student' }])
+
+  subject = 'account-b'
+  await assert.rejects(
+    () => sync.updateRecallProfileDisplayName('account-a', 'Other Student'),
+    (error) => error?.code === 'AUTH_SESSION_CHANGED',
+  )
+  assert.equal(updates.length, 1)
 })

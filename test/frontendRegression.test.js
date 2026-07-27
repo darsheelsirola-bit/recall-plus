@@ -13,6 +13,13 @@ import { createSingleFlight, generationSingleFlightKey } from '../src/utils/requ
 import { latestResultsByTopic } from '../src/utils/resultUtils.js'
 import { createSubmissionGuard } from '../src/utils/submissionGuard.js'
 import {
+  INDIA_TIMEZONE,
+  INDIA_TIMEZONE_DETAIL,
+  INDIA_TIMEZONE_NAME,
+  normalizeProfileName,
+  validateProfileName,
+} from '../src/utils/profile.js'
+import {
   getSyncRetryDelay,
   isDataVersionConflictError,
   SYNC_RETRY_LIMIT,
@@ -156,6 +163,20 @@ test('user-data RPC contracts bind every write to the intended authenticated use
       p_timezone: 'Asia/Kolkata',
     },
   )
+})
+
+test('profile names and the product timezone use one shared contract', () => {
+  assert.equal(normalizeProfileName('  Recall Student  '), 'Recall Student')
+  assert.equal(validateProfileName(''), 'Enter your name.')
+  assert.equal(validateProfileName('A'), 'Name must be at least 2 characters.')
+  assert.equal(
+    validateProfileName('x'.repeat(51)),
+    'Name must be 50 characters or fewer.',
+  )
+  assert.equal(validateProfileName('  Valid Student  '), '')
+  assert.equal(INDIA_TIMEZONE, 'Asia/Kolkata')
+  assert.equal(INDIA_TIMEZONE_NAME, 'India Standard Time')
+  assert.equal(INDIA_TIMEZONE_DETAIL, 'Asia/Kolkata (UTC+05:30)')
 })
 
 test('duplicate question ids invalidate generated and cached quizzes', () => {

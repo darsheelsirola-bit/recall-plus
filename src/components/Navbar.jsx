@@ -3,6 +3,7 @@ import {
   BookOpen,
   Bot,
   Brain,
+  Check,
   Globe2,
   Home,
   Lightbulb,
@@ -10,7 +11,7 @@ import {
   LogOut,
   Mail,
   NotebookPen,
-  Phone,
+  Pencil,
   Settings,
   Timer,
   UserCircle2,
@@ -20,6 +21,12 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { useDialogFocus } from '../hooks/useDialogFocus'
+import {
+  INDIA_TIMEZONE_DETAIL,
+  INDIA_TIMEZONE_NAME,
+  PROFILE_NAME_MAX_LENGTH,
+  validateProfileName,
+} from '../utils/profile'
 import { getData, STORAGE_KEYS } from '../utils/storage'
 import Logo from './Logo'
 
@@ -49,8 +56,6 @@ function normalizeProfile(raw = {}, user = null, syncedProfile = null) {
     name,
     className: String(syncedProfile?.className || raw.className || metadata.class_name || 'Class 11 PCM').trim() || 'Class 11 PCM',
     email: String(syncedProfile?.email || user?.email || raw.email || '').trim(),
-    phone: String(syncedProfile?.phone || user?.phone || raw.phone || raw.number || '').trim(),
-    timezone: String(syncedProfile?.timezone || raw.timezone || metadata.timezone || '').trim(),
   }
 }
 
@@ -61,10 +66,16 @@ export default function Navbar() {
     configured,
     signOut,
     signingOut,
+    updateProfileName,
+    updatingProfileName,
   } = useAuth()
   const [expanded, setExpanded] = useState(false)
   const [showProfileDetails, setShowProfileDetails] = useState(false)
   const [signOutError, setSignOutError] = useState('')
+  const [editingName, setEditingName] = useState(false)
+  const [nameDraft, setNameDraft] = useState('')
+  const [nameError, setNameError] = useState('')
+  const [nameNotice, setNameNotice] = useState('')
   const [, setProfileVersion] = useState(0)
   const accountDialogRef = useDialogFocus(showProfileDetails, () => setShowProfileDetails(false))
   const profile = normalizeProfile(getData(STORAGE_KEYS.profile, {}), user, syncedProfile)
@@ -79,16 +90,75 @@ export default function Navbar() {
     setShowProfileDetails(false)
   }
 
+  function resetNameEditor() {
+    setEditingName(false)
+    setNameDraft(profile.name)
+    setNameError('')
+    setNameNotice('')
+  }
+
+  function closeAccountDetails() {
+    setShowProfileDetails(false)
+    resetNameEditor()
+  }
+
   function closeAfterNavigation(event) {
     event.currentTarget.blur()
     setExpanded(false)
-    setShowProfileDetails(false)
+    closeAccountDetails()
   }
 
   function toggleProfileDetails() {
     setExpanded(true)
-    setShowProfileDetails((current) => !current)
+    if (showProfileDetails) closeAccountDetails()
+    else {
+      setNameDraft(profile.name)
+      setNameError('')
+      setNameNotice('')
+      setEditingName(false)
+      setShowProfileDetails(true)
+    }
     setSignOutError('')
+  }
+
+  function editName() {
+    setNameDraft(profile.name)
+    setNameError('')
+    setNameNotice('')
+    setEditingName(true)
+  }
+
+  function cancelNameEdit() {
+    setNameDraft(profile.name)
+    setNameError('')
+    setNameNotice('')
+    setEditingName(false)
+  }
+
+  async function saveName(event) {
+    event.preventDefault()
+    if (updatingProfileName) return
+    const validationError = validateProfileName(nameDraft)
+    if (validationError) {
+      setNameError(validationError)
+      setNameNotice('')
+      return
+    }
+    if (nameDraft.trim() === profile.name) {
+      setNameError('')
+      setNameNotice('Your name is already up to date.')
+      setEditingName(false)
+      return
+    }
+    setNameError('')
+    setNameNotice('')
+    const result = await updateProfileName(nameDraft)
+    if (result.error) {
+      setNameError(result.error)
+      return
+    }
+    setEditingName(false)
+    setNameNotice('Name saved.')
   }
 
   async function handleSignOut() {
@@ -155,37 +225,78 @@ export default function Navbar() {
       </aside>
 
       {showProfileDetails ? (
-        <div ref={accountDialogRef} tabIndex="-1" className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/35 p-4 backdrop-blur-sm outline-none" role="dialog" aria-modal="true" aria-label="Account details">
-          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-border bg-card p-5 text-foreground shadow-lift">
+        <div ref={accountDialogRef} tabIndex="-1" className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/35 p-3 backdrop-blur-sm outline-none sm:p-5" role="dialog" aria-modal="true" aria-label="Account details">
+          <div className="max-h-[calc(100dvh-1.5rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-card p-4 text-foreground shadow-lift sm:max-h-[calc(100dvh-2.5rem)] sm:p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-primary">Profile</p>
                 <h2 className="mt-1 text-xl font-semibold">Account details</h2>
               </div>
-              <button type="button" data-dialog-autofocus className="grid size-11 place-items-center rounded-lg hover:bg-secondary" onClick={() => setShowProfileDetails(false)} aria-label="Close account details">
+              <button type="button" data-dialog-autofocus className="grid size-11 shrink-0 place-items-center rounded-lg hover:bg-secondary" onClick={closeAccountDetails} aria-label="Close account details">
                 <X className="size-4" />
               </button>
             </div>
             <div className="mt-5 space-y-3">
-              <div className="flex items-center gap-3 rounded-xl bg-secondary/60 p-3">
-                <UserCircle2 className="size-5 shrink-0 text-primary" />
-                <div className="min-w-0"><p className="text-xs text-muted-foreground">Name</p><p className="truncate font-semibold">{profile.name}</p></div>
-              </div>
+              <section className="rounded-xl bg-secondary/60 p-3" aria-labelledby="account-name-label">
+                {editingName ? (
+                  <form onSubmit={saveName}>
+                    <label id="account-name-label" className="text-xs font-medium text-muted-foreground" htmlFor="account-name-input">Name</label>
+                    <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                      <input
+                        id="account-name-input"
+                        className="field min-w-0 flex-1"
+                        type="text"
+                        autoComplete="name"
+                        value={nameDraft}
+                        onChange={(event) => {
+                          setNameDraft(event.target.value)
+                          setNameError('')
+                          setNameNotice('')
+                        }}
+                        minLength={2}
+                        maxLength={PROFILE_NAME_MAX_LENGTH}
+                        disabled={updatingProfileName}
+                        autoFocus
+                      />
+                      <div className="flex gap-2">
+                        <button type="submit" className="btn-primary min-h-11 flex-1 justify-center px-3 sm:flex-none" disabled={updatingProfileName}>
+                          {updatingProfileName ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+                          {updatingProfileName ? 'Saving…' : 'Save'}
+                        </button>
+                        <button type="button" className="btn-secondary min-h-11 flex-1 justify-center px-3 sm:flex-none" onClick={cancelNameEdit} disabled={updatingProfileName}>Cancel</button>
+                      </div>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <UserCircle2 className="size-5 shrink-0 text-primary" />
+                    <div className="min-w-0 flex-1">
+                      <p id="account-name-label" className="text-xs text-muted-foreground">Name</p>
+                      <p className="break-words font-semibold">{profile.name}</p>
+                    </div>
+                    <button type="button" className="btn-secondary min-h-11 shrink-0 px-3" onClick={editName}>
+                      <Pencil className="size-4" /> Edit
+                    </button>
+                  </div>
+                )}
+                {nameError ? <p role="alert" className="mt-2 text-sm font-medium text-coral">{nameError}</p> : null}
+                {nameNotice ? <p role="status" className="mt-2 text-sm font-medium text-emerald-700">{nameNotice}</p> : null}
+              </section>
               <div className="flex items-center gap-3 rounded-xl bg-secondary/60 p-3">
                 <Mail className="size-5 shrink-0 text-primary" />
-                <div className="min-w-0"><p className="text-xs text-muted-foreground">Email</p><p className="truncate font-semibold">{profile.email || 'Email not added'}</p></div>
+                <div className="min-w-0"><p className="text-xs text-muted-foreground">Email</p><p className="break-all font-semibold">{profile.email || 'Email not added'}</p></div>
               </div>
-              <div className="flex items-center gap-3 rounded-xl bg-secondary/60 p-3">
-                <Phone className="size-5 shrink-0 text-primary" />
-                <div className="min-w-0"><p className="text-xs text-muted-foreground">Number</p><p className="truncate font-semibold">{profile.phone || 'Number not added'}</p></div>
-              </div>
-              <div className="flex items-center gap-3 rounded-xl bg-secondary/60 p-3">
+              <div className="flex items-start gap-3 rounded-xl bg-secondary/60 p-3">
                 <Globe2 className="size-5 shrink-0 text-primary" />
-                <div className="min-w-0"><p className="text-xs text-muted-foreground">Daily reset timezone</p><p className="truncate font-semibold">{profile.timezone || 'Device local timezone'}</p></div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Daily reset timezone</p>
+                  <p className="font-semibold">{INDIA_TIMEZONE_NAME}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{INDIA_TIMEZONE_DETAIL}</p>
+                </div>
               </div>
             </div>
             {signOutError ? <p role="alert" className="mt-4 rounded-lg border border-coral/25 bg-coral/10 px-3 py-2 text-sm text-coral">{signOutError}</p> : null}
-            <Link to="/settings" className="btn-secondary mt-5 w-full justify-center" onClick={() => setShowProfileDetails(false)}>
+            <Link to="/settings" className="btn-secondary mt-5 w-full justify-center" onClick={closeAccountDetails}>
               <Settings className="size-4" /> Settings &amp; backup
             </Link>
             {configured && user ? (

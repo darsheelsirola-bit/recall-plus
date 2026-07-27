@@ -20,11 +20,15 @@ import {
   buildTimezoneInitializationRpcArgs,
   buildUserDataUpsertRpcArgs,
 } from '../utils/userDataRpc'
+import {
+  INDIA_TIMEZONE,
+  normalizeProfileName,
+  validateProfileName,
+} from '../utils/profile.js'
 
 export interface RecallProfile {
   displayName: string
   email: string
-  phone: string
   className: string
   timezone: string
 }
@@ -65,14 +69,6 @@ export class DataSyncConflictError extends Error {
   }
 }
 
-function browserTimezone(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
-  } catch {
-    return 'UTC'
-  }
-}
-
 function asSnapshot(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -100,11 +96,6 @@ function profileFromSources(
   const emailName = email.includes('@') ? email.split('@')[0] : ''
   const localName = typeof localProfile.name === 'string' ? localProfile.name.trim() : ''
   const localClass = typeof localProfile.className === 'string' ? localProfile.className.trim() : ''
-  const localPhone = typeof localProfile.phone === 'string'
-    ? localProfile.phone.trim()
-    : typeof localProfile.number === 'string'
-      ? localProfile.number.trim()
-      : ''
 
   return {
     displayName: row?.display_name?.trim()
@@ -113,9 +104,8 @@ function profileFromSources(
       || emailName
       || 'Student',
     email,
-    phone: user.phone?.trim() || metadataString(user, 'phone') || localPhone,
     className: metadataString(user, 'class_name') || localClass || 'Class 11 PCM',
-    timezone: row?.timezone || metadataString(user, 'timezone') || browserTimezone(),
+    timezone: INDIA_TIMEZONE,
   }
 }
 
@@ -192,6 +182,35 @@ export async function resolveUserDataConflict(
   await syncUserSnapshot(userId)
 }
 
+export async function updateRecallProfileDisplayName(
+  userId: string,
+  value: string,
+): Promise<string> {
+  const validationError = validateProfileName(value)
+  if (validationError) throw new Error(validationError)
+  const displayName = normalizeProfileName(value)
+
+  const { data, error } = await runForExpectedSessionUser(
+    supabase.auth,
+    userId,
+    () => supabase
+      .from('recall_profiles')
+      .update({ display_name: displayName })
+      .eq('id', userId)
+      .select('display_name')
+      .single(),
+  )
+  if (error) throw new Error(`Could not update your name: ${error.message}`)
+
+  const savedName = normalizeProfileName(
+    (data as { display_name?: unknown } | null)?.display_name,
+  )
+  if (savedName !== displayName) {
+    throw new Error('Could not verify the saved name. Please try again.')
+  }
+  return savedName
+}
+
 async function hydrate(user: User): Promise<HydratedUserData> {
   await assertExpectedSessionUser(supabase.auth, user.id)
   const migration = migrateLegacyDataForUser(user.id)
@@ -229,7 +248,7 @@ async function hydrate(user: User): Promise<HydratedUserData> {
       user.id,
       () => supabase.rpc(
         'initialize_recall_timezone',
-        buildTimezoneInitializationRpcArgs(user.id, browserTimezone()),
+        buildTimezoneInitializationRpcArgs(user.id, INDIA_TIMEZONE),
       ),
     )
     if (error) throw new Error(`Could not initialize your local timezone: ${error.message}`)
@@ -263,22 +282,24 @@ async function hydrate(user: User): Promise<HydratedUserData> {
   const hydratedSnapshot = getScopedDataSnapshot(user.id)
   const storedProfile = asSnapshot(hydratedSnapshot[`recall_plus_${STORAGE_KEYS.profile}`])
   const profile = profileFromSources(user, profileRow, storedProfile)
-  const nextStoredProfile = {
+  const nextStoredProfile: Record<string, unknown> = {
     ...storedProfile,
     name: profile.displayName,
     className: profile.className,
     email: profile.email,
-    phone: profile.phone,
-    timezone: profile.timezone,
+    timezone: INDIA_TIMEZONE,
   }
+  delete nextStoredProfile.phone
+  delete nextStoredProfile.number
 
   if (JSON.stringify(storedProfile) !== JSON.stringify(nextStoredProfile)) {
     saveDataForUser(user.id, STORAGE_KEYS.profile, nextStoredProfile)
   }
 
-  const desiredDisplayName = metadataString(user, 'display_name', 'full_name', 'name')
+  const desiredDisplayName = profileRow.display_name?.trim()
+    || metadataString(user, 'display_name', 'full_name', 'name')
     || profile.displayName
-  if (desiredDisplayName && desiredDisplayName !== profileRow?.display_name) {
+  if (!profileRow.display_name && desiredDisplayName) {
     const { error } = await runForExpectedSessionUser(
       supabase.auth,
       user.id,

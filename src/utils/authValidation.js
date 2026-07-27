@@ -1,3 +1,5 @@
+import { validateProfileName } from './profile.js'
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function validateAuthForm({
@@ -7,7 +9,10 @@ export function validateAuthForm({
   password = '',
   confirmPassword = '',
 }) {
-  if (mode === 'signup' && !String(name).trim()) return 'Enter your name.'
+  if (mode === 'signup') {
+    const nameError = validateProfileName(name)
+    if (nameError) return nameError
+  }
 
   if (mode !== 'recovery') {
     const normalizedEmail = String(email).trim()

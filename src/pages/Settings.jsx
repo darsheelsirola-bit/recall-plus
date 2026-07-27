@@ -11,6 +11,7 @@ import {
   MAX_BACKUP_BYTES,
 } from '../utils/storage'
 import { getTodayDate } from '../utils/dateUtils'
+import { INDIA_TIMEZONE_DETAIL, INDIA_TIMEZONE_NAME } from '../utils/profile'
 
 export default function Settings() {
   const { profile, syncing, user } = useAuth()
@@ -84,7 +85,11 @@ export default function Settings() {
           <CardContent className="space-y-3 text-sm">
             <div><p className="text-xs text-muted-foreground">Name</p><p className="mt-1 font-semibold">{profile?.displayName || 'Student'}</p></div>
             <div><p className="text-xs text-muted-foreground">Email</p><p className="mt-1 break-all font-semibold">{profile?.email || 'Not available'}</p></div>
-            <div><p className="text-xs text-muted-foreground">Timezone</p><p className="mt-1 font-semibold">{profile?.timezone || 'Device timezone'}</p></div>
+            <div>
+              <p className="text-xs text-muted-foreground">Daily reset timezone</p>
+              <p className="mt-1 font-semibold">{INDIA_TIMEZONE_NAME}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{INDIA_TIMEZONE_DETAIL}</p>
+            </div>
             <p className="rounded-xl bg-secondary/60 p-3 text-xs leading-5 text-muted-foreground">
               {syncing ? 'Syncing your latest local changes…' : 'Changes are saved locally first, then synced securely to your account.'}
             </p>

@@ -5,17 +5,14 @@ import { Button } from '@/components/ui/button'
 import Logo from '../components/Logo'
 import { useAuth } from '../auth/AuthProvider'
 import { validateAuthForm } from '../utils/authValidation'
+import {
+  INDIA_TIMEZONE_DETAIL,
+  INDIA_TIMEZONE_NAME,
+  PROFILE_NAME_MAX_LENGTH,
+} from '../utils/profile'
 
 type AuthMode = 'signin' | 'signup' | 'forgot'
 type ActiveAuthMode = AuthMode | 'recovery'
-
-function localTimezone(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'your local timezone'
-  } catch {
-    return 'your local timezone'
-  }
-}
 
 export default function Auth() {
   const {
@@ -33,7 +30,6 @@ export default function Auth() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const [timezone] = useState(localTimezone)
   const activeMode: ActiveAuthMode = passwordRecovery ? 'recovery' : mode
 
   function changeMode(nextMode: AuthMode) {
@@ -103,7 +99,7 @@ export default function Auth() {
         <div className="grid gap-3">
           {[
             'Your progress stays tied to your account.',
-            'Quiz and timetable limits reset in your timezone.',
+            'Quiz and timetable limits reset on India Standard Time.',
             'Pick up your plan on another signed-in device.',
           ].map((item) => (
             <div key={item} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.06] p-4 text-sm font-medium text-white/80">
@@ -171,7 +167,8 @@ export default function Auth() {
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     placeholder="Your name"
-                    maxLength={120}
+                    minLength={2}
+                    maxLength={PROFILE_NAME_MAX_LENGTH}
                     required
                   />
                 </span>
@@ -249,7 +246,8 @@ export default function Auth() {
 
             {activeMode === 'signup' ? (
               <p className="rounded-xl bg-secondary/60 px-4 py-3 text-xs leading-5 text-muted-foreground">
-                Your daily generation limits will reset at midnight in <strong className="text-foreground">{timezone}</strong>.
+                Your daily generation limits reset at midnight in <strong className="text-foreground">{INDIA_TIMEZONE_NAME}</strong>
+                {' '}— {INDIA_TIMEZONE_DETAIL}.
               </p>
             ) : null}
 

@@ -15,8 +15,10 @@ import {
   resolveUserDataConflict,
   type RecallProfile,
   syncUserSnapshot,
+  updateRecallProfileDisplayName,
 } from '../data/userDataSync'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
+import { INDIA_TIMEZONE } from '../utils/profile.js'
 import {
   DATA_DIRTY_EVENT,
   getDataSyncState,
@@ -51,24 +53,19 @@ interface AuthContextValue {
   dataConflict: boolean
   syncing: boolean
   signingOut: boolean
+  updatingProfileName: boolean
   passwordRecovery: boolean
   signIn: (email: string, password: string) => Promise<AuthResult>
   signUp: (input: SignUpInput) => Promise<AuthResult>
   requestPasswordReset: (email: string) => Promise<AuthResult>
   updatePassword: (password: string) => Promise<AuthResult>
+  updateProfileName: (name: string) => Promise<AuthResult>
   signOut: () => Promise<AuthResult>
   retryDataSync: () => void
   resolveDataConflict: (strategy: 'cloud' | 'local') => Promise<AuthResult>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
-function currentTimezone(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
-  } catch {
-    return 'UTC'
-  }
-}
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback
@@ -85,12 +82,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [dataConflict, setDataConflict] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [updatingProfileName, setUpdatingProfileName] = useState(false)
   const [passwordRecovery, setPasswordRecovery] = useState(false)
   const [retryVersion, setRetryVersion] = useState(0)
   const syncTimerRef = useRef<number | null>(null)
   const syncRetryCountRef = useRef(0)
   const flushUserDataRef = useRef<() => Promise<void>>(async () => {})
   const flushOperationRef = useRef<{ userId: string; promise: Promise<void> } | null>(null)
+  const profileNameOperationRef = useRef<{
+    userId: string
+    promise: Promise<AuthResult>
+  } | null>(null)
   const currentUserRef = useRef<User | null>(null)
   const sessionUserIdRef = useRef('')
   const dataEpochRef = useRef(0)
@@ -120,6 +122,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
         }
         setSyncing(false)
         setSigningOut(false)
+        setUpdatingProfileName(false)
+        profileNameOperationRef.current = null
         setDataConflict(false)
       }
       setSession(nextSession)
@@ -317,7 +321,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
           display_name: displayName,
           name: displayName,
           class_name: 'Class 11 PCM',
-          timezone: currentTimezone(),
+          timezone: INDIA_TIMEZONE,
         },
       },
     })
@@ -346,6 +350,44 @@ export function AuthProvider({ children }: PropsWithChildren) {
     if (!error) setPasswordRecovery(false)
     return { error: error?.message || '' }
   }, [])
+
+  const updateProfileName = useCallback((name: string): Promise<AuthResult> => {
+    if (!isSupabaseConfigured || !userId || sessionUserIdRef.current !== userId) {
+      return Promise.resolve({ error: 'Sign in again before updating your name.' })
+    }
+    const existing = profileNameOperationRef.current
+    if (existing?.userId === userId) return existing.promise
+
+    const operationEpoch = dataEpochRef.current
+    const isCurrent = () => (
+      dataEpochRef.current === operationEpoch
+      && sessionUserIdRef.current === userId
+    )
+    setUpdatingProfileName(true)
+    const promise: Promise<AuthResult> = (async () => {
+      try {
+        const displayName = await updateRecallProfileDisplayName(userId, name)
+        if (!isCurrent()) {
+          return { error: 'Your signed-in account changed. Please try again.' }
+        }
+        setProfile((current) => (
+          current ? { ...current, displayName } : current
+        ))
+        return { error: '' }
+      } catch (error) {
+        return {
+          error: errorMessage(error, 'Could not update your name. Please try again.'),
+        }
+      }
+    })().finally(() => {
+      if (profileNameOperationRef.current?.promise === promise) {
+        profileNameOperationRef.current = null
+        if (isCurrent()) setUpdatingProfileName(false)
+      }
+    })
+    profileNameOperationRef.current = { userId, promise }
+    return promise
+  }, [userId])
 
   const signOut = useCallback(async (): Promise<AuthResult> => {
     if (!isSupabaseConfigured) return { error: '' }
@@ -433,11 +475,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
     dataConflict,
     syncing,
     signingOut,
+    updatingProfileName,
     passwordRecovery,
     signIn,
     signUp,
     requestPasswordReset,
     updatePassword,
+    updateProfileName,
     signOut,
     retryDataSync,
     resolveDataConflict,
@@ -452,11 +496,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
     dataConflict,
     syncing,
     signingOut,
+    updatingProfileName,
     passwordRecovery,
     signIn,
     signUp,
     requestPasswordReset,
     updatePassword,
+    updateProfileName,
     signOut,
     retryDataSync,
     resolveDataConflict,
