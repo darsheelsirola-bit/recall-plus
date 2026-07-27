@@ -6,7 +6,7 @@
   "packageManager": "npm@11.13.0",
   "engines": {
     "node": "24.x",
-    "npm": "11.13.x"
+    "npm": ">=11.12.0 <12"
   },
   "scripts": {
     "dev": "concurrently -k -n API,WEB -c magenta,cyan \"node --watch server.js\" \"vite --host 0.0.0.0 --port 5173 --strictPort\"",

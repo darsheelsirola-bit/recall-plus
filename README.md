@@ -41,7 +41,7 @@ The daily quota is not stored in `localStorage`. Supabase is authoritative for a
 ## Prerequisites
 
 - Node.js 24.16.0 (pinned in `.nvmrc` and `.node-version`)
-- npm 11.13.0 (pinned by `packageManager` and the CI workflow)
+- npm 11.12 or newer within npm 11 (CI and `packageManager` use 11.13.0)
 - Git
 - A Supabase project
 - The [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started)
@@ -211,15 +211,14 @@ npm start
 | `GROQ_MODEL` | Server | No | Overrides the default Groq model |
 | `GROQ_REQUEST_TIMEOUT_MS` | Server | No | Per-attempt Groq timeout, clamped to 5–30 seconds |
 | `PORT` | Local server | No | Express port; defaults to `8787` |
-| `ENABLE_EXPERIMENTAL_COREPACK` | Vercel build | On Vercel | Set to `1` so Vercel honors the exact npm version in `packageManager` |
 
 Use the following environment scopes:
 
 | Environment | File or scope | Required configuration |
 | --- | --- | --- |
 | Local development | Untracked `.env` | All required browser and server variables, plus optional `PORT`, model, and timeout |
-| Vercel Preview | Preview scope | All required browser and server variables plus `ENABLE_EXPERIMENTAL_COREPACK=1`; use preview-only Supabase and Groq credentials |
-| Vercel Production | Production scope | All required browser and server variables plus `ENABLE_EXPERIMENTAL_COREPACK=1`; use production-only credentials |
+| Vercel Preview | Preview scope | All required browser and server variables; use preview-only Supabase and Groq credentials |
+| Vercel Production | Production scope | All required browser and server variables; use production-only credentials |
 
 Do not share the Supabase service-role key or Groq keys between Preview and
 Production unless that risk has been explicitly reviewed. A separate Preview
@@ -279,9 +278,9 @@ any high- or critical-severity dependency advisory not covered by the narrow,
 guarded exception documented below.
 
 Vercel guarantees the Node 24 major and rolls forward security patch releases;
-local development and CI use the exact `24.16.0` pin. With
-`ENABLE_EXPERIMENTAL_COREPACK=1`, Vercel honors the exact npm `11.13.0`
-`packageManager` pin while still running the checked-in `npm ci` install command.
+local development and CI use the exact `24.16.0` pin. Vercel's supported npm
+11.x toolchain satisfies the declared range, while CI installs npm `11.13.0`
+explicitly and every environment uses the checked-in lockfile with `npm ci`.
 
 After Vercel assigns the production domain:
 

@@ -8,10 +8,6 @@ if (process.env.VERCEL !== '1') {
 const failures = []
 const environment = process.env.VERCEL_ENV || 'unknown'
 
-if (process.env.ENABLE_EXPERIMENTAL_COREPACK !== '1') {
-  failures.push('ENABLE_EXPERIMENTAL_COREPACK must equal 1 so Vercel honors packageManager')
-}
-
 function requireValue(name) {
   const value = String(process.env[name] || '').trim()
   if (!value || isPlaceholderValue(value)) failures.push(`${name} is missing or still a placeholder`)
