@@ -219,8 +219,8 @@ export default function EditTimetableModal({ open, blocks = [], initialProfile, 
   const sportsSession = profile.sports?.sessions?.[0] || { days: [], startTime: '18:00', endTime: '19:00' }
 
   return (
-    <div ref={dialogRef} tabIndex="-1" className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/45 p-4 backdrop-blur-sm outline-none" role="dialog" aria-modal="true" aria-label="Edit timetable">
-      <div className="my-2 max-h-[calc(100dvh-2rem)] w-full max-w-4xl overflow-y-auto rounded-2xl bg-card p-6 shadow-lift">
+    <div ref={dialogRef} tabIndex="-1" className="fixed inset-0 z-50 flex items-start justify-center overflow-x-hidden overflow-y-auto bg-ink/45 p-3 backdrop-blur-sm outline-none sm:p-4" role="dialog" aria-modal="true" aria-label="Edit timetable">
+      <div className="my-2 max-h-[calc(100dvh-1.5rem)] min-w-0 w-full max-w-4xl overflow-x-hidden overflow-y-auto rounded-2xl bg-card p-4 shadow-lift sm:max-h-[calc(100dvh-2rem)] sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-primary">Edit timetable</p>
@@ -295,17 +295,17 @@ export default function EditTimetableModal({ open, blocks = [], initialProfile, 
               const expanded = Boolean(expandedSubjects[subject])
               return (
                 <section key={subject} className="rounded-xl border p-3" style={{ borderColor: `${color}66`, backgroundColor: `${color}10` }}>
-                  <div className="flex items-center justify-between gap-3">
-                    <button type="button" className="min-h-11 text-left" onClick={() => toggleSubject(subject)}>
+                  <div className="flex min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <button type="button" className="min-h-11 min-w-0 w-full text-left sm:w-auto" onClick={() => toggleSubject(subject)}>
                       <p className="text-sm font-semibold" style={{ color }}>{subject}</p>
                       <p className="text-xs text-muted-foreground">{slots.length} slot{slots.length === 1 ? '' : 's'} this week</p>
                     </button>
-                    <div className="flex items-end gap-6">
-                      <label className="flex flex-col items-center gap-2 text-xs font-medium text-muted-foreground">
+                    <div className="grid min-w-0 grid-cols-2 items-end gap-3 sm:flex sm:gap-6">
+                      <label className="flex min-w-0 flex-col items-stretch gap-2 text-xs font-medium text-muted-foreground sm:items-center">
                         <span className="text-center">Frequency/week</span>
-                        <input className="field h-11 w-20 !px-2 text-sm" type="number" min="0" max="14" value={slots.length} onChange={(event) => setSubjectFrequency(subject, event.target.value)} />
+                        <input className="field h-11 min-w-0 w-full !px-2 text-sm sm:w-20" type="number" min="0" max="14" value={slots.length} onChange={(event) => setSubjectFrequency(subject, event.target.value)} />
                       </label>
-                      <div className="flex flex-col items-center gap-2">
+                      <div className="flex min-w-0 flex-col items-stretch gap-2 sm:items-center">
                         <span className="text-center text-xs font-medium text-muted-foreground">Slots</span>
                         <Button type="button" size="sm" variant="outline" onClick={() => toggleSubject(subject)}>{expanded ? 'Hide slots' : 'Show slots'}</Button>
                       </div>
@@ -318,7 +318,7 @@ export default function EditTimetableModal({ open, blocks = [], initialProfile, 
                           key={`${subject}-${index}`}
                           className="rounded-lg border border-border bg-background p-2"
                         >
-                          <div className="grid gap-2 sm:grid-cols-[96px_1fr_92px_108px_92px] sm:items-center">
+                          <div className="grid min-w-0 gap-2 sm:grid-cols-[96px_minmax(0,1fr)_92px_108px_92px] sm:items-center">
                             <div className="flex gap-2" aria-label={`Reorder ${subject} slot`}>
                               <Button type="button" size="icon-sm" variant="outline" aria-label={`Move ${subject} slot up`} disabled={slotPosition === 0} onClick={() => moveBlock(index, slots[slotPosition - 1].index)}><ChevronUp /></Button>
                               <Button type="button" size="icon-sm" variant="outline" aria-label={`Move ${subject} slot down`} disabled={slotPosition === slots.length - 1} onClick={() => moveBlock(index, slots[slotPosition + 1].index)}><ChevronDown /></Button>
