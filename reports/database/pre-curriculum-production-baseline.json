@@ -1,0 +1,13 @@
+{
+  "capturedOn": "2026-07-30",
+  "projectRef": "bqysqcsogqxfhrtuituo",
+  "migrationCount": 5,
+  "authUsers": 5,
+  "anonymousUsers": 0,
+  "recallProfiles": 5,
+  "appDataRows": 5,
+  "appDataVersionSum": 21,
+  "appDataAggregateHash": "dec420332418db029a8c346126d4b469",
+  "hashMethod": "md5(sorted user_id:version:md5(jsonb_text) tuples)",
+  "containsUserData": false
+}

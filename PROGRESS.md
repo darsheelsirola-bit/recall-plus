@@ -110,17 +110,102 @@ Status: complete
   codes (not 38), and Subject 5 permits Group A only. The implementation and tests now match the
   official source.
 
+## Phase 2 - Curriculum database, profile ownership, and safe legacy migration
+
+Status: complete
+
+### Completed work
+
+- Added one generated, transactional, non-destructive curriculum/profile migration:
+  `20260730120000_curriculum_profiles_and_rls.sql`.
+- Added normalized, version-ready relations for:
+  - curriculum versions;
+  - curriculum subjects;
+  - hierarchical curriculum nodes;
+  - user academic profiles;
+  - confirmed and archived user-subject selections;
+  - owner-readable legacy-subject migration candidates;
+  - private deterministic legacy aliases.
+- Seeded the exact Phase 1 catalogue into PostgreSQL: 1 curriculum version, 124 subject records,
+  121 selectable subject codes, and 295 source-reviewed curriculum nodes.
+- Added database-enforced subject validation for exact five-main/optional-sixth positions, official
+  Group-L/A/S placement, required English/Hindi, and Mathematics, computer-subject,
+  business-subject, and language-level conflicts.
+- Added session-derived RPCs for onboarding progress, final academic-profile confirmation, and
+  owner-only candidate refresh. Browser clients receive read-only table grants and cannot submit a
+  trusted user ID for academic writes.
+- Moved privileged data implementations behind invoker-mode public wrappers in the non-exposed
+  `recall_private` schema. Signed-in users can execute only five allowlisted private
+  implementations; arbitrary-user and generation helpers remain unavailable.
+- Hardened every browser-facing owner policy and RPC against Supabase anonymous Auth users.
+  Anonymous Auth rows do not receive Recall+ application data.
+- Added covering indexes for curriculum trees, profile-version foreign keys, migration-candidate
+  subjects, and private alias subjects. RLS Auth calls use initialization-plan-safe subqueries.
+- Replaced the unapplied local OAuth profile migration with its compatible behavior inside the
+  complete atomic phase migration, eliminating local/live migration-history drift.
+- Preserved legacy snapshots exactly. Existing subject names are detected from study logs,
+  timetable follow-ups, quizzes, recalls, timetables, and topic-status keys. Mapped and unresolved
+  values become confirmation candidates; no subject becomes active before the owner confirms a
+  complete valid combination and language.
+- Added deterministic SQL generation and freshness validation:
+  - `npm run curriculum:sql`;
+  - `npm run curriculum:sql:check`.
+- Added a repeatable embedded PostgreSQL migration smoke test and a 42-assertion hosted pgTAP suite.
+- Added a migration runbook, aggregate production baseline, and non-sensitive hosted-test report.
+- Created the user-approved `$0/month` disposable Supabase project
+  `rgdtgqrifgnpxcbanbbc` in `ap-south-1`. It contains no production data and no persistent test
+  users.
+- Made no production database, Auth, RLS, grant, application, or deployment change in this phase.
+
+### Tests run
+
+- `npm run test:db:smoke`:
+  - replayed all six checked-in migrations from a blank PostgreSQL database;
+  - seeded a legacy user after migration 5 and before migration 6;
+  - proved the legacy JSON snapshot and version were unchanged;
+  - detected four confirmation candidates and activated zero subjects silently;
+  - verified exact catalogue counts, Auth-trigger behavior, authenticated-role grants, owner RLS,
+    anonymous-session denial, combination validation, and atomic onboarding persistence.
+- Hosted Supabase test project:
+  - replayed all six application migrations;
+  - ran 42 pgTAP assertions with 0 failures and 0 diagnostics inside rollback-only transactions;
+  - confirmed 0 persistent auth users, profiles, snapshots, academic profiles, subjects, or
+    candidates after testing;
+  - confirmed 124 subjects, 121 selectable codes, 295 nodes, RLS on all six new public tables, and
+    zero public SECURITY DEFINER wrappers.
+- Supabase security advisor: 0 errors and 0 warnings.
+- Supabase performance advisor: 0 errors and 0 warnings.
+- `npm.cmd run check`:
+  - 165 automated Node tests passed;
+  - exact six-migration PostgreSQL smoke test passed;
+  - router compatibility, curriculum validation, and generated migration freshness passed;
+  - TypeScript and ESLint passed;
+  - production build passed;
+  - repository and complete reachable Git-history secret scans passed.
+
+### Unresolved errors and risks
+
+- Production intentionally remains on the Phase 0 database schema. The complete tested migration,
+  anonymous-sign-in setting change, leaked-password protection setting, and application deployment
+  must be rolled out together only after Phases 3-6 are complete.
+- The production advisor will continue to show its existing SECURITY DEFINER, anonymous-policy, and
+  leaked-password warnings until that final coordinated rollout. The disposable test schema proves
+  the database portion clears all security warnings.
+- Four hosted security INFO notices are intentional: server-only generation tables use RLS with no
+  browser policy, producing deny-all client access.
+- Ten hosted performance INFO notices report unused indexes because the disposable database has no
+  application workload. Required foreign-key and lazy-loading indexes are retained.
+- The `$0/month` disposable Supabase project remains active for later phase integration tests and
+  should be deleted after final production verification.
+
 ## Remaining work
 
-1. Phase 2 - Add the complete non-destructive Supabase curriculum/profile schema, RLS, grants,
-   validation functions, existing-user backfill, rollback plan, and database tests as one atomic
-   migration phase.
-2. Phase 3 - Add responsive onboarding, route guards, academic-profile state, and subject settings.
-3. Phase 4 - Make every learner-facing feature consume only the user's active curriculum subject IDs.
-4. Phase 5 - Enforce curriculum authorization and official-node validation in every AI/API path.
-5. Phase 6 - Run migration, account-matrix, responsive, security, performance, and end-to-end
+1. Phase 3 - Add responsive onboarding, route guards, academic-profile state, and subject settings.
+2. Phase 4 - Make every learner-facing feature consume only the user's active curriculum subject IDs.
+3. Phase 5 - Enforce curriculum authorization and official-node validation in every AI/API path.
+4. Phase 6 - Run migration, account-matrix, responsive, security, performance, and end-to-end
    verification and commit any fixes.
-6. Phase 7 - Push all phase commits, deploy the verified worktree atomically, verify production, and
+5. Phase 7 - Push all phase commits, deploy the verified worktree atomically, verify production, and
    publish the final report.
 
 ## Database safety rule

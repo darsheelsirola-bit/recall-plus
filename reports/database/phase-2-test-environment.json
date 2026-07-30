@@ -1,0 +1,59 @@
+{
+  "testedOn": "2026-07-30",
+  "testProjectRef": "rgdtgqrifgnpxcbanbbc",
+  "testProjectCostMonthlyUsd": 0,
+  "testProjectRegion": "ap-south-1",
+  "productionProjectModified": false,
+  "productionDataCopied": false,
+  "checkedInApplicationMigrationsReplayed": 6,
+  "hostedTestSetupMigrations": [
+    "enable_pgtap_for_database_tests",
+    "align_curriculum_indexes_and_rls_plans"
+  ],
+  "hostedTestNotes": [
+    "The alignment migration applied the advisor-driven index and RLS-initplan corrections to the disposable project.",
+    "The exact final checked-in six-migration sequence was replayed from a blank database by the embedded PostgreSQL smoke test."
+  ],
+  "pgtap": {
+    "assertions": 42,
+    "failures": 0,
+    "diagnostics": 0,
+    "transactionRolledBack": true
+  },
+  "embeddedPostgresSmoke": {
+    "passed": true,
+    "migrations": 6,
+    "legacySnapshotAndVersionPreserved": true,
+    "legacyCandidatesDetected": 4,
+    "legacySubjectsSilentlyActivated": 0
+  },
+  "catalogue": {
+    "versions": 1,
+    "subjects": 124,
+    "selectableSubjects": 121,
+    "nodes": 295
+  },
+  "persistentTestState": {
+    "authUsers": 0,
+    "recallProfiles": 0,
+    "appDataRows": 0,
+    "academicProfiles": 0,
+    "activeUserSubjects": 0,
+    "migrationCandidates": 0
+  },
+  "securityAdvisor": {
+    "errors": 0,
+    "warnings": 0,
+    "informational": 4,
+    "informationalReason": "Four server-only generation tables intentionally use RLS with no browser policy, producing deny-all client access.",
+    "remediationUrl": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy"
+  },
+  "performanceAdvisor": {
+    "errors": 0,
+    "warnings": 0,
+    "informational": 10,
+    "informationalReason": "A newly created test database has no real workload, so expected indexes are reported as unused.",
+    "remediationUrl": "https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index"
+  },
+  "containsUserData": false
+}
