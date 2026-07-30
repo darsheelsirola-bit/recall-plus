@@ -6,6 +6,7 @@ The production architecture uses:
 
 - React, TypeScript, and Vite for the browser app
 - Supabase Auth for email/password authentication
+- Google, Apple, and GitHub sign-in through Supabase Auth
 - Supabase Postgres and Row Level Security (RLS) for per-user data and generation limits
 - Vercel Functions, or the included Express server, as the trusted API boundary
 - Groq for quiz and timetable generation
@@ -88,18 +89,23 @@ Fill in `.env` with values from the Supabase project and Groq:
 
 ```env
 # Public browser configuration
-VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+VITE_SUPABASE_URL=https://bqysqcsogqxfhrtuituo.supabase.co
 VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_OR_PUBLISHABLE_KEY
 # Alternatively, use VITE_SUPABASE_PUBLISHABLE_KEY instead of
 # VITE_SUPABASE_ANON_KEY when the Supabase project provides a publishable key.
+VITE_AUTH_GOOGLE_ENABLED=true
+VITE_AUTH_GITHUB_ENABLED=false
+VITE_AUTH_APPLE_ENABLED=false
 
 # Server-only Supabase configuration
-SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+SUPABASE_URL=https://bqysqcsogqxfhrtuituo.supabase.co
 SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_OR_PUBLISHABLE_KEY
 SUPABASE_SERVICE_ROLE_KEY=YOUR_SUPABASE_SERVICE_ROLE_KEY
 
 # Server-only AI provider configuration
-GROQ_QUIZ_API_KEY=YOUR_QUIZ_AND_INSIGHTS_GROQ_KEY
+GROQ_QUIZ_API_KEY=YOUR_QUIZ_ONLY_GROQ_KEY
+GROQ_RECALL_API_KEY=YOUR_RECALL_ONLY_GROQ_KEY
+GROQ_INSIGHTS_API_KEY=YOUR_INSIGHTS_ONLY_GROQ_KEY
 GROQ_TIMETABLE_API_KEY=YOUR_TIMETABLE_GROQ_KEY
 GROQ_MODEL=llama-3.3-70b-versatile
 GROQ_REQUEST_TIMEOUT_MS=20000
@@ -108,7 +114,7 @@ GROQ_REQUEST_TIMEOUT_MS=20000
 PORT=8787
 ```
 
-Never commit `.env`. It is ignored by Git. Only the Supabase URL and anon/publishable key may use the `VITE_` prefix. Never prefix the Supabase service-role key or either Groq key with `VITE_`, because Vite embeds `VITE_` variables in the browser bundle.
+Never commit `.env`. It is ignored by Git. Only the Supabase URL and anon/publishable key may use the `VITE_` prefix. Never prefix the Supabase service-role key or any Groq key with `VITE_`, because Vite embeds `VITE_` variables in the browser bundle.
 
 ### Configure Supabase Auth
 
@@ -116,7 +122,7 @@ In the Supabase Dashboard:
 
 1. Enable the Email authentication provider.
 2. Set the development Site URL to `http://localhost:5173`.
-3. Add `http://localhost:5173` to the allowed redirect URLs.
+3. Add `http://localhost:5173/auth/callback` to the allowed redirect URLs.
 4. Keep anonymous sign-ins disabled.
 5. Require email confirmation and enable secure password changes.
 6. Require passwords of at least eight characters with lowercase, uppercase,
@@ -134,6 +140,113 @@ deployments use authentication, allow only the exact Preview URLs or the
 narrowest acceptable Preview pattern; do not use an unrestricted redirect
 wildcard.
 
+### Configure Google, Apple, and GitHub sign-in
+
+The linked Production deployment uses Supabase project
+`bqysqcsogqxfhrtuituo` and the canonical app origin
+`https://recall-plus.vercel.app`. Verify those values again before changing
+provider credentials if the Vercel or Supabase project is ever relinked.
+In the Supabase Dashboard, select the Recall+ project with that reference and
+open **Authentication > Sign In / Providers** before configuring any provider.
+
+There are two different callback URL types:
+
+| Registration location | URL |
+| --- | --- |
+| Google, GitHub, and Apple provider consoles | `https://bqysqcsogqxfhrtuituo.supabase.co/auth/v1/callback` |
+| Supabase Auth > URL Configuration, local app | `http://localhost:5173/auth/callback` |
+| Supabase Auth > URL Configuration, production app | `https://recall-plus.vercel.app/auth/callback` |
+
+The provider callback sends the provider response to Supabase Auth. Supabase
+then returns the browser to Recall+'s `/auth/callback` route. Do not register
+the Vercel callback in a provider console in place of the Supabase callback.
+
+In **Supabase Dashboard > Authentication > URL Configuration**:
+
+1. Set the hosted project's Site URL to
+   `https://recall-plus.vercel.app`.
+2. Add `http://localhost:5173/auth/callback`.
+3. Add `https://recall-plus.vercel.app/auth/callback`.
+4. If Vercel Preview authentication is required, add only exact Preview
+   callbacks or the narrow project pattern
+   `https://recall-plus-*-darshel.vercel.app/auth/callback`. The requested
+   broader fallback is `https://*.vercel.app/auth/callback`; use it only when
+   the narrow project pattern cannot cover the required Preview URLs because it
+   permits callbacks from unrelated Vercel projects.
+
+Keep all three `VITE_AUTH_*_ENABLED` flags `false` until the matching provider
+console credentials are saved in Supabase and the complete Production flow is
+tested. The flag controls only Recall+'s UI and does not enable a provider in
+Supabase.
+
+#### Google
+
+1. In Google Cloud, create or select a project and configure the Google Auth
+   Platform consent screen, audience, branding, and the `openid`, email, and
+   profile scopes.
+2. Create an OAuth client with application type **Web application**.
+3. Add these **Authorized JavaScript origins**:
+   - `http://localhost:5173`
+   - `https://recall-plus.vercel.app`
+4. Add this **Authorized redirect URI**:
+   - `https://bqysqcsogqxfhrtuituo.supabase.co/auth/v1/callback`
+5. In **Supabase Dashboard > Authentication > Sign In / Providers > Google**,
+   enable Google and enter the Google client ID and client secret.
+6. Test from both `http://localhost:5173` and
+   `https://recall-plus.vercel.app`.
+
+When testing against a fully local Supabase CLI stack instead of the hosted
+project, use `http://127.0.0.1:54321/auth/v1/callback` as the Google redirect
+URI and configure the local provider separately.
+
+#### GitHub
+
+1. In GitHub, open **Settings > Developer settings > OAuth Apps** and register
+   a new OAuth App.
+2. Set **Homepage URL** to `https://recall-plus.vercel.app`.
+3. Set **Authorization callback URL** to
+   `https://bqysqcsogqxfhrtuituo.supabase.co/auth/v1/callback`.
+4. In **Supabase Dashboard > Authentication > Sign In / Providers > GitHub**,
+   enable GitHub and enter the OAuth App client ID and client secret.
+5. Test the complete flow locally and in Production. GitHub OAuth Apps accept
+   one callback URL, so use a separate development OAuth App when testing
+   against the local Supabase stack; its callback is
+   `http://127.0.0.1:54321/auth/v1/callback`.
+
+#### Apple
+
+Apple web OAuth requires an active Apple Developer account.
+
+1. In Apple Developer **Certificates, Identifiers & Profiles**, create or
+   select an App ID and enable **Sign in with Apple**.
+2. Create a **Services ID** for Recall+ and associate it with that App ID. The
+   Services ID is the web OAuth client ID; use
+   `https://recall-plus.vercel.app` as the Recall+ website URL.
+3. Under the Services ID web configuration, add the domain
+   `bqysqcsogqxfhrtuituo.supabase.co`.
+4. Configure the return URL as
+   `https://bqysqcsogqxfhrtuituo.supabase.co/auth/v1/callback`.
+5. Create a Sign in with Apple key, download the `.p8` private key once, and
+   record its **Key ID**. Record the Apple Developer **Team ID** as well.
+6. Generate the Apple client secret from the Services ID, Team ID, Key ID, and
+   `.p8` private key. Keep the private key and generated secret outside this
+   repository.
+7. In **Supabase Dashboard > Authentication > Sign In / Providers > Apple**,
+   enable Apple, put the Services ID first in Client IDs, and enter the
+   generated Apple secret.
+8. Rotate the Apple OAuth secret at least every six months and retest the
+   complete flow after rotation.
+9. Keep `VITE_AUTH_APPLE_ENABLED=false` until that Production retest succeeds.
+
+Apple's web OAuth flow may not provide a name. Recall+ therefore creates the
+profile as `Recall+ User` when no usable provider name exists. The user can edit
+that name later; subsequent sign-ins never overwrite it.
+
+Provider client secrets, the Apple `.p8` key, Apple generated secrets, and
+provider access tokens are not Vite variables and must never be added with a
+`VITE_` prefix. The browser needs only `VITE_SUPABASE_URL` and one Supabase
+anon/publishable key. Provider secrets belong in Supabase Auth configuration.
+
 ### Apply the Supabase migration
 
 The production schema is defined by the ordered migrations in:
@@ -146,7 +259,7 @@ Link the repository to the intended Supabase project, review the pending migrati
 
 ```bash
 supabase login
-supabase link --project-ref YOUR_PROJECT_REF
+supabase link --project-ref bqysqcsogqxfhrtuituo
 supabase db push --dry-run
 supabase db push
 ```
@@ -165,6 +278,11 @@ The ordered production migrations are:
 - `20260727094712_harden_default_function_privileges.sql` removes PostgreSQL's
   global implicit `PUBLIC` execute default for future functions. Approved RPCs
   continue to receive explicit grants.
+- `20260727180523_fix_profile_name_and_india_timezone.sql` enforces the Recall+
+  profile-name contract and the fixed India Standard Time product policy.
+- `20260728071537_oauth_profile_metadata_defaults.sql` creates exactly one
+  profile/app-data row for new OAuth users, selects the first usable provider
+  name, and falls back to `Recall+ User` without overwriting existing profiles.
 
 Always inspect the dry-run output before applying a production migration. Do not run `supabase db reset --linked` against a production project because it is destructive.
 
@@ -206,7 +324,9 @@ npm start
 | `SUPABASE_URL` | Server | Yes | Supabase project URL used by API functions |
 | `SUPABASE_ANON_KEY` | Server | Yes | Used while validating authenticated requests |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server secret | Yes | Executes protected persistence and generation-limit RPCs |
-| `GROQ_QUIZ_API_KEY` | Server secret | Yes | Calls Groq for quiz and dashboard insight generation |
+| `GROQ_QUIZ_API_KEY` | Server secret | Yes | Calls Groq for quiz generation only |
+| `GROQ_RECALL_API_KEY` | Server secret | Yes | Calls Groq for Recall checks only |
+| `GROQ_INSIGHTS_API_KEY` | Server secret | Yes | Calls Groq for dashboard insight generation only |
 | `GROQ_TIMETABLE_API_KEY` | Server secret | Yes | Calls Groq for timetable generation only |
 | `GROQ_MODEL` | Server | No | Overrides the default Groq model |
 | `GROQ_REQUEST_TIMEOUT_MS` | Server | No | Per-attempt Groq timeout, clamped to 5–30 seconds |
@@ -228,7 +348,7 @@ testing away from production.
 On Vercel, the build fails before compilation when a required variable is
 missing, the browser and server Supabase URLs differ, a public setting matches
 or resembles a private credential, the anon key equals the service-role key, the
-two Groq keys are identical, the timeout is outside 5-30 seconds, Corepack is not
+any Groq feature keys are identical, the timeout is outside 5-30 seconds, Corepack is not
 enabled, or a secret-looking variable uses the public `VITE_` prefix. The
 validator reports variable names and reasons only; it never prints values.
 
@@ -285,7 +405,8 @@ explicitly and every environment uses the checked-in lockfile with `npm ci`.
 After Vercel assigns the production domain:
 
 1. Set that URL as the Supabase Auth Site URL.
-2. Add the exact production callback URL to the Supabase allowed redirect URLs.
+2. Add `https://recall-plus.vercel.app/auth/callback` to the Supabase Auth allowed
+   redirect URLs.
 3. Redeploy if any build-time `VITE_` variable changed.
 
 See the official [Vercel Git deployment](https://vercel.com/docs/git), [Vite deployment](https://vercel.com/docs/frameworks/frontend/vite), and [environment-variable](https://vercel.com/docs/environment-variables) documentation for dashboard details.

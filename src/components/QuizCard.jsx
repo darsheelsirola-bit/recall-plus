@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle2, Sparkles } from 'lucide-react'
+import { ArrowRight, Brain, CheckCircle2 } from 'lucide-react'
 
 export default function QuizCard({ hasQuestions, loading, onGenerate, onStart, error }) {
   return (
@@ -6,7 +6,7 @@ export default function QuizCard({ hasQuestions, loading, onGenerate, onStart, e
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div className="flex items-center gap-3">
           <span className={`grid h-11 w-11 place-items-center rounded-full ${hasQuestions ? 'bg-mint text-white' : 'bg-white text-indigo'}`}>
-            {hasQuestions ? <CheckCircle2 size={23} /> : <Sparkles size={22} />}
+            {hasQuestions ? <CheckCircle2 size={23} /> : <Brain size={22} />}
           </span>
           <div><p className="font-extrabold text-ink">{hasQuestions ? '12 questions ready' : 'Create a fresh topic quiz'}</p><p className="mt-0.5 text-sm text-ink/55">{hasQuestions ? 'Saved on this device and ready anytime.' : 'Groq will create 4 easy, 4 medium, and 4 hard questions.'}</p></div>
         </div>

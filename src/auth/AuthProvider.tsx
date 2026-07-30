@@ -319,6 +319,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       options: {
         data: {
           display_name: displayName,
+          full_name: displayName,
           name: displayName,
           class_name: 'Class 11 PCM',
           timezone: INDIA_TIMEZONE,

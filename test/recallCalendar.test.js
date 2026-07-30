@@ -1,6 +1,15 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { getPostStudyGap, getRecallDifficulty, groupRecallItems, spreadRecallTimes } from '../src/utils/recallCalendar.js'
+import {
+  findBalancedRecallSchedule,
+  findRecallTime,
+  getPostStudyGap,
+  getRecallDifficulty,
+  getRecallDuration,
+  groupRecallItems,
+  spreadRecallTimes,
+  upsertPostStudyRecalls,
+} from '../src/utils/recallCalendar.js'
 import { addDays, getTodayDate } from '../src/utils/dateUtils.js'
 
 test('post-study gaps follow 5-10 days for low and 15-20 days for high', () => {
@@ -12,6 +21,19 @@ test('post-study gaps follow 5-10 days for low and 15-20 days for high', () => {
   assert.equal(getPostStudyGap(92, 'Medium'), 18)
   assert.equal(getPostStudyGap(92, 'Low'), 19) // underconfident strong recall -> slightly later
   assert.equal(getPostStudyGap(98, 'High'), 20)
+})
+
+test('remarks influence recall only within bounded evidence-based gaps', () => {
+  assert.equal(getPostStudyGap(75, 'Medium', 'I was confused and made mistakes.'), 8)
+  assert.equal(getPostStudyGap(90, 'Medium', 'Clear and understood with no mistakes.'), 19)
+  assert.equal(getPostStudyGap(20, 'High', 'Very difficult and unclear.'), 5)
+  assert.equal(getPostStudyGap(100, 'Low', 'Clear and easy.'), 20)
+})
+
+test('recall duration increases for weak marks, overconfidence, and difficult remarks', () => {
+  assert.equal(getRecallDuration(35, 'High', 'Confused and made mistakes.'), 55)
+  assert.equal(getRecallDuration(92, 'Medium', 'Clear and understood.'), 20)
+  assert.equal(getRecallDuration(null, 'Medium', ''), 30)
 })
 
 test('recall difficulty summarizes the quiz result', () => {
@@ -41,4 +63,69 @@ test('same-day recalls are spread across different times', () => {
     { id: 'c', subject: 'Maths', topic: 'Sets', nextReviewDate: '2026-06-24', dueTime: '17:00' },
   ])
   assert.equal(new Set(items.map((item) => item.dueTime)).size, 3)
+})
+
+test('recall slots avoid full-duration overlap with revisions and timetable blocks', () => {
+  const date = '2026-06-24'
+  const scheduledItems = [
+    { id: 'physics', nextReviewDate: date, dueTime: '17:00', durationMinutes: 60 },
+    { id: 'maths', nextReviewDate: date, dueTime: '18:00', durationMinutes: 45 },
+  ]
+  const timetable = [
+    { weekday: 2, startTime: '15:30', durationMinutes: 90 },
+  ]
+  const dueTime = findRecallTime({
+    date,
+    subject: 'Chemistry',
+    topic: 'Equilibrium',
+    durationMinutes: 45,
+    scheduledItems,
+    timetable,
+  })
+  const [hours, minutes] = dueTime.split(':').map(Number)
+  const start = (hours * 60) + minutes
+  assert.equal(start + 45 <= 15 * 60 + 30 || start >= 19 * 60, true)
+})
+
+test('a fully occupied preferred day moves by at most one day when the next day is free', () => {
+  const preferredDate = addDays(getTodayDate(), 5)
+  const scheduledItems = Array.from({ length: 28 }, (_, index) => {
+    const totalMinutes = (7 * 60) + (index * 30)
+    return {
+      id: `busy-${index}`,
+      nextReviewDate: preferredDate,
+      dueTime: `${String(Math.floor(totalMinutes / 60)).padStart(2, '0')}:${String(totalMinutes % 60).padStart(2, '0')}`,
+      durationMinutes: 30,
+    }
+  })
+  const schedule = findBalancedRecallSchedule({
+    preferredDate,
+    subject: 'Maths',
+    topic: 'Sets',
+    durationMinutes: 30,
+    scheduledItems,
+  })
+  assert.equal(schedule.nextReviewDate, addDays(preferredDate, -1))
+})
+
+test('post-study recalls retain remarks and schedule multiple topics without clashes', () => {
+  const log = {
+    id: 'log-1',
+    subject: 'Physics',
+    chapter: 'Motion',
+    topics: ['Velocity', 'Acceleration'],
+    confidence: 'High',
+    notes: 'I was confused and made several mistakes.',
+  }
+  const quizResult = {
+    id: 'quiz-1',
+    score: 4,
+    totalQuestions: 10,
+    percentage: 40,
+  }
+  const recalls = upsertPostStudyRecalls([], log, quizResult)
+  assert.equal(recalls.length, 2)
+  assert.equal(recalls.every((item) => item.remarks === log.notes), true)
+  assert.equal(recalls.every((item) => item.durationMinutes === 55), true)
+  assert.equal(new Set(recalls.map((item) => `${item.nextReviewDate}|${item.dueTime}`)).size, 2)
 })

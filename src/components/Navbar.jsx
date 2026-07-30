@@ -43,15 +43,17 @@ const navItems = [
 
 function normalizeProfile(raw = {}, user = null, syncedProfile = null) {
   const metadata = user?.user_metadata || {}
-  const fallbackName = user?.email?.split('@')[0] || 'Aarav'
+  const fallbackName = user?.email?.split('@')[0] || 'Recall+ User'
   const name = String(
     syncedProfile?.displayName
     || raw.name
     || metadata.display_name
     || metadata.full_name
     || metadata.name
+    || metadata.user_name
+    || metadata.preferred_username
     || fallbackName,
-  ).trim() || 'Aarav'
+  ).trim() || 'Recall+ User'
   return {
     name,
     className: String(syncedProfile?.className || raw.className || metadata.class_name || 'Class 11 PCM').trim() || 'Class 11 PCM',
@@ -194,7 +196,14 @@ export default function Navbar() {
           if (!event.currentTarget.contains(event.relatedTarget)) closeMenu()
         }}
       >
-        <Link to="/" onClick={closeAfterNavigation} className="flex items-center px-2 py-1.5" aria-label="Recall Plus home"><Logo compact={!expanded} inverse /></Link>
+        <Link
+          to="/"
+          onClick={closeAfterNavigation}
+          className={`flex min-h-14 items-center px-2 ${expanded ? 'justify-start' : 'justify-center'}`}
+          aria-label="Recall Plus home"
+        >
+          <Logo compact={!expanded} inverse />
+        </Link>
         <p className={`mt-2 overflow-hidden whitespace-nowrap px-2 text-xs font-medium text-white/45 transition-all ${expanded ? 'max-w-48 opacity-100' : 'max-w-0 opacity-0'}`}>Class 11 PCM workspace</p>
         <nav className="mt-4 flex flex-1 flex-col gap-2 overflow-y-auto pr-1" aria-label="Primary navigation">
           {navItems.map(({ label, path, icon: Icon }) => (
@@ -205,7 +214,7 @@ export default function Navbar() {
           ))}
         </nav>
         <div className="relative mt-3 rounded-xl border border-white/10 bg-white/[0.06] p-2">
-          <div className="flex items-center gap-3">
+          <div className={`flex items-center ${expanded ? 'justify-start gap-3' : 'justify-center gap-0'}`}>
             <button
               type="button"
               onClick={toggleProfileDetails}
@@ -216,7 +225,7 @@ export default function Navbar() {
             >
               {initial}
             </button>
-            <div className={`min-w-0 overflow-hidden whitespace-nowrap transition-all duration-200 ${expanded ? 'max-w-40 opacity-100' : 'max-w-0 opacity-0'}`}>
+            <div className={`min-w-0 overflow-hidden whitespace-nowrap text-left transition-all duration-200 ${expanded ? 'max-w-40 opacity-100' : 'max-w-0 opacity-0'}`}>
               <p className="truncate text-sm font-semibold">{profile.name}</p>
               <p className="truncate text-xs text-white/50">{profile.className}</p>
             </div>

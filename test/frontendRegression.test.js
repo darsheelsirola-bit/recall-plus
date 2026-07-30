@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { completedAuthDestination } from '../src/utils/authNavigation.ts'
 import { validateAuthForm } from '../src/utils/authValidation.js'
 import {
   AUTH_SESSION_CHANGED_CODE,
@@ -19,6 +20,31 @@ import {
   normalizeProfileName,
   validateProfileName,
 } from '../src/utils/profile.js'
+import {
+  clearOAuthContext,
+  authReturnToFromLocation,
+  clearOAuthReturnTo,
+  DEFAULT_POST_LOGIN_PATH,
+  OAUTH_PROVIDER_KEY,
+  readOAuthCallbackParameters,
+  readOAuthProvider,
+  readOAuthReturnTo,
+  rememberOAuthReturnTo,
+  safeOAuthReturnTo,
+} from '../src/utils/oauthRedirect.ts'
+import {
+  isOAuthProviderFeatureEnabled,
+  isRecallOAuthProvider,
+  RECALL_OAUTH_PROVIDER_IDS,
+} from '../src/auth/oauthConfig.ts'
+import {
+  classifyOAuthError,
+  friendlyOAuthError,
+  safeOAuthDiagnosticMessage,
+} from '../src/auth/oauthErrors.ts'
+import { exchangeOAuthCallback } from '../src/auth/oauthCallback.ts'
+import { startOAuthSignIn } from '../src/auth/oauth.ts'
+import { supabaseAuthOptions } from '../src/lib/supabase.ts'
 import {
   getSyncRetryDelay,
   isDataVersionConflictError,
@@ -177,6 +203,346 @@ test('profile names and the product timezone use one shared contract', () => {
   assert.equal(INDIA_TIMEZONE, 'Asia/Kolkata')
   assert.equal(INDIA_TIMEZONE_NAME, 'India Standard Time')
   assert.equal(INDIA_TIMEZONE_DETAIL, 'Asia/Kolkata (UTC+05:30)')
+})
+
+test('authentication defaults to home while OAuth return destinations remain same-origin', () => {
+  assert.equal(DEFAULT_POST_LOGIN_PATH, '/')
+  assert.equal(completedAuthDestination('signin'), '/')
+  assert.equal(completedAuthDestination('signup'), '/')
+  assert.equal(completedAuthDestination('recovery'), '/')
+  assert.equal(completedAuthDestination('forgot'), null)
+  assert.equal(completedAuthDestination('signup', true), null)
+  assert.equal(
+    authReturnToFromLocation({
+      pathname: '/quiz/results/attempt-1',
+      search: '?from=review',
+      hash: '#answer-4',
+    }),
+    '/quiz/results/attempt-1?from=review#answer-4',
+  )
+  assert.equal(safeOAuthReturnTo('/auth'), DEFAULT_POST_LOGIN_PATH)
+  assert.equal(safeOAuthReturnTo('/auth/callback?code=secret'), DEFAULT_POST_LOGIN_PATH)
+  assert.equal(safeOAuthReturnTo('//attacker.example'), DEFAULT_POST_LOGIN_PATH)
+  assert.equal(safeOAuthReturnTo('https://attacker.example'), DEFAULT_POST_LOGIN_PATH)
+  assert.equal(safeOAuthReturnTo('/\\attacker.example'), DEFAULT_POST_LOGIN_PATH)
+})
+
+test('OAuth destination storage contains navigation only and is explicitly cleared', () => {
+  const values = new Map()
+  const storage = {
+    getItem(key) { return values.get(key) ?? null },
+    setItem(key, value) { values.set(key, String(value)) },
+    removeItem(key) { values.delete(key) },
+  }
+
+  rememberOAuthReturnTo(storage, '/progress?range=month')
+  assert.equal(readOAuthReturnTo(storage), '/progress?range=month')
+  assert.equal(values.size, 1)
+  clearOAuthReturnTo(storage)
+  assert.equal(values.size, 0)
+})
+
+test('OAuth remains usable when browser storage is unavailable', () => {
+  const blockedStorage = {
+    getItem() { throw new Error('blocked') },
+    setItem() { throw new Error('blocked') },
+    removeItem() { throw new Error('blocked') },
+  }
+
+  assert.doesNotThrow(() => rememberOAuthReturnTo(blockedStorage, '/progress'))
+  assert.equal(readOAuthReturnTo(blockedStorage), DEFAULT_POST_LOGIN_PATH)
+  assert.equal(readOAuthProvider(blockedStorage), null)
+  assert.doesNotThrow(() => clearOAuthReturnTo(blockedStorage))
+})
+
+test('OAuth configuration accepts exact provider ids and keeps Google sign-in available', () => {
+  assert.deepEqual(RECALL_OAUTH_PROVIDER_IDS, ['google', 'github', 'apple'])
+  assert.equal(isRecallOAuthProvider('google'), true)
+  assert.equal(isRecallOAuthProvider('Google'), false)
+  assert.equal(isRecallOAuthProvider('gitHub'), false)
+  assert.equal(isRecallOAuthProvider('literal-provider'), false)
+  assert.equal(
+    isOAuthProviderFeatureEnabled('google', { VITE_AUTH_GOOGLE_ENABLED: 'true' }),
+    true,
+  )
+  assert.equal(
+    isOAuthProviderFeatureEnabled('google', { VITE_AUTH_GOOGLE_ENABLED: 'false' }),
+    true,
+  )
+  assert.equal(isOAuthProviderFeatureEnabled('google', {}), true)
+  assert.equal(isOAuthProviderFeatureEnabled('apple', {}), false)
+})
+
+test('disabled OAuth providers never call Supabase or navigate', async () => {
+  let settingsCalls = 0
+  let authCalls = 0
+  let navigationCalls = 0
+  const storage = testStorage()
+  const result = await startOAuthSignIn('google', '/progress', {
+    configured: true,
+    featureEnabled: () => false,
+    providerEnabledInSupabase: async () => {
+      settingsCalls += 1
+      return true
+    },
+    client: {
+      auth: {
+        async signInWithOAuth() {
+          authCalls += 1
+          return { data: { provider: 'google', url: 'https://provider.example' }, error: null }
+        },
+      },
+    },
+    origin: 'https://recall-plus.vercel.app',
+    storage,
+    navigate: () => { navigationCalls += 1 },
+  })
+
+  assert.match(result.error, /not configured yet/i)
+  assert.equal(settingsCalls, 0)
+  assert.equal(authCalls, 0)
+  assert.equal(navigationCalls, 0)
+  assert.equal(storage.values.size, 0)
+})
+
+test('OAuth starts one exact PKCE callback request only after both gates pass', async () => {
+  const storage = testStorage()
+  const requests = []
+  const navigations = []
+  const result = await startOAuthSignIn('github', '/quiz?chapter=motion', {
+    configured: true,
+    featureEnabled: () => true,
+    providerEnabledInSupabase: async (provider) => provider === 'github',
+    client: {
+      auth: {
+        async signInWithOAuth(request) {
+          requests.push(request)
+          return {
+            data: {
+              provider: 'github',
+              url: 'https://github.com/login/oauth/authorize?opaque=1',
+            },
+            error: null,
+          }
+        },
+      },
+    },
+    origin: 'https://recall-plus.vercel.app',
+    storage,
+    navigate: (url) => navigations.push(url),
+  })
+
+  assert.equal(result.error, '')
+  assert.deepEqual(requests, [{
+    provider: 'github',
+    options: {
+      redirectTo: 'https://recall-plus.vercel.app/auth/callback',
+      skipBrowserRedirect: true,
+    },
+  }])
+  assert.deepEqual(navigations, ['https://github.com/login/oauth/authorize?opaque=1'])
+  assert.equal(readOAuthReturnTo(storage), '/quiz?chapter=motion')
+  assert.equal(readOAuthProvider(storage), 'github')
+  clearOAuthContext(storage)
+  assert.equal(storage.values.has(OAUTH_PROVIDER_KEY), false)
+})
+
+test('OAuth starter single-flights rapid clicks before React can disable the buttons', async () => {
+  let releaseSettings
+  let settingsCalls = 0
+  let authCalls = 0
+  const settingsGate = new Promise((resolve) => {
+    releaseSettings = resolve
+  })
+  const dependencies = {
+    configured: true,
+    featureEnabled: () => true,
+    providerEnabledInSupabase: async () => {
+      settingsCalls += 1
+      await settingsGate
+      return true
+    },
+    client: {
+      auth: {
+        async signInWithOAuth() {
+          authCalls += 1
+          return {
+            data: {
+              provider: 'google',
+              url: 'https://accounts.google.com/o/oauth2/v2/auth',
+            },
+            error: null,
+          }
+        },
+      },
+    },
+    origin: 'https://recall-plus.vercel.app',
+    storage: testStorage(),
+    navigate: () => {},
+  }
+
+  const first = startOAuthSignIn('google', '/dashboard', dependencies)
+  const duplicate = startOAuthSignIn('github', '/progress', dependencies)
+  assert.equal(first, duplicate)
+  await Promise.resolve()
+  assert.equal(settingsCalls, 1)
+  releaseSettings()
+  await first
+  assert.equal(authCalls, 1)
+})
+
+test('Supabase-disabled provider is contained in the app before OAuth navigation', async () => {
+  let authCalls = 0
+  const result = await startOAuthSignIn('apple', '/dashboard', {
+    configured: true,
+    featureEnabled: () => true,
+    providerEnabledInSupabase: async () => false,
+    client: {
+      auth: {
+        async signInWithOAuth() {
+          authCalls += 1
+          return { data: { provider: 'apple', url: 'https://appleid.apple.com' }, error: null }
+        },
+      },
+    },
+    origin: 'https://recall-plus.vercel.app',
+    storage: testStorage(),
+    navigate: () => assert.fail('disabled provider must not navigate'),
+  })
+  assert.match(result.error, /not configured yet/i)
+  assert.equal(authCalls, 0)
+})
+
+test('OAuth errors are classified into friendly messages without raw backend JSON', () => {
+  const raw = '{"code":400,"error_code":"validation_failed","msg":"Unsupported provider: provider is not enabled"}'
+  assert.equal(classifyOAuthError(raw), 'provider_unavailable')
+  assert.equal(
+    classifyOAuthError({
+      code: 400,
+      error_code: 'validation_failed',
+      msg: 'Unsupported provider: provider is not enabled',
+    }),
+    'provider_unavailable',
+  )
+  const message = friendlyOAuthError(raw, 'google', 'start')
+  assert.match(message, /Google sign-in is not configured yet/)
+  assert.doesNotMatch(message, /validation_failed|Unsupported provider|"code"/)
+  assert.match(
+    friendlyOAuthError('redirect_uri is not allowed', 'github', 'callback'),
+    /return address is not approved/,
+  )
+  assert.match(
+    friendlyOAuthError('access_denied', 'apple', 'callback'),
+    /was cancelled/,
+  )
+  assert.match(
+    friendlyOAuthError('Failed to fetch', 'google', 'start'),
+    /could not reach/,
+  )
+  assert.match(
+    friendlyOAuthError('access_denied', null, 'callback'),
+    /Social sign-in was cancelled/,
+  )
+  const diagnostic = safeOAuthDiagnosticMessage(
+    'callback failed client_secret="never-log-this" '
+    + 'access_token=also-never-log '
+    + 'https://example.test/callback?code=secret',
+  )
+  assert.doesNotMatch(diagnostic, /never-log-this|also-never-log|code=secret/)
+  assert.match(diagnostic, /\[credential\]/)
+  assert.match(diagnostic, /\[url\]/)
+})
+
+test('OAuth callback parser ignores auth tokens and reads only code or safe error fields', () => {
+  assert.deepEqual(
+    readOAuthCallbackParameters('?code=one-time-code', '#access_token=ignored'),
+    {
+      code: 'one-time-code',
+      error: '',
+      errorCode: '',
+      errorDescription: '',
+    },
+  )
+  assert.deepEqual(
+    readOAuthCallbackParameters('', '#error=access_denied&error_description=The+user+cancelled'),
+    {
+      code: '',
+      error: 'access_denied',
+      errorCode: '',
+      errorDescription: 'The user cancelled',
+    },
+  )
+})
+
+test('OAuth callback exchanges one code and rejects denial or missing input without exchange', async () => {
+  let exchangedCodes = []
+  const auth = {
+    async exchangeCodeForSession(code) {
+      exchangedCodes.push(code)
+      return {
+        data: { session: { user: { id: 'user-1' } } },
+        error: null,
+      }
+    },
+  }
+
+  const success = await exchangeOAuthCallback('?code=valid-code', '', auth)
+  assert.equal(success.status, 'success')
+  assert.deepEqual(exchangedCodes, ['valid-code'])
+
+  exchangedCodes = []
+  const denied = await exchangeOAuthCallback(
+    '?error=access_denied&error_description=cancelled',
+    '',
+    auth,
+  )
+  assert.deepEqual(denied, {
+    status: 'error',
+    reason: 'provider',
+    error: {
+      error: 'access_denied',
+      error_code: '',
+      description: 'cancelled',
+    },
+  })
+  assert.deepEqual(exchangedCodes, [])
+
+  const missing = await exchangeOAuthCallback('', '', auth)
+  assert.deepEqual(missing, { status: 'error', reason: 'missing_code' })
+  assert.deepEqual(exchangedCodes, [])
+})
+
+test('OAuth callback single-flights a Strict Mode duplicate code exchange', async () => {
+  let releaseExchange
+  let exchangeCalls = 0
+  const exchangeGate = new Promise((resolve) => {
+    releaseExchange = resolve
+  })
+  const auth = {
+    async exchangeCodeForSession() {
+      exchangeCalls += 1
+      await exchangeGate
+      return {
+        data: { session: { user: { id: 'strict-user' } } },
+        error: null,
+      }
+    },
+  }
+
+  const first = exchangeOAuthCallback('?code=strict-mode-code', '', auth)
+  const duplicate = exchangeOAuthCallback('?code=strict-mode-code', '', auth)
+  assert.equal(first, duplicate)
+  await Promise.resolve()
+  assert.equal(exchangeCalls, 1)
+  releaseExchange()
+  assert.equal((await first).status, 'success')
+  assert.equal((await duplicate).status, 'success')
+})
+
+test('Supabase session configuration uses PKCE, persistence, refresh, and explicit callback exchange', () => {
+  assert.equal(supabaseAuthOptions.flowType, 'pkce')
+  assert.equal(supabaseAuthOptions.persistSession, true)
+  assert.equal(supabaseAuthOptions.autoRefreshToken, true)
 })
 
 test('duplicate question ids invalidate generated and cached quizzes', () => {

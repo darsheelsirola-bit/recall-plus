@@ -5,7 +5,7 @@ import {
   handleQuizGeneration,
 } from '../server/apiHandlers.js'
 import { requestQuiz } from '../server/groq.js'
-import { normalizeInsightsRequest } from '../server/insights.js'
+import { normalizeInsightsRequest, requestInsights } from '../server/insights.js'
 import {
   assertJsonValueWithinLimits,
   MAX_REQUEST_BODY_BYTES,
@@ -14,6 +14,10 @@ import {
 import { sendError } from '../server/http.js'
 import { fetchGroq, readProviderJson } from '../server/upstreamFetch.js'
 import handleUnknownApiRoute from '../api/[...path].js'
+import {
+  QUIZ_VERIFICATION_VERSION,
+  validateVerifiedQuizQuestions,
+} from '../shared/quizValidation.js'
 
 const REQUEST_ID = '00000000-0000-4000-8000-000000000901'
 
@@ -60,6 +64,67 @@ function nestedObject(depth) {
     cursor = cursor.child
   }
   return root
+}
+
+function providerQuizResponse(content) {
+  return new Response(JSON.stringify({
+    choices: [{ message: { content: JSON.stringify(content) } }],
+  }), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  })
+}
+
+function verificationEntries(questions, overrides = {}) {
+  return questions.map((question) => ({
+    id: question.id,
+    answer: overrides[question.id] ?? question.answer,
+  }))
+}
+
+function mixedPhysicsQuiz() {
+  return [
+    {
+      id: 'q1',
+      difficulty: 'easy',
+      question: 'What is the SI unit of velocity?',
+      options: ['m/s', 'm/s²', 'm', 's'],
+      answer: 'm/s',
+      explanation: 'Velocity is displacement per unit time, so its SI unit is m/s.',
+    },
+    {
+      id: 'q2',
+      difficulty: 'medium',
+      question: 'A body travels 20 m in 4 s at constant speed. What is its speed?',
+      options: ['4 m/s', '5 m/s', '16 m/s', '80 m/s'],
+      answer: '5 m/s',
+      explanation: 'Speed is distance divided by time: 20/4 = 5 m/s.',
+    },
+    {
+      id: 'q3',
+      difficulty: 'medium',
+      question: 'Which quantity has both magnitude and direction?',
+      options: ['Mass', 'Time', 'Velocity', 'Temperature'],
+      answer: 'Velocity',
+      explanation: 'Velocity is a vector and therefore has both magnitude and direction.',
+    },
+    {
+      id: 'q4',
+      difficulty: 'hard',
+      question: 'What is the acceleration of a body moving with constant velocity?',
+      options: ['0 m/s²', '1 m/s²', '9.8 m/s²', 'It always increases'],
+      answer: '0 m/s²',
+      explanation: 'Constant velocity has zero rate of change, so acceleration is zero.',
+    },
+    {
+      id: 'q5',
+      difficulty: 'hard',
+      question: 'A force of 10 N acts on a 2 kg body. What is its acceleration?',
+      options: ['2 m/s²', '5 m/s²', '10 m/s²', '20 m/s²'],
+      answer: '5 m/s²',
+      explanation: 'Newton’s second law gives a = F/m = 10/2 = 5 m/s².',
+    },
+  ]
 }
 
 async function withHttpServer(callback) {
@@ -199,6 +264,75 @@ test('insight validation bounds every nested collection and rejects unknown data
   }), null)
 })
 
+test('AI insights never fall back to the quiz credential', async () => {
+  const originalInsightsKey = process.env.GROQ_INSIGHTS_API_KEY
+  const originalQuizKey = process.env.GROQ_QUIZ_API_KEY
+  const originalFetch = globalThis.fetch
+  let providerCalls = 0
+  delete process.env.GROQ_INSIGHTS_API_KEY
+  process.env.GROQ_QUIZ_API_KEY = 'quiz-only-test-key'
+  globalThis.fetch = async () => {
+    providerCalls += 1
+    throw new Error('Provider must not be called without the insights key.')
+  }
+
+  try {
+    await assert.rejects(
+      requestInsights([]),
+      (error) => (
+        error.code === 'AI_PROVIDER_UNAVAILABLE'
+        && error.statusCode === 503
+        && /insights are temporarily unavailable/i.test(error.message)
+      ),
+    )
+    assert.equal(providerCalls, 0)
+  } finally {
+    globalThis.fetch = originalFetch
+    if (originalInsightsKey === undefined) delete process.env.GROQ_INSIGHTS_API_KEY
+    else process.env.GROQ_INSIGHTS_API_KEY = originalInsightsKey
+    if (originalQuizKey === undefined) delete process.env.GROQ_QUIZ_API_KEY
+    else process.env.GROQ_QUIZ_API_KEY = originalQuizKey
+  }
+})
+
+test('AI insights authenticate only with the dedicated insights credential', async () => {
+  const originalInsightsKey = process.env.GROQ_INSIGHTS_API_KEY
+  const originalQuizKey = process.env.GROQ_QUIZ_API_KEY
+  const originalFetch = globalThis.fetch
+  let authorization = ''
+  process.env.GROQ_INSIGHTS_API_KEY = 'insights-only-test-key'
+  process.env.GROQ_QUIZ_API_KEY = 'quiz-only-test-key'
+  globalThis.fetch = async (_input, init) => {
+    authorization = init.headers.Authorization
+    return providerQuizResponse({
+      headline: 'Focus on motion',
+      summary: 'Use the saved scores to revise.',
+      chapters: [],
+    })
+  }
+  const normalized = normalizeInsightsRequest({
+    chapterContexts: [{
+      subject: 'Physics',
+      chapter: 'Motion',
+      syllabusTopics: ['Velocity'],
+      weakTopics: [],
+    }],
+  })
+
+  try {
+    const result = await requestInsights(normalized.chapterContexts)
+    assert.equal(authorization, 'Bearer insights-only-test-key')
+    assert.notEqual(authorization, 'Bearer quiz-only-test-key')
+    assert.equal(result.source, 'groq')
+  } finally {
+    globalThis.fetch = originalFetch
+    if (originalInsightsKey === undefined) delete process.env.GROQ_INSIGHTS_API_KEY
+    else process.env.GROQ_INSIGHTS_API_KEY = originalInsightsKey
+    if (originalQuizKey === undefined) delete process.env.GROQ_QUIZ_API_KEY
+    else process.env.GROQ_QUIZ_API_KEY = originalQuizKey
+  }
+})
+
 test('raw Vercel-style JSON bodies are parsed within the same boundary', () => {
   const body = readBoundedJsonBody(jsonRequest(JSON.stringify({
     subject: 'Physics',
@@ -243,6 +377,158 @@ test('already-parsed bodies without a raw byte count fail closed', () => {
     }),
     (error) => error.code === 'LENGTH_REQUIRED' && error.statusCode === 411,
   )
+})
+
+test('quiz generation is accepted only after two answer-blind verification passes agree', async () => {
+  const originalFetch = globalThis.fetch
+  const originalKey = process.env.GROQ_QUIZ_API_KEY
+  const questions = mixedPhysicsQuiz()
+  let providerCalls = 0
+  process.env.GROQ_QUIZ_API_KEY = 'test-only-key'
+  globalThis.fetch = async () => {
+    providerCalls += 1
+    if (providerCalls === 1) return providerQuizResponse({ questions })
+    return providerQuizResponse({
+      verifications: verificationEntries(questions),
+    })
+  }
+
+  try {
+    const verified = await requestQuiz({
+      subject: 'Physics',
+      chapter: 'Motion',
+      topic: 'Velocity',
+      count: 5,
+      level: 'mixed',
+    })
+    assert.equal(providerCalls, 3)
+    assert.equal(validateVerifiedQuizQuestions(verified, 5), true)
+    assert.equal(
+      verified.every((question) => question.verification === QUIZ_VERIFICATION_VERSION),
+      true,
+    )
+  } finally {
+    globalThis.fetch = originalFetch
+    if (originalKey === undefined) delete process.env.GROQ_QUIZ_API_KEY
+    else process.env.GROQ_QUIZ_API_KEY = originalKey
+  }
+})
+
+test('Recall and practice generation use only their dedicated Groq credentials', async () => {
+  const originalFetch = globalThis.fetch
+  const originalQuizKey = process.env.GROQ_QUIZ_API_KEY
+  const originalRecallKey = process.env.GROQ_RECALL_API_KEY
+  const questions = mixedPhysicsQuiz()
+  const authorizations = []
+  let providerCalls = 0
+  process.env.GROQ_QUIZ_API_KEY = 'practice-only-test-key'
+  process.env.GROQ_RECALL_API_KEY = 'recall-only-test-key'
+  globalThis.fetch = async (_url, init) => {
+    authorizations.push(init.headers.Authorization)
+    providerCalls += 1
+    if (providerCalls % 3 === 1) return providerQuizResponse({ questions })
+    return providerQuizResponse({ verifications: verificationEntries(questions) })
+  }
+
+  try {
+    await requestQuiz({
+      subject: 'Physics',
+      chapter: 'Motion',
+      topic: 'Velocity',
+      count: 5,
+      level: 'mixed',
+      purpose: 'recall',
+    })
+    assert.deepEqual(authorizations, Array(3).fill('Bearer recall-only-test-key'))
+
+    authorizations.length = 0
+    await requestQuiz({
+      subject: 'Physics',
+      chapter: 'Motion',
+      topic: 'Velocity',
+      count: 5,
+      level: 'mixed',
+      purpose: 'practice',
+    })
+    assert.deepEqual(authorizations, Array(3).fill('Bearer practice-only-test-key'))
+
+    delete process.env.GROQ_RECALL_API_KEY
+    authorizations.length = 0
+    await assert.rejects(
+      requestQuiz({
+        subject: 'Physics',
+        chapter: 'Motion',
+        topic: 'Velocity',
+        count: 5,
+        level: 'mixed',
+        purpose: 'recall',
+      }),
+      (error) => error.code === 'AI_PROVIDER_UNAVAILABLE' && error.statusCode === 503,
+    )
+    assert.deepEqual(authorizations, [])
+  } finally {
+    globalThis.fetch = originalFetch
+    if (originalQuizKey === undefined) delete process.env.GROQ_QUIZ_API_KEY
+    else process.env.GROQ_QUIZ_API_KEY = originalQuizKey
+    if (originalRecallKey === undefined) delete process.env.GROQ_RECALL_API_KEY
+    else process.env.GROQ_RECALL_API_KEY = originalRecallKey
+  }
+})
+
+test('answer verification rejects the two incorrect physics keys reported by the user', async () => {
+  const originalFetch = globalThis.fetch
+  const originalKey = process.env.GROQ_QUIZ_API_KEY
+  const questions = mixedPhysicsQuiz()
+  questions[0] = {
+    id: 'q1',
+    difficulty: 'easy',
+    question: 'A particle is projected at 20 m/s at 60 degrees. What is its vertical velocity component?',
+    options: ['10 m/s', '10√3 m/s', '20 m/s', '5√3 m/s'],
+    answer: '10 m/s',
+    explanation: 'The vertical component is v sin θ.',
+  }
+  questions[2] = {
+    id: 'q3',
+    difficulty: 'medium',
+    question: 'A stone is thrown upward at 25 m/s. What is its velocity after 2 s if g = 10 m/s²?',
+    options: ['5 m/s', '15 m/s', '20 m/s', '45 m/s'],
+    answer: '15 m/s',
+    explanation: 'Use v = u - gt.',
+  }
+  let providerCalls = 0
+  process.env.GROQ_QUIZ_API_KEY = 'test-only-key'
+  globalThis.fetch = async () => {
+    providerCalls += 1
+    if (providerCalls === 1) return providerQuizResponse({ questions })
+    return providerQuizResponse({
+      verifications: verificationEntries(questions, {
+        q1: '10√3 m/s',
+        q3: '5 m/s',
+      }),
+    })
+  }
+
+  try {
+    await assert.rejects(
+      requestQuiz({
+        subject: 'Physics',
+        chapter: 'Motion in a Plane',
+        topic: 'Projectile Motion, Motion Under Gravity',
+        count: 5,
+        level: 'mixed',
+      }),
+      (error) => (
+        error.code === 'AI_PROVIDER_RESPONSE_INVALID'
+        && error.statusCode === 502
+        && /could not be verified for answer accuracy/i.test(error.message)
+      ),
+    )
+    assert.equal(providerCalls, 2)
+  } finally {
+    globalThis.fetch = originalFetch
+    if (originalKey === undefined) delete process.env.GROQ_QUIZ_API_KEY
+    else process.env.GROQ_QUIZ_API_KEY = originalKey
+  }
 })
 
 test('provider response bodies and arbitrary status-bearing errors never leak', async () => {

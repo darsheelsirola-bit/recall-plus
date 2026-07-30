@@ -5,6 +5,7 @@
 export const VALID_DIFFICULTIES = ['easy', 'medium', 'hard']
 export const MIN_QUESTIONS = 5
 export const MAX_QUESTIONS = 30
+export const QUIZ_VERIFICATION_VERSION = 'independent-consensus-v1'
 
 const DIFFICULTY_SET = new Set(VALID_DIFFICULTIES)
 
@@ -28,4 +29,14 @@ export function validateQuizQuestions(questions, expectedCount) {
   if (Number.isInteger(expectedCount) && questions.length !== expectedCount) return false
   if (!questions.every(isValidQuestion)) return false
   return new Set(questions.map((question) => String(question.id))).size === questions.length
+}
+
+// AI-generated quizzes are safe to score only after the backend has run the
+// answer-blind consensus checks identified by the current verification version.
+// Locally-authored fallback questions still use validateQuizQuestions directly.
+export function validateVerifiedQuizQuestions(questions, expectedCount) {
+  return validateQuizQuestions(questions, expectedCount)
+    && questions.every(
+      (question) => question.verification === QUIZ_VERIFICATION_VERSION,
+    )
 }

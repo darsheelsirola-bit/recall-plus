@@ -142,6 +142,8 @@ export default function AddLog() {
             chapter,
             topic,
             confidence,
+            notes.trim(),
+            getData(STORAGE_KEYS.studyTimetable, []),
           ).reviews
         }
       })

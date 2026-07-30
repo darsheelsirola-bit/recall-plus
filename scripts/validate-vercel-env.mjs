@@ -43,6 +43,8 @@ const serverSupabaseUrl = requireValue('SUPABASE_URL')
 const serverAnonKey = requireValue('SUPABASE_ANON_KEY')
 const serviceRoleKey = requireValue('SUPABASE_SERVICE_ROLE_KEY')
 const quizKey = requireValue('GROQ_QUIZ_API_KEY')
+const recallKey = requireValue('GROQ_RECALL_API_KEY')
+const insightsKey = requireValue('GROQ_INSIGHTS_API_KEY')
 const timetableKey = requireValue('GROQ_TIMETABLE_API_KEY')
 
 validateHttpsUrl('VITE_SUPABASE_URL', browserSupabaseUrl)
@@ -55,6 +57,8 @@ if (browserSupabaseUrl && serverSupabaseUrl
 const serverSecrets = [
   ['SUPABASE_SERVICE_ROLE_KEY', serviceRoleKey],
   ['GROQ_QUIZ_API_KEY', quizKey],
+  ['GROQ_RECALL_API_KEY', recallKey],
+  ['GROQ_INSIGHTS_API_KEY', insightsKey],
   ['GROQ_TIMETABLE_API_KEY', timetableKey],
 ]
 for (const publicName of browserSupabaseKeyNames) {
@@ -77,13 +81,41 @@ if (serverAnonKey && serviceRoleKey && serverAnonKey === serviceRoleKey) {
 if (quizKey && timetableKey && quizKey === timetableKey) {
   failures.push('GROQ_QUIZ_API_KEY and GROQ_TIMETABLE_API_KEY must use separate credentials')
 }
+if (recallKey && quizKey && recallKey === quizKey) {
+  failures.push('GROQ_RECALL_API_KEY and GROQ_QUIZ_API_KEY must use separate credentials')
+}
+if (recallKey && insightsKey && recallKey === insightsKey) {
+  failures.push('GROQ_RECALL_API_KEY and GROQ_INSIGHTS_API_KEY must use separate credentials')
+}
+if (recallKey && timetableKey && recallKey === timetableKey) {
+  failures.push('GROQ_RECALL_API_KEY and GROQ_TIMETABLE_API_KEY must use separate credentials')
+}
+if (insightsKey && quizKey && insightsKey === quizKey) {
+  failures.push('GROQ_INSIGHTS_API_KEY and GROQ_QUIZ_API_KEY must use separate credentials')
+}
+if (insightsKey && timetableKey && insightsKey === timetableKey) {
+  failures.push('GROQ_INSIGHTS_API_KEY and GROQ_TIMETABLE_API_KEY must use separate credentials')
+}
 
 const timeout = String(process.env.GROQ_REQUEST_TIMEOUT_MS || '').trim()
 if (timeout && (!/^\d+$/.test(timeout) || Number(timeout) < 5000 || Number(timeout) > 30000)) {
   failures.push('GROQ_REQUEST_TIMEOUT_MS must be an integer from 5000 through 30000')
 }
 
+const oauthFeatureFlags = [
+  'VITE_AUTH_GOOGLE_ENABLED',
+  'VITE_AUTH_GITHUB_ENABLED',
+  'VITE_AUTH_APPLE_ENABLED',
+]
+for (const name of oauthFeatureFlags) {
+  const value = String(process.env[name] || '').trim().toLowerCase()
+  if (value && value !== 'true' && value !== 'false') {
+    failures.push(`${name} must be true or false when set`)
+  }
+}
+
 const allowedPublicNames = new Set([
+  ...oauthFeatureFlags,
   'VITE_SUPABASE_ANON_KEY',
   'VITE_SUPABASE_PUBLISHABLE_KEY',
   'VITE_SUPABASE_URL',

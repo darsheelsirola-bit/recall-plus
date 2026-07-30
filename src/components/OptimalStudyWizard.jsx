@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Loader2, Sparkles, X } from 'lucide-react'
+import { CalendarClock, ChevronDown, ChevronUp, Loader2, X } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import GenerationLimitStatus from './GenerationLimitStatus'
@@ -369,7 +369,7 @@ export default function OptimalStudyWizard({ open, initialProfile, onClose, onAp
             <GenerationLimitStatus feature="timetable" />
           <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
             {step < 5 ? <Button type="button" onClick={() => setStep((value) => value + 1)}>Next</Button> : null}
-            {step === 5 ? <Button type="button" onClick={generatePlan} disabled={loading || generationBlocked}>{loading ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <Sparkles data-icon="inline-start" />}{loading ? 'Generating plan…' : 'Generate plan'}</Button> : null}
+            {step === 5 ? <Button type="button" onClick={generatePlan} disabled={loading || generationBlocked}>{loading ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <CalendarClock data-icon="inline-start" />}{loading ? 'Generating plan…' : 'Generate plan'}</Button> : null}
             {step === 6 ? (
               <>
                 <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>

@@ -1,4 +1,4 @@
-import { validateQuizQuestions } from '../utils/quizUtils'
+import { validateVerifiedQuizQuestions } from '../utils/quizUtils'
 import {
   assertCurrentIdentity,
   authenticatedFetch,
@@ -9,8 +9,12 @@ import {
 } from './apiClient'
 import { publishGenerationUsage } from '../contexts/GenerationUsageContext'
 
-export async function generateQuizQuestions(subject, chapter, topic, { count = 5, level = 'mixed' } = {}) {
-  const payload = { subject, chapter, topic, count, level }
+export async function generateQuizQuestions(subject, chapter, topic, {
+  count = 5,
+  level = 'mixed',
+  purpose = 'practice',
+} = {}) {
+  const payload = { subject, chapter, topic, count, level, purpose }
   const payloadKey = JSON.stringify(payload)
   return runGenerationSingleFlight('quiz', payloadKey, async (identity) => {
     const requestId = getGenerationRequestId('quiz', payloadKey, identity.userId)
@@ -34,7 +38,9 @@ export async function generateQuizQuestions(subject, chapter, topic, { count = 5
       }
 
       const data = await response.json().catch(() => ({}))
-      if (!validateQuizQuestions(data.questions, count)) throw new Error('Groq returned an invalid quiz. Please regenerate it.')
+      if (!validateVerifiedQuizQuestions(data.questions, count)) {
+        throw new Error('The quiz answer key was not independently verified. Please regenerate it.')
+      }
       clearGenerationRequestId('quiz', payloadKey, identity.userId, requestId)
       await assertCurrentIdentity(identity)
       publishGenerationUsage('quiz', data)

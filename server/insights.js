@@ -351,7 +351,7 @@ export function validateInsightsRequest(body) {
 }
 
 export async function requestInsights(chapterContexts) {
-  const key = process.env.GROQ_QUIZ_API_KEY
+  const key = process.env.GROQ_INSIGHTS_API_KEY
   if (!key) {
     throw new AppError('AI insights are temporarily unavailable.', {
       code: ERROR_CODES.AI_PROVIDER_UNAVAILABLE,

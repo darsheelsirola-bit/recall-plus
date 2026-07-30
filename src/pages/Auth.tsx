@@ -1,10 +1,31 @@
 import { useState, type FormEvent } from 'react'
-import { ArrowRight, Brain, CheckCircle2, Loader2, LockKeyhole, Mail, UserRound, X } from 'lucide-react'
+import {
+  ArrowRight,
+  Brain,
+  CalendarClock,
+  ChartNoAxesCombined,
+  CheckCircle2,
+  Cloud,
+  Eye,
+  EyeOff,
+  Loader2,
+  LockKeyhole,
+  Mail,
+  NotebookPen,
+  RefreshCw,
+  UserRound,
+  X,
+  type LucideIcon,
+} from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import Logo from '../components/Logo'
+import SocialAuthButtons from '../components/auth/SocialAuthButtons'
 import { useAuth } from '../auth/AuthProvider'
+import { completedAuthDestination } from '../utils/authNavigation'
 import { validateAuthForm } from '../utils/authValidation'
+import { DEFAULT_POST_LOGIN_PATH } from '../utils/oauthRedirect'
 import {
   INDIA_TIMEZONE_DETAIL,
   INDIA_TIMEZONE_NAME,
@@ -14,7 +35,45 @@ import {
 type AuthMode = 'signin' | 'signup' | 'forgot'
 type ActiveAuthMode = AuthMode | 'recovery'
 
+const studyFeatures: Array<{
+  description: string
+  icon: LucideIcon
+  title: string
+}> = [
+  {
+    icon: NotebookPen,
+    title: 'Log every study session',
+    description: 'Keep subjects, topics, and time studied organised.',
+  },
+  {
+    icon: Brain,
+    title: 'Practise with focused quizzes',
+    description: 'Turn what you studied into targeted questions.',
+  },
+  {
+    icon: RefreshCw,
+    title: 'Review with spaced recall',
+    description: 'Bring important topics back at useful intervals.',
+  },
+  {
+    icon: CalendarClock,
+    title: 'Plan around your routine',
+    description: 'Build a timetable that fits your available time.',
+  },
+  {
+    icon: ChartNoAxesCombined,
+    title: 'See progress clearly',
+    description: 'Track activity and know what to study next.',
+  },
+  {
+    icon: Cloud,
+    title: 'Continue on any device',
+    description: 'Keep your study plan securely tied to your account.',
+  },
+]
+
 export default function Auth() {
+  const navigate = useNavigate()
   const {
     passwordRecovery,
     requestPasswordReset,
@@ -27,10 +86,13 @@ export default function Auth() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const activeMode: ActiveAuthMode = passwordRecovery ? 'recovery' : mode
+  const socialReturnTo = DEFAULT_POST_LOGIN_PATH
 
   function changeMode(nextMode: AuthMode) {
     setMode(nextMode)
@@ -38,6 +100,8 @@ export default function Auth() {
     setNotice('')
     setPassword('')
     setConfirmPassword('')
+    setShowPassword(false)
+    setShowConfirmPassword(false)
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -76,6 +140,10 @@ export default function Auth() {
         setNotice('Check your email to confirm your Recall+ account, then sign in here.')
         setMode('signin')
         setPassword('')
+        setShowPassword(false)
+      } else {
+        const destination = completedAuthDestination(activeMode)
+        if (destination) navigate(destination, { replace: true })
       }
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Authentication failed. Please try again.')
@@ -86,27 +154,42 @@ export default function Auth() {
 
   return (
     <main className="grid min-h-dvh bg-background p-4 sm:p-6 lg:grid-cols-[minmax(360px,.8fr)_minmax(520px,1.2fr)] lg:p-8">
-      <section className="relative hidden overflow-hidden rounded-3xl bg-ink p-10 text-white shadow-lift lg:flex lg:flex-col lg:justify-between">
+      <section className="relative hidden overflow-hidden rounded-3xl bg-ink p-8 text-white shadow-lift lg:sticky lg:top-8 lg:flex lg:h-[calc(100dvh-4rem)] lg:min-h-[680px] lg:self-start lg:flex-col xl:p-10">
         <div>
           <Logo inverse />
-          <h1 className="mt-16 max-w-md text-5xl font-semibold leading-[1.06] tracking-[-0.04em]">
+          <h1 className="mt-10 max-w-md text-4xl font-semibold leading-[1.06] tracking-[-0.04em] 2xl:mt-12 2xl:text-5xl">
             Keep every study session working for you.
           </h1>
-          <p className="mt-5 max-w-md text-base leading-7 text-white/60">
+          <p className="mt-4 max-w-md text-sm leading-6 text-white/60 2xl:text-base 2xl:leading-7">
             Recall+ turns your study logs into quizzes, spaced recall, and a timetable that follows your real routine.
           </p>
         </div>
-        <div className="grid gap-3">
-          {[
-            'Your progress stays tied to your account.',
-            'Quiz and timetable limits reset on India Standard Time.',
-            'Pick up your plan on another signed-in device.',
-          ].map((item) => (
-            <div key={item} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.06] p-4 text-sm font-medium text-white/80">
-              <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary text-white"><CheckCircle2 className="size-4" /></span>
-              {item}
-            </div>
-          ))}
+
+        <div className="mt-8 min-h-0 flex-1">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Inside Recall+</span>
+            <span className="h-px flex-1 bg-white/10" aria-hidden="true" />
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2.5">
+            {studyFeatures.map(({ description, icon: Icon, title }) => (
+              <div
+                key={title}
+                className="group flex min-h-20 gap-3 rounded-2xl border border-white/10 bg-white/[0.06] p-3.5 transition-colors hover:bg-white/[0.09] 2xl:min-h-[88px]"
+              >
+                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary/95 text-white shadow-sm">
+                  <Icon className="size-4" aria-hidden="true" />
+                </span>
+                <span>
+                  <span className="block text-sm font-semibold leading-5 text-white/90">{title}</span>
+                  <span className="mt-1 hidden text-xs leading-[1.45] text-white/50 2xl:block">{description}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 flex items-center gap-2 text-xs leading-5 text-white/55">
+            <CheckCircle2 className="size-4 shrink-0 text-primary" aria-hidden="true" />
+            Quiz and timetable limits reset on India Standard Time.
+          </div>
         </div>
       </section>
 
@@ -139,7 +222,7 @@ export default function Auth() {
               role="tab"
               aria-selected={activeMode === 'signin'}
               onClick={() => changeMode('signin')}
-              className={`min-h-11 rounded-lg px-4 py-2.5 text-sm font-semibold transition ${activeMode === 'signin' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`min-h-11 whitespace-nowrap rounded-lg px-2 py-2.5 text-sm font-semibold transition sm:px-4 ${activeMode === 'signin' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Sign in
             </button>
@@ -148,13 +231,26 @@ export default function Auth() {
               role="tab"
               aria-selected={activeMode === 'signup'}
               onClick={() => changeMode('signup')}
-              className={`min-h-11 rounded-lg px-4 py-2.5 text-sm font-semibold transition ${activeMode === 'signup' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`min-h-11 whitespace-nowrap rounded-lg px-2 py-2.5 text-sm font-semibold transition sm:px-4 ${activeMode === 'signup' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Create account
             </button>
           </div> : null}
 
-          <form className="mt-6 space-y-4" onSubmit={submit}>
+          {activeMode === 'signin' || activeMode === 'signup' ? (
+            <>
+              <div className="mt-6">
+                <SocialAuthButtons returnTo={socialReturnTo} />
+              </div>
+              <div className="my-5 flex items-center gap-3" aria-label="Or continue with email">
+                <span className="h-px flex-1 bg-border" aria-hidden="true" />
+                <span className="text-xs font-semibold tracking-[0.14em] text-muted-foreground">OR</span>
+                <span className="h-px flex-1 bg-border" aria-hidden="true" />
+              </div>
+            </>
+          ) : null}
+
+          <form className={`${activeMode === 'signin' || activeMode === 'signup' ? '' : 'mt-6'} space-y-4`} onSubmit={submit}>
             {activeMode === 'signup' ? (
               <label className="field-label">
                 Name
@@ -192,13 +288,16 @@ export default function Auth() {
               </span>
             </label> : null}
 
-            {activeMode !== 'forgot' ? <label className="field-label">
-              {activeMode === 'recovery' ? 'New password' : 'Password'}
+            {activeMode !== 'forgot' ? <div>
+              <label className="field-label" htmlFor="auth-password">
+                {activeMode === 'recovery' ? 'New password' : 'Password'}
+              </label>
               <span className="relative mt-2 block">
                 <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <input
-                  className="field !pl-10"
-                  type="password"
+                  id="auth-password"
+                  className="field !mt-0 !pl-10 !pr-12"
+                  type={showPassword ? 'text' : 'password'}
                   autoComplete={activeMode === 'signup' || activeMode === 'recovery' ? 'new-password' : 'current-password'}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
@@ -206,17 +305,32 @@ export default function Auth() {
                   minLength={activeMode === 'signup' || activeMode === 'recovery' ? 8 : undefined}
                   required
                 />
+                <button
+                  type="button"
+                  className="absolute right-1 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-controls="auth-password"
+                  aria-pressed={showPassword}
+                  onClick={() => setShowPassword((visible) => !visible)}
+                >
+                  {showPassword
+                    ? <EyeOff className="size-4" aria-hidden="true" />
+                    : <Eye className="size-4" aria-hidden="true" />}
+                </button>
               </span>
-            </label> : null}
+            </div> : null}
 
             {activeMode === 'recovery' ? (
-              <label className="field-label">
-                Confirm new password
+              <div>
+                <label className="field-label" htmlFor="auth-confirm-password">
+                  Confirm new password
+                </label>
                 <span className="relative mt-2 block">
                   <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <input
-                    className="field !pl-10"
-                    type="password"
+                    id="auth-confirm-password"
+                    className="field !mt-0 !pl-10 !pr-12"
+                    type={showConfirmPassword ? 'text' : 'password'}
                     autoComplete="new-password"
                     value={confirmPassword}
                     onChange={(event) => setConfirmPassword(event.target.value)}
@@ -224,8 +338,20 @@ export default function Auth() {
                     minLength={8}
                     required
                   />
+                  <button
+                    type="button"
+                    className="absolute right-1 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                    aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                    aria-controls="auth-confirm-password"
+                    aria-pressed={showConfirmPassword}
+                    onClick={() => setShowConfirmPassword((visible) => !visible)}
+                  >
+                    {showConfirmPassword
+                      ? <EyeOff className="size-4" aria-hidden="true" />
+                      : <Eye className="size-4" aria-hidden="true" />}
+                  </button>
                 </span>
-              </label>
+              </div>
             ) : null}
 
             {activeMode === 'signup' || activeMode === 'recovery' ? (
@@ -296,9 +422,13 @@ export default function Auth() {
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-xs leading-5 text-muted-foreground">
-            Your session stays signed in securely on this device until you sign out.
-          </p>
+          <div className="mt-6 text-center text-xs leading-5 text-muted-foreground">
+            <p>Your session stays signed in securely on this device until you sign out.</p>
+            <p className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1">
+              <Link className="font-semibold text-primary hover:underline" to="/privacy">Privacy Policy</Link>
+              <Link className="font-semibold text-primary hover:underline" to="/terms">Terms of Service</Link>
+            </p>
+          </div>
         </div>
       </section>
     </main>

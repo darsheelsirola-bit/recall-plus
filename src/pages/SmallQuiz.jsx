@@ -1,4 +1,4 @@
-import { ArrowRight, Brain, Check, CheckCircle2, CalendarClock, RotateCcw, Sparkles, X } from 'lucide-react'
+import { ArrowRight, Brain, Check, CheckCircle2, CalendarClock, RotateCcw, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -10,7 +10,7 @@ import { useGenerationUsage } from '../contexts/GenerationUsageContext'
 import { generateQuizQuestions } from '../services/groqService'
 import { GENERATION_LIMIT_MESSAGE } from '../types/generation'
 import { formatDate, getTodayDate } from '../utils/dateUtils'
-import { SMALL_QUIZ_COUNT, calculateScore, createId, createQuestionStorageKey, getTopicStatus, validateQuizQuestions } from '../utils/quizUtils'
+import { SMALL_QUIZ_COUNT, calculateScore, createId, createQuestionStorageKey, getTopicStatus, validateVerifiedQuizQuestions } from '../utils/quizUtils'
 import { createOrUpdateReviewData } from '../utils/spacedRepetition'
 import {
   getData,
@@ -65,7 +65,7 @@ export default function SmallQuiz() {
   async function startQuiz() {
     if (generationRef.current || loading) return
     const cached = getData(storageKey, [])
-    if (validateQuizQuestions(cached, SMALL_QUIZ_COUNT)) {
+    if (validateVerifiedQuizQuestions(cached, SMALL_QUIZ_COUNT)) {
       setQuestions(cached)
       setAnswers({})
       submissionGuardRef.current.reset()
@@ -83,7 +83,11 @@ export default function SmallQuiz() {
     setError('')
     const ownerId = getStorageUser()
     try {
-      const generated = await generateQuizQuestions(selection.subject, selection.chapter, selection.topic, { count: SMALL_QUIZ_COUNT, level: 'mixed' })
+      const generated = await generateQuizQuestions(selection.subject, selection.chapter, selection.topic, {
+        count: SMALL_QUIZ_COUNT,
+        level: 'mixed',
+        purpose: 'recall',
+      })
       if (!ownerId || getStorageUser() !== ownerId) return
       saveDataForUserOrThrow(ownerId, storageKey, generated)
       setQuestions(generated)
@@ -110,6 +114,7 @@ export default function SmallQuiz() {
       selection.chapter,
       selection.topic,
       summary.percentage,
+      { timetable: getData(STORAGE_KEYS.studyTimetable, []) },
     )
     try {
       saveDataBatchOrThrow([
@@ -183,7 +188,7 @@ export default function SmallQuiz() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-lavender text-indigo"><Brain size={21} /></span><div><p className="font-extrabold text-ink">5-question recall check</p><p className="mt-0.5 text-sm text-ink/55">Score well and we space it out; struggle and we bring it back sooner.</p></div></div>
           <div className="flex flex-col items-start gap-2 sm:items-end">
-            <button className="btn-primary" onClick={startQuiz} disabled={loading || generationBlocked}>{loading ? <RotateCcw size={17} className="animate-spin" /> : <Sparkles size={17} />}{loading ? 'Building…' : 'Start recall check'}</button>
+            <button className="btn-primary" onClick={startQuiz} disabled={loading || generationBlocked}>{loading ? <RotateCcw size={17} className="animate-spin" /> : <Brain size={17} />}{loading ? 'Building…' : 'Start recall check'}</button>
             <GenerationLimitStatus feature="quiz" />
           </div>
         </div>

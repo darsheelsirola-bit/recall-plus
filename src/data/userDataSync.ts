@@ -99,10 +99,16 @@ function profileFromSources(
 
   return {
     displayName: row?.display_name?.trim()
-      || metadataString(user, 'display_name', 'full_name', 'name')
+      || metadataString(
+        user,
+        'full_name',
+        'name',
+        'user_name',
+        'preferred_username',
+      )
       || localName
       || emailName
-      || 'Student',
+      || 'Recall+ User',
     email,
     className: metadataString(user, 'class_name') || localClass || 'Class 11 PCM',
     timezone: INDIA_TIMEZONE,
@@ -297,7 +303,7 @@ async function hydrate(user: User): Promise<HydratedUserData> {
   }
 
   const desiredDisplayName = profileRow.display_name?.trim()
-    || metadataString(user, 'display_name', 'full_name', 'name')
+    || metadataString(user, 'full_name', 'name', 'user_name', 'preferred_username')
     || profile.displayName
   if (!profileRow.display_name && desiredDisplayName) {
     const { error } = await runForExpectedSessionUser(

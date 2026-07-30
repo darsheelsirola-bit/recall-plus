@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarClock, Check, CheckCircle2, RotateCcw, Sparkles, X } from 'lucide-react'
+import { ArrowRight, CalendarClock, Check, CheckCircle2, Info, RotateCcw, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -12,7 +12,7 @@ import { useGenerationUsage } from '../contexts/GenerationUsageContext'
 import { generateQuizQuestions } from '../services/groqService'
 import { GENERATION_LIMIT_MESSAGE } from '../types/generation'
 import { addDays, formatDate, getTodayDate } from '../utils/dateUtils'
-import { calculateScore, createId, getTopicStatus, validateQuizQuestions } from '../utils/quizUtils'
+import { calculateScore, createId, getTopicStatus, validateVerifiedQuizQuestions } from '../utils/quizUtils'
 import { getPostStudyGap, upsertPostStudyRecalls } from '../utils/recallCalendar'
 import {
   getData,
@@ -42,7 +42,7 @@ function fallbackQuestions(subject, topics) {
 
 function savedPostStudyQuestions(logId) {
   const saved = getData(`post_study_questions_${logId}`, [])
-  return validateQuizQuestions(saved, 10) ? saved : null
+  return validateVerifiedQuizQuestions(saved, 10) ? saved : null
 }
 
 export default function PostStudyQuiz() {
@@ -89,7 +89,11 @@ export default function PostStudyQuiz() {
     submissionGuardRef.current.reset()
     const ownerId = getStorageUser()
     try {
-      const generated = await generateQuizQuestions(log.subject, log.chapter, topics.join(', '), { count: 10, level: 'mixed' })
+      const generated = await generateQuizQuestions(log.subject, log.chapter, topics.join(', '), {
+        count: 10,
+        level: 'mixed',
+        purpose: 'recall',
+      })
       if (!ownerId || getStorageUser() !== ownerId) return
       setQuestions(generated)
       saveDataForUserOrThrow(ownerId, `post_study_questions_${log.id}`, generated)
@@ -121,10 +125,16 @@ export default function PostStudyQuiz() {
     }
     const statuses = getData(STORAGE_KEYS.topicStatuses, {})
     topics.forEach((topic) => { statuses[`${log.subject}|${log.chapter}|${topic}`] = summary.percentage >= 80 ? 'Mastered' : 'Needs Revision' })
+    const nextReviews = upsertPostStudyRecalls(
+      getData(STORAGE_KEYS.reviews, []),
+      log,
+      quizResult,
+      getData(STORAGE_KEYS.studyTimetable, []),
+    )
     try {
       saveDataBatchOrThrow([
         [STORAGE_KEYS.quizResults, [quizResult, ...getData(STORAGE_KEYS.quizResults, [])]],
-        [STORAGE_KEYS.reviews, upsertPostStudyRecalls(getData(STORAGE_KEYS.reviews, []), log, quizResult)],
+        [STORAGE_KEYS.reviews, nextReviews],
         [STORAGE_KEYS.topicStatuses, statuses],
       ])
     } catch (persistenceError) {
@@ -133,7 +143,11 @@ export default function PostStudyQuiz() {
       return
     }
     setResult(quizResult)
-    setDueDate(addDays(getTodayDate(), getPostStudyGap(summary.percentage, log.confidence)))
+    const scheduled = nextReviews.find((item) => item.quizResultId === quizResult.id)
+    setDueDate(
+      scheduled?.nextReviewDate
+      || addDays(getTodayDate(), getPostStudyGap(summary.percentage, log.confidence, log.notes)),
+    )
     setMode('result')
   }
 
@@ -153,7 +167,7 @@ export default function PostStudyQuiz() {
       />
       {notice ? (
         <Alert className="mb-5">
-          <Sparkles />
+          <Info />
           <AlertTitle>Fallback quiz ready</AlertTitle>
           <AlertDescription>{notice}</AlertDescription>
         </Alert>

@@ -1,4 +1,8 @@
-export { validateQuizQuestions } from '../../shared/quizValidation.js'
+export {
+  QUIZ_VERIFICATION_VERSION,
+  validateQuizQuestions,
+  validateVerifiedQuizQuestions,
+} from '../../shared/quizValidation.js'
 
 // crypto.randomUUID is only available in secure contexts (HTTPS / localhost).
 // Fall back to a sufficiently unique id when served over plain HTTP.

@@ -181,9 +181,12 @@ function resolveTimetableConflicts(blocks = [], { profile, reviews = [], preserv
 export default function RecallCalendar() {
   useAppData()
   const today = getTodayDate()
-  const reviews = spreadRecallTimes(getData(STORAGE_KEYS.reviews, []).map(normalizeRecallItem))
   const logs = getData(STORAGE_KEYS.logs, []).filter((item) => CALENDAR_SUBJECTS.includes(item.subject))
   const timetable = getData(STORAGE_KEYS.studyTimetable, []).map(normalizeTimetableBlock).filter((block) => !block.techniqueId)
+  const reviews = spreadRecallTimes(
+    getData(STORAGE_KEYS.reviews, []).map(normalizeRecallItem),
+    timetable,
+  )
   const savedAvailability = getData(STORAGE_KEYS.studyAvailability, null)
   const timetableUsage = useGenerationUsage('timetable')
 
@@ -487,8 +490,8 @@ export default function RecallCalendar() {
     <div className="-mt-4 flex h-[calc(100dvh-9.5rem)] min-h-[36rem] flex-col overflow-hidden md:h-[calc(100dvh-7rem)] lg:-mt-5 lg:h-[calc(100dvh-4rem)]">
       <header className="mb-3 flex shrink-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <h1 className="text-[2rem] font-semibold leading-tight tracking-[-0.04em]">Recall Calendar</h1>
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start">
-          <div className="min-w-0">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start sm:gap-3">
+          <div className="flex min-w-0 flex-col items-start">
             <Button
               variant="outline"
               disabled={!hasTimetable && timetableGenerationBlocked}
@@ -496,7 +499,7 @@ export default function RecallCalendar() {
             >
               {hasTimetable ? 'Edit timetable' : 'Generate timetable'}
             </Button>
-            <GenerationLimitStatus feature="timetable" className="mt-1 max-w-72" />
+            <GenerationLimitStatus feature="timetable" compact className="mt-1 pl-1" />
           </div>
           <Button className="w-full sm:w-auto" onClick={() => openManualForDate()}><Plus data-icon="inline-start" /> New revision</Button>
         </div>

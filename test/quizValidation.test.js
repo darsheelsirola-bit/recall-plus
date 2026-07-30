@@ -1,6 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { validateQuizQuestions } from '../shared/quizValidation.js'
+import {
+  QUIZ_VERIFICATION_VERSION,
+  validateQuizQuestions,
+  validateVerifiedQuizQuestions,
+} from '../shared/quizValidation.js'
 
 function makeQuestion(difficulty, n) {
   const options = [`opt-${n}-a`, `opt-${n}-b`, `opt-${n}-c`, `opt-${n}-d`]
@@ -29,6 +33,20 @@ test('enforces expectedCount when provided', () => {
   assert.equal(validateQuizQuestions(makeQuiz(5), 5), true)
   assert.equal(validateQuizQuestions(makeQuiz(5), 6), false)
   assert.equal(validateQuizQuestions(makeQuiz(20), 20), true)
+})
+
+test('accepts only quizzes stamped by the current independent verification gate', () => {
+  const verified = makeQuiz(5).map((question) => ({
+    ...question,
+    verification: QUIZ_VERIFICATION_VERSION,
+  }))
+  assert.equal(validateVerifiedQuizQuestions(verified, 5), true)
+
+  const legacyUnverified = makeQuiz(5)
+  assert.equal(validateVerifiedQuizQuestions(legacyUnverified, 5), false)
+
+  verified[0].verification = 'older-verification-version'
+  assert.equal(validateVerifiedQuizQuestions(verified, 5), false)
 })
 
 test('rejects non-arrays and empty arrays', () => {

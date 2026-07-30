@@ -1,5 +1,6 @@
 import { Download, ShieldCheck, Upload } from 'lucide-react'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -96,6 +97,21 @@ export default function Settings() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="mt-4">
+        <CardHeader>
+          <span className="grid size-11 place-items-center rounded-xl bg-secondary text-primary"><ShieldCheck className="size-5" /></span>
+          <CardTitle className="mt-3">Privacy &amp; Google sign-in</CardTitle>
+          <CardDescription>
+            Optional Google sign-in uses only your basic account identity—name, email, profile image, and Google account identifier—to authenticate you. Recall+ does not receive your Google password or request access to Gmail, Drive, Calendar, or contacts.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+          <Link className="font-semibold text-primary hover:underline" to="/privacy">Read the Privacy Policy</Link>
+          <Link className="font-semibold text-primary hover:underline" to="/terms">Read the Terms of Service</Link>
+          <a className="font-semibold text-primary hover:underline" href="mailto:darsheel.sirola@gmail.com">Request account-data help</a>
+        </CardContent>
+      </Card>
 
       {error ? (
         <Alert variant="destructive" className="mt-4">

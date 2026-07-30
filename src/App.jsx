@@ -6,6 +6,9 @@ import Navbar from './components/Navbar'
 import { GenerationUsageProvider } from './contexts/GenerationUsageContext'
 import { isSupabaseConfigured } from './lib/supabase'
 import Auth from './pages/Auth'
+import AuthCallback from './pages/AuthCallback'
+import Legal from './pages/Legal'
+import PublicLanding from './pages/PublicLanding'
 import { Button } from './components/ui/button'
 
 const AddLog = lazy(() => import('./pages/AddLog'))
@@ -240,6 +243,7 @@ function ProtectedAppShell() {
 }
 
 export default function App() {
+  const { pathname } = useLocation()
   const {
     user,
     session,
@@ -254,7 +258,16 @@ export default function App() {
     signOut,
   } = useAuth()
 
-  if (!isSupabaseConfigured) return <ConfigurationError />
+  if (pathname === '/privacy') return <Legal document="privacy" />
+
+  if (pathname === '/terms') return <Legal document="terms" />
+
+  if (!isSupabaseConfigured) {
+    if (pathname === '/') return <PublicLanding />
+    return <ConfigurationError />
+  }
+
+  if (pathname === '/auth/callback') return <AuthCallback />
 
   if (passwordRecovery) return <Auth />
 
@@ -262,7 +275,10 @@ export default function App() {
     return <LoadingScreen message={dataLoading ? 'Syncing your study plan…' : undefined} />
   }
 
-  if (isSupabaseConfigured && (!user || !session)) return <Auth />
+  if (isSupabaseConfigured && (!user || !session)) {
+    if (pathname === '/') return <PublicLanding />
+    return <Auth />
+  }
 
   if (isSupabaseConfigured && !dataReady) {
     if (dataError) {

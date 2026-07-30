@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Loader2, Sparkles, Trash2, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Loader2, RefreshCw, Trash2, X } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import GenerationLimitStatus from './GenerationLimitStatus'
@@ -264,7 +264,7 @@ export default function EditTimetableModal({ open, blocks = [], initialProfile, 
               <label className="field-label">Session min<input className="field mt-1" type="number" min="30" max="120" step="5" value={profile.preferredSessionMinutes} onChange={(event) => setProfile({ ...profile, preferredSessionMinutes: Number(event.target.value) || 60 })} /></label>
               <label className="field-label">Sessions/week<input className="field mt-1" type="number" min="4" max="14" value={profile.weeklySessions} onChange={(event) => setProfile({ ...profile, weeklySessions: Number(event.target.value) || 7 })} /></label>
               <div className="flex flex-col items-start justify-end gap-2">
-                <Button type="button" variant="outline" onClick={regenerate} disabled={loading || generationBlocked}>{loading ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <Sparkles data-icon="inline-start" />}{loading ? 'Regenerating…' : 'Regenerate'}</Button>
+                <Button type="button" variant="outline" onClick={regenerate} disabled={loading || generationBlocked}>{loading ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <RefreshCw data-icon="inline-start" />}{loading ? 'Regenerating…' : 'Regenerate'}</Button>
                 <GenerationLimitStatus feature="timetable" />
               </div>
             </div>

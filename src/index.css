@@ -35,7 +35,7 @@
 
   * { @apply box-border border-border; }
   html { @apply scroll-smooth font-sans; }
-  body { @apply m-0 min-w-[320px] bg-background font-sans text-foreground antialiased; }
+  body { @apply m-0 min-w-0 bg-background font-sans text-foreground antialiased; }
   button, input, select, textarea { font: inherit; }
   button:disabled { @apply cursor-not-allowed opacity-50; }
   ::selection { @apply bg-primary text-primary-foreground; }
@@ -50,6 +50,13 @@
   .btn-primary { @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_10px_24px_rgba(98,91,246,0.22)] transition hover:-translate-y-0.5 hover:bg-[#514AE7]; }
   .btn-secondary { @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground transition hover:-translate-y-0.5 hover:border-primary/30 hover:text-primary; }
   .btn-ghost { @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold text-primary transition hover:bg-secondary; }
+  .brand-logo-outline {
+    filter:
+      drop-shadow(1px 0 0 rgb(0 0 0 / 0.95))
+      drop-shadow(-1px 0 0 rgb(0 0 0 / 0.95))
+      drop-shadow(0 1px 0 rgb(0 0 0 / 0.95))
+      drop-shadow(0 -1px 0 rgb(0 0 0 / 0.95));
+  }
   .field-label { @apply block text-sm font-semibold text-foreground; }
   .field { @apply mt-2 block min-h-12 w-full rounded-xl border border-input bg-card px-3.5 text-sm font-medium text-foreground shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-4 focus:ring-primary/10; }
   textarea.field { @apply py-3; }

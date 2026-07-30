@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpen, CheckCircle2, Clock3, Sparkles } from 'lucide-react'
+import { ArrowRight, BookOpen, CheckCircle2, Clock3 } from 'lucide-react'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
@@ -43,13 +43,13 @@ export default function Recall() {
         </div>
       ) : (
         <>
-          <Card className="border-0 bg-ink text-white shadow-lift"><CardContent className="flex flex-col items-start gap-4 p-6 sm:flex-row sm:items-center"><span className="grid size-12 place-items-center rounded-xl bg-white/10"><Sparkles className="size-5" /></span><div><h2 className="text-xl font-semibold">You are all caught up</h2><p className="mt-1 text-sm text-white/55">No topics are due for recall. Pick something fresh to keep moving.</p></div></CardContent></Card>
+          <Card className="border-0 bg-ink text-white shadow-lift"><CardContent className="flex flex-col items-start gap-4 p-6 sm:flex-row sm:items-center"><span className="grid size-12 place-items-center rounded-xl bg-white/10"><CheckCircle2 className="size-5" /></span><div><h2 className="text-xl font-semibold">You are all caught up</h2><p className="mt-1 text-sm text-white/55">No topics are due for recall. Pick something fresh to keep moving.</p></div></CardContent></Card>
           <div className="mb-3 mt-6"><h2 className="section-title">Fresh topics</h2><p className="section-copy">Topics you have not logged or scheduled yet.</p></div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {suggestions.map((item) => (
               <Card key={`${item.subject}-${item.chapter}-${item.topic}`}><CardHeader><span className="grid size-10 place-items-center rounded-xl bg-secondary text-primary"><BookOpen className="size-4" /></span><Badge variant="outline" className="mt-3 w-fit rounded-full">{item.subject}</Badge><CardTitle className="mt-2 text-lg">{item.topic}</CardTitle><CardDescription>{item.chapter}</CardDescription></CardHeader><CardFooter className="gap-2 bg-transparent"><Button variant="outline" className="flex-1" render={<Link to={`/add-log?subject=${encodeURIComponent(item.subject)}&chapter=${encodeURIComponent(item.chapter)}&topic=${encodeURIComponent(item.topic)}`} />}>Log study</Button><Button className="flex-1" render={<Link to={quizLink(item)} />}>Small quiz</Button></CardFooter></Card>
             ))}
-            {!suggestions.length ? <Empty className="min-h-56 border border-dashed border-border md:col-span-2 xl:col-span-3"><EmptyHeader><EmptyMedia variant="icon"><Sparkles /></EmptyMedia><EmptyTitle>Every topic has been touched</EmptyTitle><EmptyDescription>Take a recall check to keep your recall schedule fresh.</EmptyDescription></EmptyHeader></Empty> : null}
+            {!suggestions.length ? <Empty className="min-h-56 border border-dashed border-border md:col-span-2 xl:col-span-3"><EmptyHeader><EmptyMedia variant="icon"><BookOpen /></EmptyMedia><EmptyTitle>Every topic has been touched</EmptyTitle><EmptyDescription>Take a recall check to keep your recall schedule fresh.</EmptyDescription></EmptyHeader></Empty> : null}
           </div>
         </>
       )}

@@ -16,7 +16,7 @@ import { generateQuizQuestions } from '../services/groqService'
 import { GENERATION_LIMIT_MESSAGE } from '../types/generation'
 import { getTodayDate } from '../utils/dateUtils'
 import { formatStudyMinutes } from '../utils/logUtils'
-import { calculateScore, createId, createQuestionStorageKey, formatClock, getTopicStatus, validateQuizQuestions } from '../utils/quizUtils'
+import { calculateScore, createId, createQuestionStorageKey, formatClock, getTopicStatus, validateVerifiedQuizQuestions } from '../utils/quizUtils'
 import {
   getData,
   getStorageUser,
@@ -61,7 +61,7 @@ function clamp(value, min, max) {
 
 function loadCachedQuestions(key, expectedCount) {
   const cached = getData(key, [])
-  return validateQuizQuestions(cached, expectedCount) ? cached : []
+  return validateVerifiedQuizQuestions(cached, expectedCount) ? cached : []
 }
 
 export default function Quiz() {
@@ -93,7 +93,7 @@ export default function Quiz() {
   const chapterLabel = selectedChapters.join(', ')
   const topicLabel = selectedTopics.join(', ')
   const storageKey = configStorageKey(subject, selectedChapters, selectedTopics, difficulty, safeDuration, safeQuestionCount)
-  const ready = validateQuizQuestions(questions, safeQuestionCount)
+  const ready = validateVerifiedQuizQuestions(questions, safeQuestionCount)
   const generationBlocked = quizUsage.loading || quizUsage.inProgress || quizUsage.exhausted || Boolean(quizUsage.error)
   const pastResultsAction = <Button variant="outline" render={<Link to="/quiz/results" />}><History data-icon="inline-start" /> View past test results</Button>
 
