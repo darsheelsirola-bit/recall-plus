@@ -29,6 +29,7 @@ import {
   SYNC_RETRY_BASE_MS,
   SYNC_RETRY_LIMIT,
 } from '../utils/syncUtils'
+import { friendlyPasswordAuthError } from './passwordErrors'
 
 interface AuthResult {
   error: string
@@ -305,7 +306,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       email: email.trim(),
       password,
     })
-    return { error: error?.message || '' }
+    return { error: friendlyPasswordAuthError(error, 'signin') }
   }, [])
 
   const signUp = useCallback(async ({ name, email, password }: SignUpInput): Promise<AuthResult> => {
@@ -327,7 +328,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       },
     })
     return {
-      error: error?.message || '',
+      error: friendlyPasswordAuthError(error, 'signup'),
       needsEmailConfirmation: Boolean(data.user && !data.session),
     }
   }, [])
@@ -340,7 +341,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       ? undefined
       : new URL('/auth', window.location.origin).toString()
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo })
-    return { error: error?.message || '' }
+    return { error: friendlyPasswordAuthError(error, 'forgot') }
   }, [])
 
   const updatePassword = useCallback(async (password: string): Promise<AuthResult> => {
@@ -349,7 +350,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
     const { error } = await supabase.auth.updateUser({ password })
     if (!error) setPasswordRecovery(false)
-    return { error: error?.message || '' }
+    return { error: friendlyPasswordAuthError(error, 'recovery') }
   }, [])
 
   const updateProfileName = useCallback((name: string): Promise<AuthResult> => {

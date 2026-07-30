@@ -3,6 +3,10 @@ import assert from 'node:assert/strict'
 import { completedAuthDestination } from '../src/utils/authNavigation.ts'
 import { validateAuthForm } from '../src/utils/authValidation.js'
 import {
+  friendlyPasswordAuthError,
+  passwordAuthErrorTitle,
+} from '../src/auth/passwordErrors.ts'
+import {
   AUTH_SESSION_CHANGED_CODE,
   assertExpectedSessionUser,
   runForExpectedSessionUser,
@@ -685,6 +689,37 @@ test('auth validation covers email, signup strength, and recovery matching', () 
   assert.equal(validateAuthForm({ mode: 'signup', name: 'Aarav', email: 'student@example.com', password: 'Strong1!' }), '')
   assert.equal(validateAuthForm({ mode: 'recovery', password: 'Strong1!', confirmPassword: 'Different1!' }), 'The passwords do not match.')
   assert.equal(validateAuthForm({ mode: 'recovery', password: 'Strong1!', confirmPassword: 'Strong1!' }), '')
+})
+
+test('password authentication errors are specific, actionable, and sanitized', () => {
+  const incorrect = friendlyPasswordAuthError(
+    { code: 'invalid_credentials', message: 'Invalid login credentials' },
+    'signin',
+  )
+  assert.equal(
+    incorrect,
+    'The email address or password is incorrect. Check both and try again.',
+  )
+  assert.equal(
+    passwordAuthErrorTitle('signin', incorrect),
+    'Email or password is incorrect',
+  )
+
+  const duplicate = friendlyPasswordAuthError(
+    { code: 'user_already_exists', message: 'User already registered' },
+    'signup',
+  )
+  assert.match(duplicate, /account already exists/i)
+  assert.equal(passwordAuthErrorTitle('signup', duplicate), 'Account already exists')
+
+  assert.match(
+    friendlyPasswordAuthError({ message: 'Database error saving new user: private detail' }, 'signup'),
+    /could not finish setting up your account/i,
+  )
+  assert.doesNotMatch(
+    friendlyPasswordAuthError({ message: 'Unknown backend detail that should stay private' }, 'signup'),
+    /backend detail/i,
+  )
 })
 
 test('synced and imported snapshots reject crash-prone value shapes', () => {

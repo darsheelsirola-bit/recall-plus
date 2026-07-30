@@ -27,6 +27,10 @@ import { completedAuthDestination } from '../utils/authNavigation'
 import { validateAuthForm } from '../utils/authValidation'
 import { DEFAULT_POST_LOGIN_PATH } from '../utils/oauthRedirect'
 import {
+  friendlyPasswordAuthError,
+  passwordAuthErrorTitle,
+} from '../auth/passwordErrors'
+import {
   INDIA_TIMEZONE_DETAIL,
   INDIA_TIMEZONE_NAME,
   PROFILE_NAME_MAX_LENGTH,
@@ -93,6 +97,9 @@ export default function Auth() {
   const [notice, setNotice] = useState('')
   const activeMode: ActiveAuthMode = passwordRecovery ? 'recovery' : mode
   const socialReturnTo = DEFAULT_POST_LOGIN_PATH
+  const errorTitle = error
+    ? passwordAuthErrorTitle(activeMode, error)
+    : ''
 
   function changeMode(nextMode: AuthMode) {
     setMode(nextMode)
@@ -146,7 +153,7 @@ export default function Auth() {
         if (destination) navigate(destination, { replace: true })
       }
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'Authentication failed. Please try again.')
+      setError(friendlyPasswordAuthError(submitError, activeMode))
     } finally {
       setSubmitting(false)
     }
@@ -378,26 +385,22 @@ export default function Auth() {
             ) : null}
 
             {error ? (
-              <Alert variant="destructive" className="">
-                <X />
-                <AlertTitle className="">
-                  {activeMode === 'signin'
-                    ? 'Could not sign in'
-                    : activeMode === 'signup'
-                      ? 'Could not create your account'
-                      : activeMode === 'forgot'
-                        ? 'Could not send a reset link'
-                        : 'Could not update your password'}
-                </AlertTitle>
-                <AlertDescription className="">{error}</AlertDescription>
+              <Alert variant="destructive" className="flex items-start gap-2.5 rounded-xl px-3.5 py-3">
+                <X className="mt-0.5 size-5 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <AlertTitle className="leading-5">{errorTitle}</AlertTitle>
+                  <AlertDescription className="mt-0.5 break-words leading-5">{error}</AlertDescription>
+                </div>
               </Alert>
             ) : null}
 
             {notice ? (
-              <Alert variant="default" className="">
-                <CheckCircle2 />
-                <AlertTitle className="">{activeMode === 'forgot' ? 'Reset link sent' : 'Confirm your email'}</AlertTitle>
-                <AlertDescription className="">{notice}</AlertDescription>
+              <Alert variant="default" className="flex items-start gap-2.5 rounded-xl px-3.5 py-3">
+                <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <AlertTitle className="leading-5">{activeMode === 'forgot' ? 'Reset link sent' : 'Confirm your email'}</AlertTitle>
+                  <AlertDescription className="mt-0.5 break-words leading-5">{notice}</AlertDescription>
+                </div>
               </Alert>
             ) : null}
 

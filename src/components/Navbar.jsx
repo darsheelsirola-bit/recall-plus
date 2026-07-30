@@ -204,7 +204,7 @@ export default function Navbar() {
         >
           <Logo compact={!expanded} inverse />
         </Link>
-        <p className={`mt-2 overflow-hidden whitespace-nowrap px-2 text-xs font-medium text-white/45 transition-all ${expanded ? 'max-w-48 opacity-100' : 'max-w-0 opacity-0'}`}>Class 11 PCM workspace</p>
+        <p className={`mt-2 overflow-hidden whitespace-nowrap px-2 text-xs font-medium text-white/45 transition-all ${expanded ? 'max-w-48 opacity-100' : 'max-w-0 opacity-0'}`}>PCM workspace</p>
         <nav className="mt-4 flex flex-1 flex-col gap-2 overflow-y-auto pr-1" aria-label="Primary navigation">
           {navItems.map(({ label, path, icon: Icon }) => (
             <NavLink key={path} to={path} end={path === '/'} title={label} onClick={closeAfterNavigation} className={({ isActive }) => `flex min-h-11 items-center gap-2.5 rounded-xl px-2.5 text-[15px] font-semibold transition-all duration-300 ${isActive ? 'bg-primary text-white shadow-md shadow-primary/20' : 'text-white/65 hover:bg-white/10 hover:text-white'}`}>

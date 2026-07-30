@@ -40,7 +40,7 @@ export default function PublicLanding() {
             aria-label="Recall Plus homepage"
             className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <Logo />
+            <Logo outlined={false} />
           </Link>
           <nav className="flex items-center gap-2 sm:gap-3" aria-label="Public navigation">
             <a className="hidden min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground sm:inline-flex" href="#features">
