@@ -1,4 +1,4 @@
-import { Download, ShieldCheck, Upload } from 'lucide-react'
+import { Download, GraduationCap, ShieldCheck, Upload } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import PageHeader from '../components/PageHeader'
 import { useAuth } from '../auth/AuthProvider'
+import { useAcademicProfile } from '../academic/AcademicProfileProvider'
 import {
   exportAllDataForUser,
   importAllDataForUser,
@@ -16,6 +17,7 @@ import { INDIA_TIMEZONE_DETAIL, INDIA_TIMEZONE_NAME } from '../utils/profile'
 
 export default function Settings() {
   const { profile, syncing, user } = useAuth()
+  const { workspace } = useAcademicProfile()
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
@@ -97,6 +99,57 @@ export default function Settings() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="mt-4">
+        <CardHeader>
+          <span className="grid size-11 place-items-center rounded-xl bg-secondary text-primary"><GraduationCap className="size-5" /></span>
+          <CardTitle className="mt-3">Academic profile and subjects</CardTitle>
+          <CardDescription>
+            Your confirmed subject IDs control the syllabus, study tools and future recommendations shown by Recall+.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              ['Board', workspace?.profile.board],
+              ['Class', workspace?.profile.grade],
+              ['Academic year', workspace?.profile.academicYear],
+              ['Pathway', workspace?.profile.pathway],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-xl border border-border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">{label}</p>
+                <p className="mt-1 capitalize font-semibold">{value || 'Not confirmed'}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 overflow-hidden rounded-2xl border border-border">
+            {workspace?.subjects.map((selection) => (
+              <div key={selection.curriculumSubjectId} className="flex min-h-16 items-center gap-3 border-b border-border p-4 last:border-b-0">
+                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-secondary text-xs font-bold text-primary">
+                  {selection.subjectPosition}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <strong className="block break-words text-sm">{selection.subject.name}</strong>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    {selection.selectionType === 'main' ? 'Main subject' : 'Additional subject'} · Group {selection.subject.subjectGroup}
+                  </span>
+                </span>
+                <span className="rounded-lg bg-muted px-2.5 py-1 text-xs font-semibold">
+                  {selection.subject.subjectCode}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex flex-col items-start justify-between gap-3 rounded-2xl bg-muted/30 p-4 sm:flex-row sm:items-center">
+            <p className="max-w-2xl text-xs leading-5 text-muted-foreground">
+              Subject changes are validated as a complete CBSE combination. Removed selections are archived, and existing study history is preserved. Recall+ will show record counts and ask for confirmation before saving.
+            </p>
+            <Link className="btn-primary shrink-0" to="/onboarding?mode=edit">
+              Review or edit subjects
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="mt-4">
         <CardHeader>

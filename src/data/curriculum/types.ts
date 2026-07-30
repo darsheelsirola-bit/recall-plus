@@ -123,7 +123,7 @@ export interface UserAcademicProfile {
   grade: CurriculumGrade
   academicYear: CurriculumAcademicYear
   curriculumVersionId: string
-  pathway: AcademicPathway
+  pathway: AcademicPathway | null
   timezone: 'Asia/Kolkata'
   schoolName: string | null
   onboardingCompleted: boolean

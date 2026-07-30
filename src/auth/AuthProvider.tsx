@@ -322,7 +322,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
           display_name: displayName,
           full_name: displayName,
           name: displayName,
-          class_name: 'Class 11 PCM',
+          class_name: 'CBSE XI workspace',
           timezone: INDIA_TIMEZONE,
         },
       },

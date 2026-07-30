@@ -2,6 +2,11 @@ import { Component, lazy, Suspense, useEffect, useRef } from 'react'
 import { CloudOff, Loader2, RefreshCw } from 'lucide-react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useAuth } from './auth/AuthProvider'
+import {
+  AcademicProfileProvider,
+  useAcademicProfile,
+} from './academic/AcademicProfileProvider'
+import { academicRouteDestination } from './academic/onboarding'
 import Navbar from './components/Navbar'
 import { GenerationUsageProvider } from './contexts/GenerationUsageContext'
 import { isSupabaseConfigured } from './lib/supabase'
@@ -14,6 +19,7 @@ import { Button } from './components/ui/button'
 const AddLog = lazy(() => import('./pages/AddLog'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Home = lazy(() => import('./pages/Home'))
+const Onboarding = lazy(() => import('./pages/Onboarding'))
 const PastTestResults = lazy(() => import('./pages/PastTestResults'))
 const PostStudyQuiz = lazy(() => import('./pages/PostStudyQuiz'))
 const Progress = lazy(() => import('./pages/Progress'))
@@ -177,6 +183,31 @@ function ConfigurationError() {
   )
 }
 
+function AcademicProfileError({ message, onRetry, onSignOut }) {
+  return (
+    <main className="grid min-h-dvh place-items-center bg-background p-6">
+      <section className="w-full max-w-lg rounded-3xl border border-border bg-card p-8 text-center shadow-lift">
+        <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-rose-50 text-coral">
+          <CloudOff className="size-6" />
+        </span>
+        <h1 className="mt-5 text-2xl font-semibold">We could not open your academic profile</h1>
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">{message}</p>
+        <p className="mt-2 text-xs leading-5 text-muted-foreground">
+          Your existing study history remains preserved. Protected study pages stay closed until your owner-scoped subject profile loads.
+        </p>
+        <div className="mt-7 flex flex-wrap justify-center gap-3">
+          <Button type="button" onClick={onRetry}>
+            <RefreshCw data-icon="inline-start" /> Retry
+          </Button>
+          <Button type="button" variant="outline" onClick={onSignOut}>
+            Sign out
+          </Button>
+        </div>
+      </section>
+    </main>
+  )
+}
+
 function ProtectedAppShell() {
   const {
     dataConflict,
@@ -243,6 +274,14 @@ function ProtectedAppShell() {
 }
 
 export default function App() {
+  return (
+    <AcademicProfileProvider>
+      <AppRoutes />
+    </AcademicProfileProvider>
+  )
+}
+
+function AppRoutes() {
   const { pathname } = useLocation()
   const {
     user,
@@ -257,6 +296,12 @@ export default function App() {
     retryDataSync,
     signOut,
   } = useAuth()
+  const {
+    error: academicError,
+    loading: academicLoading,
+    retry: retryAcademicProfile,
+    workspace,
+  } = useAcademicProfile()
 
   if (pathname === '/privacy') return <Legal document="privacy" />
 
@@ -294,6 +339,35 @@ export default function App() {
       )
     }
     return <LoadingScreen message="Syncing your study plan…" />
+  }
+
+  if (academicLoading) {
+    return <LoadingScreen message="Loading your academic profile…" />
+  }
+
+  if (academicError || !workspace) {
+    return (
+      <AcademicProfileError
+        message={academicError || 'Your academic profile is not available yet.'}
+        onRetry={retryAcademicProfile}
+        onSignOut={() => { void signOut() }}
+      />
+    )
+  }
+
+  const academicRedirect = academicRouteDestination(
+    workspace.profile.onboardingCompleted,
+    pathname,
+    new URLSearchParams(window.location.search).get('mode') === 'edit',
+  )
+  if (academicRedirect) return <Navigate to={academicRedirect} replace />
+
+  if (pathname === '/onboarding') {
+    return (
+      <Suspense fallback={<LoadingScreen message="Opening academic setup…" />}>
+        <Onboarding />
+      </Suspense>
+    )
   }
 
   return (

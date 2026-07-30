@@ -198,14 +198,88 @@ Status: complete
 - The `$0/month` disposable Supabase project remains active for later phase integration tests and
   should be deleted after final production verification.
 
+## Phase 3 - Onboarding, profile state, route guards, and subject settings
+
+Status: complete
+
+### Completed work
+
+- Added an owner-bound academic-profile provider that loads only the signed-in user's profile,
+  active subject selections, and unresolved legacy migration candidates.
+- Revalidates the expected Supabase session before and after every profile read and RPC write so an
+  account switch cannot apply another user's academic state.
+- Added fail-closed academic routing:
+  - incomplete profiles are redirected to `/onboarding`;
+  - completed profiles cannot accidentally re-enter onboarding;
+  - explicit `/onboarding?mode=edit` remains available from Settings;
+  - protected study pages do not mount while the academic profile is unavailable.
+- Added a six-step, mobile-first onboarding flow for:
+  1. fixed CBSE/XI/2026-27 details, optional school, and read-only Asia/Kolkata timezone;
+  2. Science, Commerce, and Humanities pathway discovery;
+  3. Science PCM/PCB/PCMB/custom, Commerce Mathematics/Applied Mathematics/no Mathematics/custom,
+     and Humanities common-subject/custom starting points;
+  4. required English/Hindi Core/Elective selection plus visibility of all Group-L languages;
+  5. searchable recommendations and a “More CBSE subjects” catalogue containing all 121
+     selectable Group-L, Group-A, and Group-S subjects;
+  6. ordered main/additional review, official codes, school-availability clarification, and
+     explicit confirmation.
+- Kept pathways advisory only. The central versioned subject-combination validator arranges and
+  validates exact subject IDs and database RPCs revalidate the complete combination.
+- Added account-scoped browser draft persistence without storing account credentials or trusting a
+  browser-supplied user ID for server writes.
+- Existing-user candidates are presented for confirmation, unresolved names remain preserved, and
+  no detected subject silently becomes active.
+- Added an “Academic profile and subjects” Settings section with board, class, academic year,
+  pathway, main/additional positions, and official subject codes.
+- Added guarded subject editing:
+  - removed selections are archived by the existing database RPC;
+  - study-log, quiz, revision, progress, and timetable counts are shown before removal;
+  - history-preservation and future-timetable effects are explained;
+  - a second explicit confirmation is required before saving changed subjects;
+  - newly added subjects receive no fabricated progress.
+- Replaced the new-account `Class 11 PCM` metadata default and fallback with
+  `CBSE XI workspace`.
+- Made no database migration, RLS, Auth-setting, production, or deployment change in this phase.
+
+### Tests run
+
+- Added automated tests for:
+  - incomplete/completed/edit route decisions;
+  - exact Science and Commerce preset membership;
+  - valid five-main and optional-sixth positioning;
+  - insufficient and conflicting subject combinations;
+  - owner-scoped and corruption-safe onboarding drafts;
+  - subject-removal history and timetable counts.
+- `npm.cmd run check` passed:
+  - exact six-migration PostgreSQL replay and legacy-preservation smoke test;
+  - router compatibility and curriculum validation;
+  - TypeScript and ESLint;
+  - 170 automated tests;
+  - production build;
+  - repository and complete reachable Git-history secret scans.
+- Final `npm.cmd test` after the history-count regression test: 171 tests passed.
+- The browser connection correctly refused local-host navigation under its security policy. No
+  alternate local address, browser surface, tunnel, or production deployment was used to bypass
+  that restriction.
+
+### Unresolved errors and risks
+
+- Full rendered UI and end-to-end account-matrix verification remains in Phase 6. The safe remote
+  preview path could not be created because the approved pinned Vercel CLI download was rejected
+  after the current Codex usage limit was reached. Production was intentionally not used as a test
+  environment.
+- The Phase 2 migration is still intentionally absent from production; deploying this frontend
+  before the coordinated final migration would fail closed on the missing academic-profile tables.
+- Application features still contain PCM subject arrays and name-based content paths. Phase 4 must
+  replace those with the active subject-ID workspace before any production rollout.
+
 ## Remaining work
 
-1. Phase 3 - Add responsive onboarding, route guards, academic-profile state, and subject settings.
-2. Phase 4 - Make every learner-facing feature consume only the user's active curriculum subject IDs.
-3. Phase 5 - Enforce curriculum authorization and official-node validation in every AI/API path.
-4. Phase 6 - Run migration, account-matrix, responsive, security, performance, and end-to-end
+1. Phase 4 - Make every learner-facing feature consume only the user's active curriculum subject IDs.
+2. Phase 5 - Enforce curriculum authorization and official-node validation in every AI/API path.
+3. Phase 6 - Run migration, account-matrix, responsive, security, performance, and end-to-end
    verification and commit any fixes.
-5. Phase 7 - Push all phase commits, deploy the verified worktree atomically, verify production, and
+4. Phase 7 - Push all phase commits, deploy the verified worktree atomically, verify production, and
    publish the final report.
 
 ## Database safety rule

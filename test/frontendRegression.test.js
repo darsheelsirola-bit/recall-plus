@@ -70,6 +70,10 @@ import {
   buildTimezoneInitializationRpcArgs,
   buildUserDataUpsertRpcArgs,
 } from '../src/utils/userDataRpc.ts'
+import {
+  countSubjectHistory,
+  totalSubjectHistory,
+} from '../src/utils/subjectHistory.js'
 import { validateQuizQuestions } from '../shared/quizValidation.js'
 
 function makeQuestion(id) {
@@ -775,5 +779,42 @@ test('backup import refuses to cross an account switch', () => {
       /account changed/i,
     )
     assert.deepEqual(getData(STORAGE_KEYS.logs, []), [{ id: 'b-log' }])
+  })
+})
+
+test('subject-edit safeguards count preserved history and future timetable entries', () => {
+  const storage = testStorage()
+  withLocalStorage(storage, () => {
+    setStorageUser('subject-history-owner')
+    saveDataBatchOrThrow([
+      [STORAGE_KEYS.logs, [
+        { id: 'physics-log', subject: 'Physics' },
+        { id: 'chemistry-log', subject: 'Chemistry' },
+      ]],
+      [STORAGE_KEYS.quizResults, [
+        { id: 'physics-quiz', subject: 'Physics' },
+      ]],
+      [STORAGE_KEYS.reviews, [
+        { id: 'physics-review', subject: 'Physics' },
+      ]],
+      [STORAGE_KEYS.topicStatuses, {
+        'Physics||Motion||Speed': 'Mastered',
+        'Physics||Motion||Acceleration': 'Studied',
+        'Chemistry||Structure||Atoms': 'Studied',
+      }],
+      [STORAGE_KEYS.studyTimetable, [
+        { id: 'physics-slot', subject: 'Physics' },
+      ]],
+    ])
+
+    const counts = countSubjectHistory('Physics')
+    assert.deepEqual(counts, {
+      studyLogs: 1,
+      quizzes: 1,
+      revisions: 1,
+      progressRecords: 2,
+      timetableEntries: 1,
+    })
+    assert.equal(totalSubjectHistory(counts), 5)
   })
 })

@@ -110,7 +110,7 @@ function profileFromSources(
       || emailName
       || 'Recall+ User',
     email,
-    className: metadataString(user, 'class_name') || localClass || 'Class 11 PCM',
+    className: metadataString(user, 'class_name') || localClass || 'CBSE XI workspace',
     timezone: INDIA_TIMEZONE,
   }
 }
