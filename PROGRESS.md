@@ -437,63 +437,78 @@ Status: complete
 
 ### Completed work
 
-- Used the in-app browser against the disposable `$0` Supabase project and exercised four isolated
-  synthetic accounts: PCM, PCB, Humanities, and a new learner with incomplete onboarding. The
-  completed accounts always opened Home after sign-in; the new learner was routed to onboarding.
-- Verified curriculum isolation in rendered pages:
-  - PCM showed English Core, Physics, Chemistry, Mathematics, and Physical Education;
-  - PCB showed Biology and excluded Mathematics;
-  - Humanities showed English Core, History, Political Science, Psychology, and Sociology while
-    excluding Physics, Chemistry, Mathematics, and Biology;
-  - Syllabus, study-log, and Practice Test selectors used only the signed-in learner's active set.
-- Completed the six-step onboarding flow with validation evidence: an omitted pathway was rejected,
-  the PCM preset added only its three named electives, English Core occupied the required language
-  position, a fifth subject was required, school-record confirmation gated completion, and the
-  finished profile opened Home with five ordered stable-ID subjects.
-- Found and fixed a production-blocking schema mismatch during rendered QA. The academic client
-  requested nonexistent `detected_name` data from `user_subject_migration_candidates`; it now loads
-  the migration's real `normalized_name` and `legacy_names` columns, preserves the first original
-  name for display, and models the database confidence enum accurately.
-- Added a regression test that keeps the migration-candidate client query aligned with the database
-  schema and rejects a return of the nonexistent column.
-- Verified authentication and route safety:
-  - Google remained enabled, Apple remained absent, and password visibility worked;
-  - friendly invalid-email, rate-limit, and password-sign-in failures exposed no raw backend data;
-  - a signed-out direct visit to Practice Test rendered authentication, never protected content;
-  - a completed learner's direct onboarding visit redirected to Home;
-  - workspace loading failed closed during transient JWT/schema errors instead of showing stale or
-    cross-account data.
-- Verified rendered Home and authentication layouts at 320, 375, 768, 1024, and 1440 pixel widths.
-  All measured document widths had no horizontal overflow; mobile navigation, long curriculum
-  labels, the Recall+ logo, cards, and form controls remained usable. Browser console checks ended
-  with zero warnings or errors.
-- Confirmed the production build remains route-split. The largest emitted JavaScript chunks were
-  314.56 kB (99.26 kB gzip) and 263.35 kB (72.53 kB gzip); no new monolithic page bundle was added.
-- Deleted all four exact synthetic Auth users after verification and confirmed cascading cleanup
-  left zero test academic profiles and zero test subject selections. Production Supabase, Vercel,
-  and the Git remote remained untouched.
+- Used the in-app browser and bundled Playwright against the disposable `$0` Supabase project to
+  exercise the required isolated account matrix:
+  - Science PCM;
+  - Science PCB;
+  - Science PCMB;
+  - Commerce with Applied Mathematics;
+  - Commerce without Mathematics;
+  - Humanities with History, Political Science, Psychology, and Sociology;
+  - an existing migrated PCM + Artificial Intelligence learner;
+  - a six-subject responsive stress learner containing long official subject names.
+- Verified that every completed learner opened Home after email/password sign-in and remained on
+  the same account and curriculum after refresh. Logout returned to the public/authentication
+  surface, and a subsequent sign-in restored the correct account-scoped workspace.
+- Verified selected-subject isolation across Home/Today's Focus, AI Insight, Syllabus, Add Study
+  Log, Practice Test, Recall Calendar/timetable, Progress, and Settings. PCB excluded Mathematics,
+  PCM excluded Biology, Applied Mathematics did not activate Mathematics, Commerce without
+  Mathematics exposed neither mathematics option, and Humanities exposed only its confirmed set.
+  Study-log and quiz Subject controls contained the exact five or six expected subjects.
+- Verified Settings displays the stable official codes and opens the controlled subject editor.
+  Removing Physics in a reversible PCM edit preview showed zero-valued study-log, quiz, revision,
+  progress, and timetable impact counts, explained archive preservation, and required confirmation.
+  The original selection was restored without applying a database change.
+- Fixed completed-profile subject editing. Intermediate edit steps now keep the owner-scoped draft
+  locally and defer the database write until final confirmation instead of calling the
+  incomplete-profile progress RPC and failing with `Incomplete academic profile not found.` Added
+  a regression test for this edit/new-onboarding persistence split.
+- Verified the legacy learner's one-time confirmation flow detected and preselected Physics,
+  Chemistry, Mathematics, and Artificial Intelligence, still required a language, retained zero
+  active selections before confirmation, and preserved all four historical study logs.
+- Fixed a 320-pixel onboarding overflow caused by intrinsic grid-item sizing around the learner's
+  name and email. The cards now opt into shrinking without changing readable subject labels.
+- Ran 72 exact responsive checks: nine learner routes at 320, 375, 390, 768, 1024, 1280, 1440,
+  and 1920 pixels. Every route rendered without horizontal document overflow after the fix; the
+  six exact long-subject options stayed complete in study-log and quiz selectors and long labels
+  were not clipped in Syllabus, Progress, or Settings. Mobile and 1920-pixel screenshots were
+  inspected. The in-app browser finished with zero console warnings or errors.
+- Confirmed the disposable project contains the seven application migrations plus the two
+  test-only verification migrations. Supabase security advice reported only the intentionally
+  policy-free server-only quota tables and the disposable project's leaked-password setting;
+  performance advice reported only unused indexes in the fresh synthetic database.
+- Deleted the eight exact synthetic Auth users after verification and proved cascading cleanup left
+  zero Auth users, identities, sessions, Recall profiles, app snapshots, academic profiles,
+  subject selections, or migration candidates. Production Supabase, Vercel, and the Git remote
+  remained untouched.
 
 ### Tests run
 
-- Targeted migration-contract test: 8 passed.
-- TypeScript check passed independently after the fix.
-- Rendered browser checks covered public landing, sign-in/create-account controls, PCM/PCB/
-  Humanities account isolation, all onboarding steps, protected-route guards, console state, and
-  responsive layouts.
+- Targeted onboarding regression suite: 6 passed.
+- Rendered account checks covered the seven required curriculum accounts plus the six-long-subject
+  stress account, Home-first routing, refresh persistence, logout/login, subject edit safeguards,
+  legacy migration confirmation, and every learner surface named above.
+- Exact responsive matrix: 72/72 route-width checks passed after the 320-pixel fix.
 - `npm.cmd run check` passed:
   - React Router compatibility;
   - 121-subject catalogue validation and deterministic SQL freshness;
   - exact seven-migration PostgreSQL replay with preserved legacy data;
   - TypeScript and ESLint;
-  - 183 automated tests;
+  - 184 automated tests;
   - production build;
   - repository and complete reachable Git-history secret scans.
 
 ### Unresolved errors and risks
 
-- No Phase 6 code, database, security, browser, or automated-test error remains unresolved.
-- Live Groq calls were intentionally not used for QA; deterministic provider mocks and the existing
-  independent answer-verification tests remain the safe correctness gate.
+- No Phase 6 code, database, browser, responsive, or automated-test failure remains unresolved.
+- Live Groq generation was intentionally not used for QA because the disposable project does not
+  have the server-only provider/service-role configuration. Deterministic provider mocks,
+  independent answer verification, and server authorization tests remain the safe correctness
+  gate. The standalone responsive runner therefore recorded expected local API 401/404 responses;
+  rendered pages remained healthy and the in-app browser console was clean.
+- Leaked-password protection is disabled on the disposable Supabase project. This is an external
+  test-project Auth setting, not a schema migration or application-code defect; production must be
+  checked during the coordinated rollout.
 - The Phase 2 and Phase 5 migrations remain intentionally absent from production. Phase 7 must
   apply both migrations and deploy the matching frontend/API as one coordinated rollout, then run
   production smoke, ownership, auth, RLS, and rollback checks before reporting success.

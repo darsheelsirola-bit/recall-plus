@@ -8,6 +8,7 @@ import {
   PATHWAY_PRESETS,
   presetSubjectIds,
   readOnboardingDraft,
+  shouldPersistOnboardingProgress,
   writeOnboardingDraft,
 } from '../src/academic/onboarding.ts'
 import {
@@ -58,6 +59,11 @@ test('academic route guard requires onboarding and protects completed setup', ()
     null,
   )
   assert.equal(academicRouteDestination(true, '/', false), null)
+})
+
+test('completed-profile editing keeps draft progress local until final confirmation', () => {
+  assert.equal(shouldPersistOnboardingProgress(false), true)
+  assert.equal(shouldPersistOnboardingProgress(true), false)
 })
 
 test('onboarding exposes all required pathway choices and presets', () => {

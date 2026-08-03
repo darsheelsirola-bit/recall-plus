@@ -21,6 +21,10 @@ export function academicRouteDestination(
   return null
 }
 
+export function shouldPersistOnboardingProgress(editing: boolean): boolean {
+  return !editing
+}
+
 export interface OnboardingDraft {
   step: number
   schoolName: string

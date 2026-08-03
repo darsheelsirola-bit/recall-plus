@@ -35,6 +35,7 @@ import {
   presetSubjectIds,
   readOnboardingDraft,
   recommendedSubjects,
+  shouldPersistOnboardingProgress,
   subjectCategoryLabel,
   writeOnboardingDraft,
   type OnboardingDraft,
@@ -157,12 +158,12 @@ function StepOne({
   ]
   return (
     <div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-2xl border border-border bg-muted/20 p-4">
+      <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+        <div className="min-w-0 rounded-2xl border border-border bg-muted/20 p-4">
           <p className="text-xs font-medium text-muted-foreground">Student</p>
           <p className="mt-1 truncate text-sm font-semibold">{name}</p>
         </div>
-        <div className="rounded-2xl border border-border bg-muted/20 p-4">
+        <div className="min-w-0 rounded-2xl border border-border bg-muted/20 p-4">
           <p className="text-xs font-medium text-muted-foreground">Account email</p>
           <p className="mt-1 truncate text-sm font-semibold">{email}</p>
         </div>
@@ -738,10 +739,12 @@ export default function Onboarding() {
     }
     if (draft.step >= ONBOARDING_STEP_COUNT) return
 
-    const saveError = await saveProgress(draft.pathway, draft.schoolName)
-    if (saveError) {
-      setError(saveError)
-      return
+    if (shouldPersistOnboardingProgress(editing)) {
+      const saveError = await saveProgress(draft.pathway, draft.schoolName)
+      if (saveError) {
+        setError(saveError)
+        return
+      }
     }
     replaceDraft({ ...draft, step: draft.step + 1 })
     setError('')
