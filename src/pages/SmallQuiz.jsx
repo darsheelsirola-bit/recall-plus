@@ -36,7 +36,7 @@ function recallMessage(percentage, days) {
 }
 
 export default function SmallQuiz() {
-  const { syllabus } = useActiveCurriculum()
+  const { curriculumVersionId, syllabus } = useActiveCurriculum()
   const [searchParams] = useSearchParams()
   const [selection, setSelection] = useState(() => selectionFromParams(searchParams, syllabus))
   const [questions, setQuestions] = useState([])
@@ -118,7 +118,7 @@ export default function SmallQuiz() {
   function submit() {
     if (!submissionGuardRef.current.claim()) return
     const summary = calculateScore(questions, answers)
-    const quizResult = { id: createId(), type: 'diagnostic', date: getTodayDate(), completedAt: new Date().toISOString(), ...selection, curriculumSubjectId: syllabus.find((item) => item.subject === selection.subject)?.subjectId || '', curriculumNodeIds: curriculumSelection ? [...curriculumSelection.chapterNodeIds, ...curriculumSelection.topicNodeIds] : [], ...summary, status: getTopicStatus(summary.percentage) }
+    const quizResult = { id: createId(), type: 'diagnostic', date: getTodayDate(), completedAt: new Date().toISOString(), ...selection, curriculumVersionId, curriculumSubjectId: syllabus.find((item) => item.subject === selection.subject)?.subjectId || '', curriculumNodeIds: curriculumSelection ? [...curriculumSelection.chapterNodeIds, ...curriculumSelection.topicNodeIds] : [], ...summary, status: getTopicStatus(summary.percentage) }
     const statuses = getData(STORAGE_KEYS.topicStatuses, {})
     statuses[`${selection.subject}|${selection.chapter}|${selection.topic}`] = summary.percentage >= 80 ? 'Mastered' : 'Needs Revision'
     const reviewUpdate = createOrUpdateReviewData(
@@ -129,6 +129,7 @@ export default function SmallQuiz() {
       summary.percentage,
       {
         timetable: getData(STORAGE_KEYS.studyTimetable, []),
+        curriculumVersionId,
         curriculumSubjectId: quizResult.curriculumSubjectId,
       },
     )

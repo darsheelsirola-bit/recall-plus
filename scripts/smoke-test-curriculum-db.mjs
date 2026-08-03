@@ -382,6 +382,7 @@ try {
   const validLog = {
     id: 'server-validated-log',
     subject: 'Physics',
+    curriculumVersionId: 'cbse-2026-27-xi-v1',
     curriculumSubjectId: 'cbse-2026-27-xi-042',
     curriculumNodeIds: physicsNodes.rows.map((node) => node.id),
   }

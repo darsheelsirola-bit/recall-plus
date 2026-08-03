@@ -18,7 +18,7 @@ function emptyForm(subject) {
 }
 
 export default function StudyTimetableModal({ open, blocks = [], onClose, onAdd, onUpdate, onDelete }) {
-  const { subjectNames } = useActiveCurriculum()
+  const { curriculumVersionId, syllabus, subjectNames } = useActiveCurriculum()
   const subjectOptions = subjectNames
   const [form, setForm] = useState(() => emptyForm(''))
   const formSubject = subjectOptions.includes(form.subject) ? form.subject : subjectOptions[0] || ''
@@ -36,6 +36,8 @@ export default function StudyTimetableModal({ open, blocks = [], onClose, onAdd,
     const block = createTimetableBlock({
       ...form,
       subject: formSubject,
+      curriculumVersionId,
+      curriculumSubjectId: syllabus.find((item) => item.subject === formSubject)?.subjectId || null,
       durationMinutes: Number(form.durationMinutes),
       source: 'manual',
       label: form.label.trim() || `${formSubject} study`,

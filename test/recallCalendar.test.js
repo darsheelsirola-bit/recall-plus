@@ -112,6 +112,8 @@ test('post-study recalls retain remarks and schedule multiple topics without cla
   const log = {
     id: 'log-1',
     subject: 'Physics',
+    curriculumVersionId: 'cbse-2026-27-xi-v1',
+    curriculumSubjectId: 'cbse-2026-27-xi-042',
     chapter: 'Motion',
     topics: ['Velocity', 'Acceleration'],
     confidence: 'High',
@@ -126,6 +128,8 @@ test('post-study recalls retain remarks and schedule multiple topics without cla
   const recalls = upsertPostStudyRecalls([], log, quizResult)
   assert.equal(recalls.length, 2)
   assert.equal(recalls.every((item) => item.remarks === log.notes), true)
+  assert.equal(recalls.every((item) => item.curriculumVersionId === log.curriculumVersionId), true)
+  assert.equal(recalls.every((item) => item.curriculumSubjectId === log.curriculumSubjectId), true)
   assert.equal(recalls.every((item) => item.durationMinutes === 55), true)
   assert.equal(new Set(recalls.map((item) => `${item.nextReviewDate}|${item.dueTime}`)).size, 2)
 })

@@ -43,9 +43,11 @@ import {
 import {
   CBSE_2026_27_XI_SUBJECTS,
   CBSE_2026_27_XI_SUBJECTS_BY_ID,
-  type AcademicPathway,
-  type CurriculumSubject,
-} from '../data/curriculum/index.ts'
+} from '../data/curriculum/cbse/2026-27/class-11/catalogue.ts'
+import type {
+  AcademicPathway,
+  CurriculumSubject,
+} from '../data/curriculum/types.ts'
 import {
   countSubjectHistory,
   totalSubjectHistory,

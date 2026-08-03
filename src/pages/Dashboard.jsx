@@ -23,6 +23,18 @@ function topicLink(subject, chapter, topic, type = 'practice') {
   return type === 'recall' ? `/small-quiz?${params}` : `/quiz?${params}`
 }
 
+function stampInsightVersion(payload, curriculumVersionId) {
+  return {
+    ...payload,
+    chapters: Array.isArray(payload?.chapters)
+      ? payload.chapters.map((chapter) => ({
+        ...chapter,
+        curriculumVersionId: chapter.curriculumVersionId || curriculumVersionId || null,
+      }))
+      : [],
+  }
+}
+
 function ChapterInsightCard({ chapter }) {
   const prioritizedTopics = Array.isArray(chapter.prioritizedTopics)
     ? chapter.prioritizedTopics
@@ -94,7 +106,7 @@ function ChapterInsightCard({ chapter }) {
 
 export default function Dashboard() {
   useAppData()
-  const { syllabus, activeSubjectIds, activeSubjectNames } = useActiveCurriculum()
+  const { syllabus, activeSubjectIds, activeSubjectNames, curriculumVersionId } = useActiveCurriculum()
   const logs = filterActiveSubjectRecords(getData(STORAGE_KEYS.logs, []), activeSubjectNames, activeSubjectIds)
   const results = filterActiveSubjectRecords(getData(STORAGE_KEYS.quizResults, []), activeSubjectNames, activeSubjectIds)
   const reviews = filterActiveSubjectRecords(getData(STORAGE_KEYS.reviews, []), activeSubjectNames, activeSubjectIds)
@@ -103,7 +115,7 @@ export default function Dashboard() {
 
   const weakTopics = findWeakTopics(results, reviews)
   const chapterContexts = buildChapterContexts(weakTopics, { results, logs, reviews, statuses, syllabus })
-  const fingerprint = weakTopicsFingerprint(chapterContexts)
+  const fingerprint = `${curriculumVersionId}:${weakTopicsFingerprint(chapterContexts)}`
 
   const [insights, setInsights] = useState(() => loadCachedInsights(fingerprint))
   const [loading, setLoading] = useState(false)
@@ -131,7 +143,7 @@ export default function Dashboard() {
     setNotice('')
     const ownerId = getStorageUser()
     try {
-      const payload = await generateInsights(chapterContexts)
+      const payload = stampInsightVersion(await generateInsights(chapterContexts), curriculumVersionId)
       if (!ownerId || getStorageUser() !== ownerId) return
       saveCachedInsightsForUser(ownerId, fingerprint, payload)
       setInsights(payload)
@@ -140,7 +152,10 @@ export default function Dashboard() {
       }
     } catch (fetchError) {
       if (!ownerId || getStorageUser() !== ownerId) return
-      const fallback = { ...buildFallbackInsights(chapterContexts), source: 'local-error' }
+      const fallback = stampInsightVersion(
+        { ...buildFallbackInsights(chapterContexts), source: 'local-error' },
+        curriculumVersionId,
+      )
       saveCachedInsightsForUser(ownerId, fingerprint, fallback)
       setInsights(fallback)
       setNotice(fetchError.message || 'Could not reach Groq. Showing local insight cards instead.')

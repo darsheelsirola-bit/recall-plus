@@ -1,5 +1,6 @@
 import type {
   AcademicPathway,
+  CurriculumNode,
   CurriculumSubject,
   SubjectSelection,
   UserAcademicProfile,
@@ -7,7 +8,8 @@ import type {
 import {
   CBSE_2026_27_XI_SELECTABLE_SUBJECTS,
   CBSE_2026_27_XI_SUBJECTS_BY_ID,
-} from '../data/curriculum/index.ts'
+} from '../data/curriculum/cbse/2026-27/class-11/catalogue.ts'
+import { loadClientCurriculumNodes } from '../data/curriculum/cbse/2026-27/class-11/clientNodes.ts'
 import { supabase } from '../lib/supabase.ts'
 import { runForExpectedSessionUser } from '../utils/authSessionGuard.ts'
 
@@ -27,6 +29,7 @@ export interface LegacySubjectCandidate {
 export interface AcademicWorkspace {
   profile: UserAcademicProfile
   subjects: ActiveUserSubject[]
+  curriculumNodes: readonly CurriculumNode[]
   migrationCandidates: LegacySubjectCandidate[]
 }
 
@@ -145,11 +148,17 @@ export async function loadAcademicWorkspace(
     )
   }
 
+  const subjects = ((subjectsResult.data ?? []) as UserSubjectRow[])
+    .map(mapSubject)
+    .filter((subject): subject is ActiveUserSubject => Boolean(subject))
+  const curriculumNodes = await loadClientCurriculumNodes(
+    subjects.map((selection) => selection.curriculumSubjectId),
+  )
+
   return {
     profile: mapProfile(profileResult.data as AcademicProfileRow),
-    subjects: ((subjectsResult.data ?? []) as UserSubjectRow[])
-      .map(mapSubject)
-      .filter((subject): subject is ActiveUserSubject => Boolean(subject)),
+    subjects,
+    curriculumNodes,
     migrationCandidates: ((candidatesResult.data ?? []) as MigrationCandidateRow[])
       .map((row) => ({
         id: row.id,

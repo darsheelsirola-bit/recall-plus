@@ -61,7 +61,7 @@ JSON format:
 {"blocks":[{"weekday":0,"startTime":"17:00","durationMinutes":60,"subject":"Physics","label":"Physics recall"}],"summary":"A short explanation of why this plan is optimal."}`
 }
 
-async function generateOnce({ key, model, profile, subjects, deadlineAt }) {
+async function generateOnce({ key, model, profile, subjects, curriculumVersionId, deadlineAt }) {
   const response = await fetchGroq(GROQ_CHAT_COMPLETIONS_URL, {
     method: 'POST',
     headers: {
@@ -119,6 +119,7 @@ async function generateOnce({ key, model, profile, subjects, deadlineAt }) {
   return {
     blocks: blocks.map((block) => ({
       ...block,
+      curriculumVersionId,
       curriculumSubjectId: subjectIdsByName.get(block.subject),
     })),
     summary: typeof parsed?.summary === 'string' && parsed.summary.trim().length <= 1_000
@@ -133,7 +134,7 @@ function modelCandidates() {
   return [...new Set(ordered)]
 }
 
-export async function requestTimetable(profile, subjects = []) {
+export async function requestTimetable(profile, subjects = [], curriculumVersionId = '') {
   const safeProfile = normalizeTimetableProfile(profile)
   if (!safeProfile) {
     throw new AppError('Please provide a complete daily routine before generating an optimal timetable.', {
@@ -145,6 +146,13 @@ export async function requestTimetable(profile, subjects = []) {
     throw new AppError('Choose 5 or 6 active subjects before generating a timetable.', {
       code: ERROR_CODES.ACADEMIC_PROFILE_REQUIRED,
       statusCode: 409,
+    })
+  }
+  if (typeof curriculumVersionId !== 'string' || !curriculumVersionId.trim()) {
+    throw new AppError('Your curriculum version could not be verified.', {
+      code: ERROR_CODES.CURRICULUM_UNAVAILABLE,
+      statusCode: 503,
+      details: { retryable: true },
     })
   }
   const key = process.env.GROQ_TIMETABLE_API_KEY
@@ -162,7 +170,7 @@ export async function requestTimetable(profile, subjects = []) {
   for (let attempt = 0; attempt < MAX_PROVIDER_ATTEMPTS && Date.now() < deadlineAt; attempt += 1) {
     const model = models[attempt % models.length]
     try {
-      const generated = await generateOnce({ key, model, profile: safeProfile, subjects, deadlineAt })
+      const generated = await generateOnce({ key, model, profile: safeProfile, subjects, curriculumVersionId, deadlineAt })
       if (generated) return generated
       lastError = providerResponseInvalid()
     } catch (error) {

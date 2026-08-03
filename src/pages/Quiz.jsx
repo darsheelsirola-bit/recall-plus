@@ -65,7 +65,7 @@ function loadCachedQuestions(key, expectedCount) {
 }
 
 export default function Quiz() {
-  const { syllabus } = useActiveCurriculum()
+  const { curriculumVersionId, syllabus } = useActiveCurriculum()
   const [searchParams] = useSearchParams()
   const initialSelection = selectionFromParams(searchParams, syllabus)
   const [subject, setSubject] = useState(initialSelection.subject)
@@ -229,6 +229,7 @@ export default function Quiz() {
       durationMinutes: safeDuration,
       difficulty,
       subject,
+      curriculumVersionId,
       curriculumSubjectId: syllabus.find((item) => item.subject === subject)?.subjectId || '',
       curriculumNodeIds: curriculumSelection
         ? [...curriculumSelection.chapterNodeIds, ...curriculumSelection.topicNodeIds]

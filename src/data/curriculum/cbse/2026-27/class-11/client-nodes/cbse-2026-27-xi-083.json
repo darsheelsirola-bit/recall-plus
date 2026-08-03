@@ -1,0 +1,58 @@
+[
+  {
+    "id": "node-cbse-2026-27-xi-083:unit:01:computer-systems-and-organisation",
+    "subjectId": "cbse-2026-27-xi-083",
+    "parentId": null,
+    "nodeType": "unit",
+    "title": "Computer Systems and Organisation",
+    "description": null,
+    "officialOrder": 1,
+    "marksWeightage": null,
+    "sourcePage": 1,
+    "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Computer_Science_SecP2_2026-27.pdf",
+    "externalKey": "cbse-2026-27-xi-083:unit:01:computer-systems-and-organisation",
+    "active": true
+  },
+  {
+    "id": "node-cbse-2026-27-xi-083:unit:02:computational-thinking-and-programming-i",
+    "subjectId": "cbse-2026-27-xi-083",
+    "parentId": null,
+    "nodeType": "unit",
+    "title": "Computational Thinking and Programming - I",
+    "description": null,
+    "officialOrder": 2,
+    "marksWeightage": null,
+    "sourcePage": 2,
+    "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Computer_Science_SecP2_2026-27.pdf",
+    "externalKey": "cbse-2026-27-xi-083:unit:02:computational-thinking-and-programming-i",
+    "active": true
+  },
+  {
+    "id": "node-cbse-2026-27-xi-083:unit:03:society-law-and-ethics",
+    "subjectId": "cbse-2026-27-xi-083",
+    "parentId": null,
+    "nodeType": "unit",
+    "title": "Society, Law and Ethics",
+    "description": null,
+    "officialOrder": 3,
+    "marksWeightage": null,
+    "sourcePage": 3,
+    "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Computer_Science_SecP2_2026-27.pdf",
+    "externalKey": "cbse-2026-27-xi-083:unit:03:society-law-and-ethics",
+    "active": true
+  },
+  {
+    "id": "node-cbse-2026-27-xi-083:practical:04:practical-work",
+    "subjectId": "cbse-2026-27-xi-083",
+    "parentId": null,
+    "nodeType": "practical",
+    "title": "Practical Work",
+    "description": null,
+    "officialOrder": 4,
+    "marksWeightage": null,
+    "sourcePage": 4,
+    "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Computer_Science_SecP2_2026-27.pdf",
+    "externalKey": "cbse-2026-27-xi-083:practical:04:practical-work",
+    "active": true
+  }
+]

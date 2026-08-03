@@ -147,6 +147,7 @@ export async function handleTimetableGeneration(request, response, operations = 
       generate: () => injected(operations, 'requestTimetable', requestTimetable)(
         authorized.profile,
         authorized.subjects,
+        authorized.curriculumVersionId,
       ),
     })
     return response.status(200).json({

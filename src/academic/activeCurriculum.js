@@ -14,13 +14,16 @@ export {
 export function useActiveCurriculum() {
   const { workspace } = useAcademicProfile()
   const subjectSelections = workspace?.subjects
+  const curriculumNodes = workspace?.curriculumNodes
+  const curriculumVersionId = workspace?.profile.curriculumVersionId || ''
   return useMemo(() => {
     const selections = subjectSelections || []
-    const syllabus = buildActiveSyllabus(selections)
+    const syllabus = buildActiveSyllabus(selections, curriculumNodes || [])
     const activeSubjectNames = new Set(syllabus.map((item) => item.subject))
     const activeSubjectIds = new Set(syllabus.map((item) => item.subjectId))
     return {
       syllabus,
+      curriculumVersionId,
       subjects: selections,
       activeSubjectNames,
       activeSubjectIds,
@@ -33,5 +36,5 @@ export function useActiveCurriculum() {
           : activeSubjectNames.has(String(record?.subject || ''))
       },
     }
-  }, [subjectSelections])
+  }, [curriculumNodes, curriculumVersionId, subjectSelections])
 }

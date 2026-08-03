@@ -1,14 +1,12 @@
-import { CBSE_2026_27_XI_NODES_BY_SUBJECT } from '../data/curriculum/index.ts'
-
 function descendants(node, byParent) {
   const children = byParent.get(node.id) || []
   if (!children.length) return [node]
   return children.flatMap((child) => descendants(child, byParent))
 }
 
-function subjectSyllabus(selection) {
+function subjectSyllabus(selection, nodesBySubject) {
   const { subject } = selection
-  const nodes = CBSE_2026_27_XI_NODES_BY_SUBJECT.get(subject.id) || []
+  const nodes = nodesBySubject.get(subject.id) || []
   const byParent = new Map()
   nodes.forEach((node) => {
     const key = node.parentId || ''
@@ -63,10 +61,15 @@ export function curriculumRequestSelection(syllabus, subjectName, chapterNames, 
   }
 }
 
-export function buildActiveSyllabus(subjectSelections = []) {
+export function buildActiveSyllabus(subjectSelections = [], curriculumNodes = []) {
+  const nodesBySubject = new Map()
+  curriculumNodes.forEach((node) => {
+    if (!nodesBySubject.has(node.subjectId)) nodesBySubject.set(node.subjectId, [])
+    nodesBySubject.get(node.subjectId).push(node)
+  })
   return [...subjectSelections]
     .sort((left, right) => left.subjectPosition - right.subjectPosition)
-    .map(subjectSyllabus)
+    .map((selection) => subjectSyllabus(selection, nodesBySubject))
 }
 
 export function activeSubjectNameSet(subjectSelections = []) {

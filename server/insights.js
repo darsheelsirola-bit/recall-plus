@@ -261,6 +261,7 @@ export function normalizeInsightsPayload(parsed, chapterContexts) {
     }
 
     return {
+      curriculumVersionId: ctx.curriculumVersionId,
       curriculumSubjectId: ctx.curriculumSubjectId,
       chapterNodeId: ctx.chapterNodeId,
       topicNodeIds: ctx.topicNodeIds,

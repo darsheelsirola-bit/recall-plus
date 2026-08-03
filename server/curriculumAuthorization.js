@@ -32,8 +32,19 @@ function exactRows(rows, expectedIds, idKey = 'id') {
   return actual.size === expected.size && [...expected].every((id) => actual.has(id))
 }
 
-/** Load only the signed-in learner's active subjects and their official nodes. */
-export async function loadAuthorizedCurriculum(user, createClient = getUserScopedSupabaseClient) {
+/**
+ * Load the signed-in learner's active subjects and only the official node trees
+ * required by the current request. Timetable generation needs subject identity
+ * only; quiz and insight generation name the exact subject trees they need.
+ */
+export async function loadAuthorizedCurriculum(
+  user,
+  {
+    nodeSubjectIds = [],
+    includeNodes = true,
+  } = {},
+  createClient = getUserScopedSupabaseClient,
+) {
   if (!user?.id || !user?.accessToken) throw denied()
   const client = createClient(user.accessToken)
   let profileResult
@@ -67,6 +78,12 @@ export async function loadAuthorizedCurriculum(user, createClient = getUserScope
     throw required('Choose 5 or 6 active subjects before using AI generation.')
   }
 
+  const activeSubjectIds = new Set(subjectIds)
+  const requestedNodeSubjectIds = [...new Set(nodeSubjectIds)]
+  if (requestedNodeSubjectIds.some((subjectId) => !activeSubjectIds.has(subjectId))) {
+    throw denied()
+  }
+
   let subjectsResult
   let nodesResult
   try {
@@ -75,12 +92,14 @@ export async function loadAuthorizedCurriculum(user, createClient = getUserScope
         .from('curriculum_subjects')
         .select('id, curriculum_version_id, name, short_name, subject_code')
         .in('id', subjectIds),
-      client
-        .from('curriculum_nodes')
-        .select('id, subject_id, parent_id, node_type, title, official_order')
-        .in('subject_id', subjectIds)
-        .eq('active', true)
-        .order('official_order'),
+      includeNodes && requestedNodeSubjectIds.length
+        ? client
+          .from('curriculum_nodes')
+          .select('id, subject_id, parent_id, node_type, title, official_order')
+          .in('subject_id', requestedNodeSubjectIds)
+          .eq('active', true)
+          .order('official_order')
+        : Promise.resolve({ data: [], error: null }),
     ])
   } catch (error) {
     throw unavailable(error)
@@ -141,6 +160,7 @@ export function authorizeQuizFromWorkspace(input, workspace) {
   const { subject, chapters, topics } = resolveRequestedNodes(input, workspace)
   return {
     ...input,
+    curriculumVersionId: workspace.profile.curriculum_version_id,
     subject: subject.name,
     chapter: chapters.map((node) => node.title).join(', '),
     topic: topics.map((node) => node.title).join(', '),
@@ -148,12 +168,15 @@ export function authorizeQuizFromWorkspace(input, workspace) {
 }
 
 export async function authorizeQuizRequest(user, input) {
-  return authorizeQuizFromWorkspace(input, await loadAuthorizedCurriculum(user))
+  return authorizeQuizFromWorkspace(input, await loadAuthorizedCurriculum(user, {
+    nodeSubjectIds: [input.curriculumSubjectId],
+  }))
 }
 
 export function authorizeTimetableFromWorkspace(profile, workspace) {
   return {
     profile,
+    curriculumVersionId: workspace.profile.curriculum_version_id,
     subjects: workspace.subjects.map((subject) => ({
       curriculumSubjectId: subject.id,
       name: subject.name,
@@ -162,7 +185,9 @@ export function authorizeTimetableFromWorkspace(profile, workspace) {
 }
 
 export async function authorizeTimetableRequest(user, profile) {
-  return authorizeTimetableFromWorkspace(profile, await loadAuthorizedCurriculum(user))
+  return authorizeTimetableFromWorkspace(profile, await loadAuthorizedCurriculum(user, {
+    includeNodes: false,
+  }))
 }
 
 function exactOfficialTopic(value, officialTitles) {
@@ -191,6 +216,7 @@ function authorizeInsightContext(context, workspace) {
 
   return {
     ...context,
+    curriculumVersionId: workspace.profile.curriculum_version_id,
     subject: resolved.subject.name,
     chapter: resolved.chapters[0].title,
     syllabusTopics: resolved.topics.map((node) => node.title),
@@ -210,5 +236,7 @@ export function authorizeInsightsFromWorkspace(input, workspace) {
 }
 
 export async function authorizeInsightsRequest(user, input) {
-  return authorizeInsightsFromWorkspace(input, await loadAuthorizedCurriculum(user))
+  return authorizeInsightsFromWorkspace(input, await loadAuthorizedCurriculum(user, {
+    nodeSubjectIds: input.chapterContexts.map((context) => context.curriculumSubjectId),
+  }))
 }

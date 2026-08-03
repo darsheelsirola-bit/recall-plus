@@ -112,3 +112,17 @@ test('normalizeTimetableBlock preserves technique metadata', () => {
   assert.equal(block.label, 'Error log review')
   assert.equal(block.durationMinutes, 45)
 })
+
+test('normalizeTimetableBlock preserves curriculum identity for academic blocks', () => {
+  const block = normalizeTimetableBlock({
+    subject: 'Physics',
+    curriculumVersionId: 'cbse-2026-27-xi-v1',
+    curriculumSubjectId: 'cbse-2026-27-xi-042',
+    weekday: 1,
+    startTime: '17:00',
+    durationMinutes: 45,
+    source: 'ai',
+  })
+  assert.equal(block.curriculumVersionId, 'cbse-2026-27-xi-v1')
+  assert.equal(block.curriculumSubjectId, 'cbse-2026-27-xi-042')
+})

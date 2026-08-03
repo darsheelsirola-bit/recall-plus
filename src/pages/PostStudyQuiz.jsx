@@ -48,7 +48,7 @@ function savedPostStudyQuestions(logId) {
 
 export default function PostStudyQuiz() {
   const [searchParams] = useSearchParams()
-  const { isActiveRecord, syllabus } = useActiveCurriculum()
+  const { curriculumVersionId, isActiveRecord, syllabus } = useActiveCurriculum()
   const logId = searchParams.get('logId')
   const log = getData(STORAGE_KEYS.logs, []).find((item) => item.id === logId)
   const archivedLog = Boolean(log && !isActiveRecord(log))
@@ -127,7 +127,7 @@ export default function PostStudyQuiz() {
     const summary = calculateScore(questions, answers)
     const quizResult = {
       id: createId(), type: 'post-study', date: getTodayDate(), completedAt: new Date().toISOString(), sourceLogId: log.id,
-      subject: log.subject, curriculumSubjectId: log.curriculumSubjectId || null, curriculumNodeIds: curriculumSelection ? [...curriculumSelection.chapterNodeIds, ...curriculumSelection.topicNodeIds] : [], chapter: log.chapter, topic: topics.join(', '), topics,
+      subject: log.subject, curriculumVersionId: log.curriculumVersionId || curriculumVersionId, curriculumSubjectId: log.curriculumSubjectId || null, curriculumNodeIds: curriculumSelection ? [...curriculumSelection.chapterNodeIds, ...curriculumSelection.topicNodeIds] : [], chapter: log.chapter, topic: topics.join(', '), topics,
       confidence: log.confidence, ...summary, status: getTopicStatus(summary.percentage),
     }
     const statuses = getData(STORAGE_KEYS.topicStatuses, {})

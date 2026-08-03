@@ -317,6 +317,7 @@ export function buildFallbackChapterInsight(ctx) {
   else insight += ' Review the weak topics below before moving ahead.'
 
   return {
+    curriculumVersionId: ctx.curriculumVersionId || null,
     curriculumSubjectId: ctx.curriculumSubjectId || null,
     chapterNodeId: ctx.chapterNodeId || null,
     topicNodeIds: ctx.topicNodeIds || [],

@@ -5,9 +5,11 @@ import type {
 } from '../data/curriculum/types.ts'
 import {
   CBSE_2026_27_XI_SELECTABLE_SUBJECTS,
+} from '../data/curriculum/cbse/2026-27/class-11/catalogue.ts'
+import {
   subjectIdsForPreset,
   validateCbse2026ClassXiCombination,
-} from '../data/curriculum/index.ts'
+} from '../data/curriculum/cbse/2026-27/class-11/rules.ts'
 
 export const ONBOARDING_STEP_COUNT = 6
 

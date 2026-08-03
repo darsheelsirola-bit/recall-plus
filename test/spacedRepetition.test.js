@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { getNextReviewDate } from '../src/utils/spacedRepetition.js'
+import { getNextReviewDate, scheduleFirstReviewData } from '../src/utils/spacedRepetition.js'
 import { addDays, getTodayDate } from '../src/utils/dateUtils.js'
 
 // REVIEW_GAPS = [3, 6, 10, 15, 20], indexed by review count.
@@ -30,4 +30,20 @@ test('gap index is clamped at the end of the schedule', () => {
 
 test('a mid score (50-79%) advances without a boost', () => {
   assert.equal(getNextReviewDate(1, 65), due(8))
+})
+
+test('a first review retains stable curriculum identity', () => {
+  const { review } = scheduleFirstReviewData(
+    [],
+    'Physics',
+    'Motion',
+    'Velocity',
+    'Medium',
+    '',
+    [],
+    'cbse-2026-27-xi-042',
+    'cbse-2026-27-xi-v1',
+  )
+  assert.equal(review.curriculumSubjectId, 'cbse-2026-27-xi-042')
+  assert.equal(review.curriculumVersionId, 'cbse-2026-27-xi-v1')
 })

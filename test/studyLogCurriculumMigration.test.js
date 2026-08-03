@@ -16,6 +16,7 @@ test('study-log curriculum validation is atomic, private, and stable-ID based', 
   assert.match(migration, /revoke all on function recall_private[.]enforce_user_app_data_curriculum/)
   assert.match(migration, /create trigger user_app_data_validate_curriculum/)
   assert.match(migration, /curriculumSubjectId/)
+  assert.match(migration, /curriculumVersionId/)
   assert.match(migration, /curriculumNodeIds/)
   assert.match(migration, /selections[.]archived_at is null/)
   assert.match(migration, /previous[.]value = v_entry/)

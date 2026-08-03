@@ -8,6 +8,8 @@ set search_path = ''
 as $$
 declare
   v_entry jsonb;
+  v_curriculum_version_id text;
+  v_onboarding_completed boolean;
   v_subject_id text;
   v_subject_name text;
   v_node_ids text[];
@@ -15,14 +17,16 @@ declare
   v_node_id text;
   v_has_valid_ancestor boolean;
 begin
-  if not coalesce(
-    (
-      select profiles.onboarding_completed
-      from public.user_academic_profiles as profiles
-      where profiles.user_id = new.user_id
-    ),
-    false
-  ) then
+  select
+    profiles.curriculum_version_id,
+    profiles.onboarding_completed
+  into
+    v_curriculum_version_id,
+    v_onboarding_completed
+  from public.user_academic_profiles as profiles
+  where profiles.user_id = new.user_id;
+
+  if not coalesce(v_onboarding_completed, false) then
     return new;
   end if;
 
@@ -54,6 +58,7 @@ begin
 
     if jsonb_typeof(v_entry) <> 'object'
       or coalesce(btrim(v_entry ->> 'id'), '') = ''
+      or v_entry ->> 'curriculumVersionId' is distinct from v_curriculum_version_id
       or coalesce(btrim(v_entry ->> 'curriculumSubjectId'), '') = ''
       or jsonb_typeof(v_entry -> 'curriculumNodeIds') <> 'array'
       or jsonb_array_length(v_entry -> 'curriculumNodeIds') < 2
@@ -71,6 +76,7 @@ begin
     where selections.user_id = new.user_id
       and selections.curriculum_subject_id = v_subject_id
       and selections.archived_at is null
+      and subjects.curriculum_version_id = v_curriculum_version_id
       and subjects.active;
 
     if v_subject_name is null

@@ -25,7 +25,7 @@ function formatTime(time = '') {
 }
 
 export default function AddLog() {
-  const { activeSubjectNames, isActiveRecord, syllabus } = useActiveCurriculum()
+  const { activeSubjectNames, curriculumVersionId, isActiveRecord, syllabus } = useActiveCurriculum()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const editId = searchParams.get('id')
@@ -132,7 +132,7 @@ export default function AddLog() {
       setSaveError('The selected official curriculum nodes could not be verified.')
       return
     }
-    const fields = { subject, curriculumSubjectId: curriculumSelection.curriculumSubjectId, curriculumNodeIds: [...curriculumSelection.chapterNodeIds, ...curriculumSelection.topicNodeIds], chapter, topics, topic: topics[0], date, timeSpent: actualDuration, confidence, notes: notes.trim(), timetableFollowUp }
+    const fields = { subject, curriculumVersionId, curriculumSubjectId: curriculumSelection.curriculumSubjectId, curriculumNodeIds: [...curriculumSelection.chapterNodeIds, ...curriculumSelection.topicNodeIds], chapter, topics, topic: topics[0], date, timeSpent: actualDuration, confidence, notes: notes.trim(), timetableFollowUp }
 
     let savedLog
     try {
@@ -156,6 +156,7 @@ export default function AddLog() {
             notes.trim(),
             getData(STORAGE_KEYS.studyTimetable, []),
             fields.curriculumSubjectId,
+            curriculumVersionId,
           ).reviews
         }
       })

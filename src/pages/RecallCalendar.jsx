@@ -24,6 +24,16 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const HOURS = Array.from({ length: 24 }, (_, index) => index)
 const HOUR_HEIGHT = 48
 
+function stampCurriculumBlock(block, syllabus, curriculumVersionId) {
+  if (block.techniqueId) return block
+  const subject = syllabus.find((item) => item.subject === block.subject)
+  return {
+    ...block,
+    curriculumVersionId: block.curriculumVersionId || curriculumVersionId || null,
+    curriculumSubjectId: block.curriculumSubjectId || subject?.subjectId || null,
+  }
+}
+
 function weekRows(rangeStartDate) {
   const monthStart = new Date(`${rangeStartDate.slice(0, 7)}-01T12:00:00`)
   const firstWeekStart = new Date(monthStart)
@@ -179,7 +189,7 @@ function resolveTimetableConflicts(blocks = [], { profile, reviews = [], preserv
 
 export default function RecallCalendar() {
   useAppData()
-  const { syllabus, subjectNames, activeSubjectNames, isActiveRecord } = useActiveCurriculum()
+  const { syllabus, subjectNames, activeSubjectNames, curriculumVersionId, isActiveRecord } = useActiveCurriculum()
   const today = getTodayDate()
   const filters = ['All', ...subjectNames]
   const logs = getData(STORAGE_KEYS.logs, []).filter(isActiveRecord)
@@ -438,6 +448,7 @@ export default function RecallCalendar() {
     const selectedSubject = syllabus.find((item) => item.subject === manual.subject)
     const item = createRecallItem({
       subject: manual.subject,
+      curriculumVersionId,
       curriculumSubjectId: selectedSubject?.subjectId || null,
       chapter: manual.chapter.trim(),
       topic: manual.topic.trim(),
@@ -457,11 +468,19 @@ export default function RecallCalendar() {
 
   function applyOptimalPlan(profile, blocks, meta = {}) {
     const preservedBlocks = timetable.filter((item) => item.source !== 'ai')
-    const incomingBlocks = blocks.map((item) => normalizeTimetableBlock({ ...item, source: 'ai' }))
+    const incomingBlocks = blocks.map((item) => normalizeTimetableBlock(stampCurriculumBlock(
+      { ...item, source: 'ai' },
+      syllabus,
+      curriculumVersionId,
+    )))
     const aiBlocks = resolveTimetableConflicts(incomingBlocks, { profile, reviews, preservedBlocks })
     const hasConflict = hasTimetableConflict([...preservedBlocks, ...aiBlocks])
     if (hasConflict) {
-      const fallbackBlocks = resolveTimetableConflicts(buildFallbackTimetable({ ...profile, subjects: subjectNames }).map((item) => normalizeTimetableBlock({ ...item, source: 'ai' })), { profile, reviews, preservedBlocks })
+      const fallbackBlocks = resolveTimetableConflicts(buildFallbackTimetable({ ...profile, subjects: subjectNames }).map((item) => normalizeTimetableBlock(stampCurriculumBlock(
+        { ...item, source: 'ai' },
+        syllabus,
+        curriculumVersionId,
+      ))), { profile, reviews, preservedBlocks })
       if (!persistTimetableAndAvailability(
         profile,
         mergeTimetableBlocks(timetable, fallbackBlocks, 'replace-ai'),
@@ -482,7 +501,11 @@ export default function RecallCalendar() {
   }
 
   function saveEditedTimetable(profile, blocks) {
-    const normalized = blocks.map((item) => normalizeTimetableBlock({ ...item, source: item.source || 'manual' }))
+    const normalized = blocks.map((item) => normalizeTimetableBlock(stampCurriculumBlock(
+      { ...item, source: item.source || 'manual' },
+      syllabus,
+      curriculumVersionId,
+    )))
     if (hasTimetableConflict(normalized)) return 'Timetable has overlapping slots with recalls or other study blocks. Adjust times and try again.'
     if (!persistTimetableAndAvailability(
       profile,

@@ -9,6 +9,7 @@ import {
   mergeActiveRecordUpdates,
 } from '../src/academic/activeCurriculumData.js'
 import { CBSE_2026_27_XI_SUBJECTS_BY_CODE } from '../src/data/curriculum/index.ts'
+import { CBSE_2026_27_XI_NODES } from '../src/data/curriculum/cbse/2026-27/class-11/outlines.ts'
 
 function selection(code, position) {
   const subject = CBSE_2026_27_XI_SUBJECTS_BY_CODE.get(code)
@@ -29,7 +30,7 @@ test('active syllabus preserves the selected PCB combination and excludes Mathem
     selection('044', 4),
     selection('048', 5),
   ]
-  const syllabus = buildActiveSyllabus(selected)
+  const syllabus = buildActiveSyllabus(selected, CBSE_2026_27_XI_NODES)
 
   assert.deepEqual(
     syllabus.map((item) => item.subject),
@@ -46,7 +47,7 @@ test('quiz selections resolve to stable subject, chapter, and topic node IDs', (
     selection('043', 3),
     selection('041', 4),
     selection('083', 5),
-  ])
+  ], CBSE_2026_27_XI_NODES)
   const physics = syllabus.find((item) => item.subject === 'Physics')
   const chapter = physics.chapters.find((item) => item.topicNodes.length)
   const topic = chapter.topicNodes[0]

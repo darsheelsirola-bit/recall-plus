@@ -25,12 +25,14 @@
     "curriculum:report": "node scripts/generate-curriculum-report.ts",
     "curriculum:sql": "node scripts/generate-curriculum-sql.ts",
     "curriculum:sql:check": "node scripts/generate-curriculum-sql.ts --check",
+    "curriculum:client": "node scripts/generate-client-curriculum-nodes.ts",
+    "curriculum:client:check": "node scripts/generate-client-curriculum-nodes.ts --check",
     "test:db:smoke": "node scripts/smoke-test-curriculum-db.mjs",
     "audit:prod": "node scripts/audit-policy.mjs --omit=dev",
     "audit:all": "node scripts/audit-policy.mjs",
     "test": "node --test test/*.test.js",
     "typecheck": "tsc --noEmit",
-    "check": "npm run verify:router && npm run curriculum:validate && npm run curriculum:sql:check && npm run test:db:smoke && npm run typecheck && npm run lint && npm test && npm run build && npm run scan:secrets && npm run scan:history",
+    "check": "npm run verify:router && npm run curriculum:validate && npm run curriculum:sql:check && npm run curriculum:client:check && npm run test:db:smoke && npm run typecheck && npm run lint && npm test && npm run build && npm run scan:secrets && npm run scan:history",
     "vercel:build": "npm run validate:vercel-env && npm run check && npm run audit:all"
   },
   "dependencies": {

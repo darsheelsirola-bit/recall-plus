@@ -515,7 +515,7 @@ Status: complete
 
 ## Phase 7 - Coordinated production rollout
 
-Status: read-only preflight complete; external mutation pending fresh authorization
+Status: local rollout preparation complete; external mutation pending fresh authorization
 
 ### Completed preparation
 
@@ -532,7 +532,7 @@ Status: read-only preflight complete; external mutation pending fresh authorizat
   - `20260730120000_curriculum_profiles_and_rls.sql`:
     `C888F4D693BF8305F12E64680FE342FE4FD0A0459125AF760326AC8F2C9C25A7`;
   - `20260803120000_validate_study_log_curriculum.sql`:
-    `0B17201E5CF7FB32A06475FDE130918D4BD2A43AA25B4356BB7655551413EC5B`.
+    `CD1A26958358DD6B31BF136C7BC8E97BF6930C22216DC58885A23FEC17751DCB`.
 - Refreshed the non-identifying production preservation baseline to six Auth users, zero anonymous
   users, six Recall profiles, six app snapshots, version sum 22, exact owner parity, and aggregate
   hash `ccbef85bfef01e4adc3c45dddae237b1`.
@@ -551,6 +551,17 @@ Status: read-only preflight complete; external mutation pending fresh authorizat
 - Expanded `docs/database/curriculum-migration-runbook.md` with exact targets, gates, paid-feature
   limitation, automatic-deployment hazard, forward-recovery hold point, live verification, and the
   current rollback candidate.
+- Split the 24 reviewed curriculum outlines into generated per-subject client modules so an
+  authenticated learner downloads nodes only for selected subjects instead of bundling every
+  reviewed outline into the startup path. The server authorization layer now also fetches nodes
+  only for the subject required by a quiz or insight request and skips nodes for timetable requests.
+- Stamped the active curriculum version onto new study logs, practice and diagnostic results,
+  reviews, recall items, timetable blocks, and AI insight cards. The pending validation trigger now
+  requires that version on new or changed post-onboarding study logs while preserving untouched
+  legacy records.
+- Added authorization and migration regression coverage for request-scoped node loading,
+  unselected-subject rejection, and curriculum-version validation. The production build emits 24
+  subject-specific curriculum chunks and keeps the shared active-curriculum chunk at 2.40 kB.
 - No Supabase schema/Auth setting, Git remote, Vercel deployment/alias, or live application state
   was changed during this preflight.
 
@@ -563,15 +574,16 @@ Status: read-only preflight complete; external mutation pending fresh authorizat
 - External HTTP probes for `/`, `/privacy`, and `/terms`.
 - Local Git status/SHAs/diff check, migration inventory/hashes/transaction boundaries, Vercel link,
   and deployment configuration review.
-- Final `npm.cmd run check` passed after the preflight edits: seven-migration PostgreSQL replay,
-  124 subjects, 295 nodes, TypeScript, ESLint, 184/184 tests, Vite production build, 254-file working
-  tree secret scan, and 403-blob complete reachable-history secret scan.
+- Final `npm.cmd run check` passed after the corrective edits: seven-migration PostgreSQL replay,
+  124 subjects, 24 reviewed outlines, 295 nodes, exact generated-client-module verification,
+  TypeScript, ESLint, 189/189 tests, Vite production build, 304-file working-tree secret scan, and
+  406-blob complete reachable-history secret scan.
 
 ### Remaining work and unresolved external limitations
 
 - Fresh authorization is required before downloading/running the pinned official Vercel CLI,
   creating the skip-domain production artifact, applying either production migration, pushing the
-  nine commits, or moving the live alias.
+  ten commits, or moving the live alias.
 - Vercel production environment-variable names cannot be independently listed with the currently
   installed tools because no Vercel CLI is present. The required `npm run vercel:build` environment
   validator will fail the unaliased candidate build before any database or live-site change if a
@@ -584,7 +596,7 @@ Status: read-only preflight complete; external mutation pending fresh authorizat
 ## Remaining work
 
 1. Phase 7 - After fresh explicit authorization, build the unaliased candidate, apply and verify
-   both production migrations, push the nine commits, release the exact artifact, complete live
+   both production migrations, push the ten commits, release the exact artifact, complete live
    production smoke/security checks, and publish the requirement-by-requirement final report.
 
 ## Database safety rule
