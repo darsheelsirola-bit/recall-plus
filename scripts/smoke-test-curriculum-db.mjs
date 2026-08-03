@@ -7,6 +7,7 @@ import { PGlite } from '@electric-sql/pglite'
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const migrationDirectory = path.join(projectRoot, 'supabase', 'migrations')
 const expectedCurriculumMigration = '20260730120000_curriculum_profiles_and_rls.sql'
+const expectedLatestMigration = '20260803120000_validate_study_log_curriculum.sql'
 
 const bootstrapSql = `
 do $roles$
@@ -128,8 +129,8 @@ const migrationFiles = (await readdir(migrationDirectory))
 
 assert.equal(
   migrationFiles.at(-1),
-  expectedCurriculumMigration,
-  'the curriculum migration must remain the newest checked-in migration',
+  expectedLatestMigration,
+  'the study-log curriculum guard must remain the newest checked-in migration',
 )
 
 const db = new PGlite()
@@ -357,6 +358,54 @@ try {
   )
   assert.equal(saved.result.onboardingCompleted, true)
   assert.equal(saved.result.subjects.length, 5)
+
+  const physicsNodes = await db.query(
+    `with root as (
+      select id, parent_id, official_order
+      from public.curriculum_nodes
+      where subject_id = 'cbse-2026-27-xi-042'
+        and parent_id is null
+      order by official_order
+      limit 1
+    ), child as (
+      select nodes.id, nodes.parent_id, nodes.official_order
+      from public.curriculum_nodes as nodes
+      join root on root.id = nodes.parent_id
+      order by nodes.official_order
+      limit 1
+    )
+    select id, parent_id from root
+    union all
+    select id, parent_id from child`,
+  )
+  assert.equal(physicsNodes.rows.length, 2)
+  const validLog = {
+    id: 'server-validated-log',
+    subject: 'Physics',
+    curriculumSubjectId: 'cbse-2026-27-xi-042',
+    curriculumNodeIds: physicsNodes.rows.map((node) => node.id),
+  }
+  await db.exec('reset role')
+  await db.query(
+    `update public.user_app_data
+    set data = jsonb_build_object('recall_plus_study_logs', $2::jsonb)
+    where user_id = $1`,
+    [testUserId, JSON.stringify([validLog])],
+  )
+  await assert.rejects(
+    db.query(
+      `update public.user_app_data
+      set data = jsonb_build_object('recall_plus_study_logs', $2::jsonb)
+      where user_id = $1`,
+      [testUserId, JSON.stringify([{
+        ...validLog,
+        subject: 'History',
+        curriculumSubjectId: 'cbse-2026-27-xi-027',
+      }])],
+    ),
+    /INVALID_STUDY_LOG_CURRICULUM/,
+  )
+  await db.exec('set role authenticated')
 
   await db.query(
     `select set_config(

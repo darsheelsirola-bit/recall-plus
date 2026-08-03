@@ -29,8 +29,10 @@ function daysText(days = []) {
   return days.map((day) => labels[day]).join(', ') || 'none'
 }
 
-export function buildTimetablePrompt(profile) {
-  return `Create a weekly Class 11 PCM study timetable.
+export function buildTimetablePrompt(profile, subjects) {
+  const subjectNames = subjects.map((subject) => subject.name)
+  return `Create a weekly CBSE Class 11 study timetable.
+Active subjects: ${subjectNames.join(', ')}
 User routine:
 - Wake: ${profile.wakeTime}
 - Sleep: ${profile.sleepTime}
@@ -46,20 +48,20 @@ User routine:
 Rules:
 - Return ONLY valid JSON object with two keys: "blocks" and "summary"
 - "blocks" must contain 6 to 10 study blocks
-- Each block must include: weekday (0=Mon...6=Sun), startTime (HH:MM 24h), durationMinutes (30-180), subject (Physics/Chemistry/Maths), label
+- Each block must include: weekday (0=Mon...6=Sun), startTime (HH:MM 24h), durationMinutes (30-180), subject (one exact value from Active subjects), label
 - Label format should be "<Subject> recall" (example: "Physics recall")
 - Keep blocks within wake/sleep times
 - Do not overlap school, tuition, or sports sessions
 - Never place any block during 08:00-09:00 or 14:00-15:00 on any day
 - Multiple study blocks per day are allowed when needed, but blocks on the same day must not overlap
-- Prefer Physics, Chemistry, Maths balance and user's most active period
+- Balance only the learner's Active subjects and prefer the user's most active period
 - Duration should usually be 45-90 minutes
 
 JSON format:
 {"blocks":[{"weekday":0,"startTime":"17:00","durationMinutes":60,"subject":"Physics","label":"Physics recall"}],"summary":"A short explanation of why this plan is optimal."}`
 }
 
-async function generateOnce({ key, model, profile, deadlineAt }) {
+async function generateOnce({ key, model, profile, subjects, deadlineAt }) {
   const response = await fetchGroq(GROQ_CHAT_COMPLETIONS_URL, {
     method: 'POST',
     headers: {
@@ -78,7 +80,7 @@ async function generateOnce({ key, model, profile, deadlineAt }) {
         },
         {
           role: 'user',
-          content: buildTimetablePrompt(profile),
+          content: buildTimetablePrompt(profile, subjects),
         },
       ],
     }),
@@ -112,9 +114,13 @@ async function generateOnce({ key, model, profile, deadlineAt }) {
     }))
     : null
   if (!Array.isArray(blocks) || blocks.length < 6 || blocks.length > 10) return null
-  if (!validateGeneratedTimetable(blocks, profile)) return null
+  if (!validateGeneratedTimetable(blocks, profile, subjects.map((subject) => subject.name))) return null
+  const subjectIdsByName = new Map(subjects.map((subject) => [subject.name, subject.curriculumSubjectId]))
   return {
-    blocks,
+    blocks: blocks.map((block) => ({
+      ...block,
+      curriculumSubjectId: subjectIdsByName.get(block.subject),
+    })),
     summary: typeof parsed?.summary === 'string' && parsed.summary.trim().length <= 1_000
       ? parsed.summary.trim()
       : 'Generated study timetable based on your routine.',
@@ -127,12 +133,18 @@ function modelCandidates() {
   return [...new Set(ordered)]
 }
 
-export async function requestTimetable(profile) {
+export async function requestTimetable(profile, subjects = []) {
   const safeProfile = normalizeTimetableProfile(profile)
   if (!safeProfile) {
     throw new AppError('Please provide a complete daily routine before generating an optimal timetable.', {
       code: ERROR_CODES.INVALID_REQUEST,
       statusCode: 400,
+    })
+  }
+  if (!Array.isArray(subjects) || subjects.length < 5 || subjects.length > 6) {
+    throw new AppError('Choose 5 or 6 active subjects before generating a timetable.', {
+      code: ERROR_CODES.ACADEMIC_PROFILE_REQUIRED,
+      statusCode: 409,
     })
   }
   const key = process.env.GROQ_TIMETABLE_API_KEY
@@ -150,7 +162,7 @@ export async function requestTimetable(profile) {
   for (let attempt = 0; attempt < MAX_PROVIDER_ATTEMPTS && Date.now() < deadlineAt; attempt += 1) {
     const model = models[attempt % models.length]
     try {
-      const generated = await generateOnce({ key, model, profile: safeProfile, deadlineAt })
+      const generated = await generateOnce({ key, model, profile: safeProfile, subjects, deadlineAt })
       if (generated) return generated
       lastError = providerResponseInvalid()
     } catch (error) {

@@ -5,6 +5,7 @@ import { buildActiveSyllabus } from './activeCurriculumData'
 export {
   activeSubjectNameSet,
   buildActiveSyllabus,
+  curriculumRequestSelection,
   filterActiveSubjectRecords,
   isActiveSubjectRecord,
   mergeActiveRecordUpdates,

@@ -146,6 +146,7 @@ export function normalizeTimetableBlock(block = {}) {
     techniqueId: null,
     label: normalizedLabel || `${safeSubject} recall`,
     subject: safeSubject,
+    curriculumSubjectId: String(block.curriculumSubjectId || '').trim() || null,
     weekday: normalizeWeekday(block.weekday),
     startTime: start == null ? DEFAULT_TIME : toClock(start),
     durationMinutes: clampDuration(block.durationMinutes),

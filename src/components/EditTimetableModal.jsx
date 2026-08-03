@@ -190,7 +190,7 @@ export default function EditTimetableModal({ open, blocks = [], initialProfile, 
     setLoading(true)
     setError('')
     try {
-      const generated = await generateOptimalTimetable({ ...profile, subjects })
+      const generated = await generateOptimalTimetable(profile)
       const next = (generated.blocks || []).map((block) => normalizeTimetableBlock({ ...block, label: sanitizeStudyLabel(block.label, block.subject) }))
       setDraftBlocks(next.filter((block) => !block.techniqueId))
     } catch (generationError) {

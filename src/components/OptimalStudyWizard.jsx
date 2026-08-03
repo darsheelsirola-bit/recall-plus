@@ -131,7 +131,7 @@ export default function OptimalStudyWizard({ open, initialProfile, onClose, onAp
     setError('')
     setUsedFallback(false)
     try {
-      const generated = await generateOptimalTimetable({ ...profile, subjects })
+      const generated = await generateOptimalTimetable(profile)
       setResult({
         blocks: (generated.blocks || []).map((block) => ({ ...block, label: sanitizeStudyLabel(block.label, block.subject) })),
         summary: generated.summary || 'Generated using your routine.',

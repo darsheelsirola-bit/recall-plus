@@ -174,7 +174,7 @@ export function validateTimetableProfile(profile) {
   return normalizeTimetableProfile(profile) !== null
 }
 
-export function validateTimetableBlock(block, profile) {
+export function validateTimetableBlock(block, profile, allowedSubjects = VALID_TIMETABLE_SUBJECTS) {
   if (!hasOnlyKeys(block, [
     'weekday',
     'startTime',
@@ -192,7 +192,7 @@ export function validateTimetableBlock(block, profile) {
     if (!Number.isInteger(block.durationMinutes) || block.durationMinutes < 5 || block.durationMinutes > 180) return false
   } else {
     if (block.techniqueId != null) return false
-    if (!VALID_TIMETABLE_SUBJECTS.includes(block.subject)) return false
+    if (!allowedSubjects.includes(block.subject)) return false
     if (!Number.isInteger(block.durationMinutes) || block.durationMinutes < 30 || block.durationMinutes > 180) return false
   }
 
@@ -209,9 +209,9 @@ export function validateTimetableBlock(block, profile) {
   return true
 }
 
-export function validateGeneratedTimetable(blocks, profile) {
+export function validateGeneratedTimetable(blocks, profile, allowedSubjects = VALID_TIMETABLE_SUBJECTS) {
   if (!Array.isArray(blocks) || !blocks.length) return false
-  if (!blocks.every((block) => validateTimetableBlock(block, profile))) return false
+  if (!blocks.every((block) => validateTimetableBlock(block, profile, allowedSubjects))) return false
   for (let i = 0; i < blocks.length; i += 1) {
     const a = blocks[i]
     const aStart = parseTime(a.startTime)

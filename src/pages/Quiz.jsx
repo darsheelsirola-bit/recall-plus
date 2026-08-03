@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress'
 import PageHeader from '../components/PageHeader'
 import BackButton from '../components/BackButton'
 import GenerationLimitStatus from '../components/GenerationLimitStatus'
-import { useActiveCurriculum } from '../academic/activeCurriculum'
+import { curriculumRequestSelection, useActiveCurriculum } from '../academic/activeCurriculum'
 import { getChapters, getTopics, selectionFromParams } from '../components/SelectionFields'
 import { useGenerationUsage } from '../contexts/GenerationUsageContext'
 import { generateQuizQuestions } from '../services/groqService'
@@ -93,6 +93,7 @@ export default function Quiz() {
   const availableTopics = getAvailableTopics(subject, selectedChapters, syllabus)
   const chapterLabel = selectedChapters.join(', ')
   const topicLabel = selectedTopics.join(', ')
+  const curriculumSelection = curriculumRequestSelection(syllabus, subject, selectedChapters, selectedTopics)
   const storageKey = configStorageKey(subject, selectedChapters, selectedTopics, difficulty, safeDuration, safeQuestionCount)
   const ready = validateVerifiedQuizQuestions(questions, safeQuestionCount)
   const generationBlocked = quizUsage.loading || quizUsage.inProgress || quizUsage.exhausted || Boolean(quizUsage.error)
@@ -182,7 +183,8 @@ export default function Quiz() {
     const ownerId = getStorageUser()
     try {
       if (!ready) {
-        const generated = await generateQuizQuestions(subject, chapterLabel, topicLabel, { count: safeQuestionCount, level: difficulty })
+        if (!curriculumSelection) throw new Error('The selected official curriculum nodes could not be verified.')
+        const generated = await generateQuizQuestions(curriculumSelection, { count: safeQuestionCount, level: difficulty })
         if (!ownerId || getStorageUser() !== ownerId) return
         saveDataForUserOrThrow(ownerId, storageKey, generated)
         setQuestions(generated)
@@ -228,6 +230,9 @@ export default function Quiz() {
       difficulty,
       subject,
       curriculumSubjectId: syllabus.find((item) => item.subject === subject)?.subjectId || '',
+      curriculumNodeIds: curriculumSelection
+        ? [...curriculumSelection.chapterNodeIds, ...curriculumSelection.topicNodeIds]
+        : [],
       chapter: chapterLabel,
       topic: topicLabel,
       chapters: selectedChapters,

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useActiveCurriculum } from '../academic/activeCurriculum'
+import { curriculumRequestSelection, useActiveCurriculum } from '../academic/activeCurriculum'
 import GenerationLimitStatus from '../components/GenerationLimitStatus'
 import PageHeader from '../components/PageHeader'
 import { useGenerationUsage } from '../contexts/GenerationUsageContext'
@@ -48,11 +48,14 @@ function savedPostStudyQuestions(logId) {
 
 export default function PostStudyQuiz() {
   const [searchParams] = useSearchParams()
-  const { isActiveRecord } = useActiveCurriculum()
+  const { isActiveRecord, syllabus } = useActiveCurriculum()
   const logId = searchParams.get('logId')
   const log = getData(STORAGE_KEYS.logs, []).find((item) => item.id === logId)
   const archivedLog = Boolean(log && !isActiveRecord(log))
   const topics = log ? (Array.isArray(log.topics) && log.topics.length ? log.topics : [log.topic].filter(Boolean)) : []
+  const curriculumSelection = log
+    ? curriculumRequestSelection(syllabus, log.subject, [log.chapter], topics)
+    : null
   const [questions, setQuestions] = useState([])
   const [answers, setAnswers] = useState({})
   const [loading, setLoading] = useState(Boolean(log))
@@ -92,7 +95,8 @@ export default function PostStudyQuiz() {
     submissionGuardRef.current.reset()
     const ownerId = getStorageUser()
     try {
-      const generated = await generateQuizQuestions(log.subject, log.chapter, topics.join(', '), {
+      if (!curriculumSelection) throw new Error('The saved log no longer maps to active official curriculum nodes.')
+      const generated = await generateQuizQuestions(curriculumSelection, {
         count: 10,
         level: 'mixed',
         purpose: 'recall',
@@ -123,7 +127,7 @@ export default function PostStudyQuiz() {
     const summary = calculateScore(questions, answers)
     const quizResult = {
       id: createId(), type: 'post-study', date: getTodayDate(), completedAt: new Date().toISOString(), sourceLogId: log.id,
-      subject: log.subject, curriculumSubjectId: log.curriculumSubjectId || null, chapter: log.chapter, topic: topics.join(', '), topics,
+      subject: log.subject, curriculumSubjectId: log.curriculumSubjectId || null, curriculumNodeIds: curriculumSelection ? [...curriculumSelection.chapterNodeIds, ...curriculumSelection.topicNodeIds] : [], chapter: log.chapter, topic: topics.join(', '), topics,
       confidence: log.confidence, ...summary, status: getTopicStatus(summary.percentage),
     }
     const statuses = getData(STORAGE_KEYS.topicStatuses, {})

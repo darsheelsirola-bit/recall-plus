@@ -346,12 +346,96 @@ Status: complete
 - The tested Phase 2 migration remains intentionally absent from production. Deploying this
   frontend before the coordinated database/API rollout would fail closed.
 
+## Phase 5 - Server-side curriculum authorization and API hardening
+
+Status: complete
+
+### Completed work
+
+- Kept `supabase.auth.getUser(accessToken)` as the session authority and added a fresh
+  request-scoped Supabase client carrying the verified bearer token. Curriculum queries therefore
+  run as the authenticated learner under RLS; the service-role credential is never used for
+  curriculum authorization and remains server-only for generation limits.
+- Added one server curriculum-authorization layer that, before quota reservation or provider work:
+  - requires a completed owner academic profile with exactly five or six active selections;
+  - loads only that learner's active `user_subjects` plus official subject and node rows;
+  - rejects unknown, archived, unselected, cross-subject, and cross-chapter node IDs;
+  - reconstructs provider-facing subject, chapter, and topic labels from official database rows;
+  - never accepts a browser-supplied user ID or display name as authorization.
+- Replaced the quiz API's subject/chapter/topic string contract with stable
+  `curriculumSubjectId`, `chapterNodeIds`, and `topicNodeIds`. Practice, diagnostic, and post-study
+  flows resolve those IDs from the active catalogue, and newly saved logs/results retain the
+  official IDs.
+- Made timetable generation derive its five or six subjects from the authenticated database
+  workspace. Removed PCM-only prompt wording, constrained provider output to the exact active
+  names, rejected otherwise-official but unselected subjects, and stamped returned blocks with
+  their stable subject IDs.
+- Made AI Insight requests include stable subject/chapter/topic IDs. Server authorization replaces
+  browser labels with official names, rejects evidence referencing another topic, and stores IDs on
+  both Groq and local fallback insight cards. Removed the remaining PCM-only AI coach wording.
+- Added official topic-node metadata to the active curriculum adapter and included stable IDs in
+  insight cache fingerprints so curriculum changes cannot reuse a name-only cache entry.
+- Added the atomic `20260803120000_validate_study_log_curriculum.sql` guard:
+  - a private, revoked `SECURITY DEFINER` trigger validates every new or changed post-onboarding
+    study log at the database boundary;
+  - the subject must be an active owner selection and its name must match the official row;
+  - every unique node must be active, belong to that subject, and descend from a requested official
+    top-level unit/chapter;
+  - byte-for-byte untouched legacy logs are exempt, so migration history remains lossless;
+  - the migration is one explicit transaction and contains no destructive legacy-data operation.
+- Applied the Phase 5 migration only to the disposable `$0` Supabase test project
+  `rgdtgqrifgnpxcbanbbc`. Confirmed the private trigger/function are installed and reran hosted
+  security/performance advisors. Production project `bqysqcsogqxfhrtuituo` was not modified.
+
+### Tests run
+
+- Added authorization tests proving:
+  - valid quiz IDs resolve to official labels;
+  - unselected subjects and cross-subject nodes are rejected;
+  - denial occurs before rate-limit reservation or provider work;
+  - timetable authorization uses the exact active subject set;
+  - an official but unselected timetable subject is rejected;
+  - insight labels are server-replaced and injected topic evidence is rejected;
+  - browser selections resolve to stable subject/chapter/topic IDs.
+- Added migration safety and executable database smoke tests proving:
+  - the guard is atomic, private, stable-ID based, and non-destructive;
+  - seven migrations replay from an empty database;
+  - valid active-subject logs pass;
+  - forged unselected-subject logs fail with `INVALID_STUDY_LOG_CURRICULUM`;
+  - the preserved pre-migration legacy snapshot remains byte-for-byte unchanged.
+- Supabase documentation and changelog were checked before implementation. The current documented
+  server pattern is to verify the access token, attach its Authorization header to a per-request
+  client, and let RLS scope database reads; no relevant current breaking change was found.
+- Hosted test-project checks confirmed RLS and policies on profiles, selections, subjects, and
+  nodes, plus successful installation of the private Phase 5 trigger/function.
+- `npm.cmd run check` passed:
+  - router compatibility;
+  - catalogue validation with 121 selectable subjects, 24 reviewed outlines, and 295 nodes;
+  - deterministic generated migration freshness;
+  - exact seven-migration PostgreSQL replay and legacy preservation;
+  - TypeScript and ESLint;
+  - 182 automated tests;
+  - production build;
+  - repository and complete reachable Git-history secret scans.
+
+### Unresolved errors and risks
+
+- Full rendered account-matrix, keyboard, mobile, tablet, desktop, long-name, and overflow QA
+  remains in Phase 6. The in-app browser security policy still blocks localhost, and production has
+  not been used as a test environment.
+- Live provider calls were not used as correctness tests; deterministic tests mock provider output,
+  exercise the independent answer-verification gate, and confirm invalid curriculum requests never
+  reach Groq.
+- The Phase 2 and Phase 5 migrations remain absent from production. The frontend/API and both
+  migrations must be rolled out as one coordinated unit after Phase 6 succeeds.
+- The disposable project's four security INFO notices remain intentional deny-all RLS tables for
+  server-only generation state. Its unused-index notices remain expected without application load.
+
 ## Remaining work
 
-1. Phase 5 - Enforce curriculum authorization and official-node validation in every AI/API path.
-2. Phase 6 - Run migration, account-matrix, responsive, security, performance, and end-to-end
+1. Phase 6 - Run migration, account-matrix, responsive, security, performance, and end-to-end
    verification and commit any fixes.
-3. Phase 7 - Push all phase commits, deploy the verified worktree atomically, verify production, and
+2. Phase 7 - Push all phase commits, deploy the verified worktree atomically, verify production, and
    publish the final report.
 
 ## Database safety rule

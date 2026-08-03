@@ -15,6 +15,11 @@ import {
 import { sendError, sendMethodNotAllowed, setPrivateNoStore } from './http.js'
 import { isSupabaseConfigured, verifySupabaseUser } from './supabase.js'
 import { hasOnlyKeys, readBoundedJsonBody } from './requestValidation.js'
+import {
+  authorizeInsightsRequest,
+  authorizeQuizRequest,
+  authorizeTimetableRequest,
+} from './curriculumAuthorization.js'
 
 async function authenticatedUser(request) {
   return verifySupabaseUser(request)
@@ -69,9 +74,14 @@ export async function handleQuizGeneration(request, response, operations = {}) {
         statusCode: 400,
       })
     }
+    const authorizedInput = await injected(
+      operations,
+      'authorizeQuizRequest',
+      authorizeQuizRequest,
+    )(user, input)
 
     const requestId = getIdempotencyKey(request, body)
-    const requestHash = createGenerationRequestHash(GENERATION_FEATURES.QUIZ, input)
+    const requestHash = createGenerationRequestHash(GENERATION_FEATURES.QUIZ, authorizedInput)
     response.setHeader('Idempotency-Key', requestId)
     response.setHeader('X-Idempotency-Key', requestId)
     const limited = await injected(
@@ -84,7 +94,7 @@ export async function handleQuizGeneration(request, response, operations = {}) {
       requestId,
       requestHash,
       generate: async () => ({
-        questions: await injected(operations, 'requestQuiz', requestQuiz)(input),
+        questions: await injected(operations, 'requestQuiz', requestQuiz)(authorizedInput),
       }),
     })
     return response.status(200).json({
@@ -115,9 +125,14 @@ export async function handleTimetableGeneration(request, response, operations = 
         statusCode: 400,
       })
     }
+    const authorized = await injected(
+      operations,
+      'authorizeTimetableRequest',
+      authorizeTimetableRequest,
+    )(user, profile)
 
     const requestId = getIdempotencyKey(request, body)
-    const requestHash = createGenerationRequestHash(GENERATION_FEATURES.TIMETABLE, profile)
+    const requestHash = createGenerationRequestHash(GENERATION_FEATURES.TIMETABLE, authorized)
     response.setHeader('Idempotency-Key', requestId)
     response.setHeader('X-Idempotency-Key', requestId)
     const limited = await injected(
@@ -129,7 +144,10 @@ export async function handleTimetableGeneration(request, response, operations = 
       feature: GENERATION_FEATURES.TIMETABLE,
       requestId,
       requestHash,
-      generate: () => injected(operations, 'requestTimetable', requestTimetable)(profile),
+      generate: () => injected(operations, 'requestTimetable', requestTimetable)(
+        authorized.profile,
+        authorized.subjects,
+      ),
     })
     return response.status(200).json({
       ...limited.result,
@@ -157,10 +175,15 @@ export async function handleInsightGeneration(request, response, operations = {}
         statusCode: 400,
       })
     }
+    const authorizedInput = await injected(
+      operations,
+      'authorizeInsightsRequest',
+      authorizeInsightsRequest,
+    )(user, input)
     const requestId = getIdempotencyKey(request, body)
     const requestHash = createGenerationRequestHash(
       GENERATION_FEATURES.INSIGHTS,
-      input,
+      authorizedInput,
     )
     response.setHeader('Idempotency-Key', requestId)
     response.setHeader('X-Idempotency-Key', requestId)
@@ -173,7 +196,7 @@ export async function handleInsightGeneration(request, response, operations = {}
       requestId,
       requestHash,
       generate: () => injected(operations, 'requestInsights', requestInsights)(
-        input.chapterContexts,
+        authorizedInput.chapterContexts,
       ),
     })
     response.setHeader('X-Idempotent-Replay', limited.replay ? 'true' : 'false')

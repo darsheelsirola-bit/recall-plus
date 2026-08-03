@@ -116,3 +116,15 @@ test('generated timetable rejects unknown fields and oversized labels', () => {
     label: 'x'.repeat(161),
   }], profile), false)
 })
+
+test('generated timetable rejects an official subject outside the learner active set', () => {
+  const block = {
+    weekday: 6,
+    startTime: '19:00',
+    durationMinutes: 60,
+    subject: 'Physics',
+    label: 'Physics recall',
+  }
+  assert.equal(validateGeneratedTimetable([block], profile, ['Physics', 'Chemistry']), true)
+  assert.equal(validateGeneratedTimetable([block], profile, ['History', 'Political Science']), false)
+})

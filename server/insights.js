@@ -143,6 +143,9 @@ function normalizeStudySources(value) {
 
 function normalizeChapterContext(ctx) {
   if (!hasOnlyKeys(ctx, [
+    'curriculumSubjectId',
+    'chapterNodeId',
+    'topicNodeIds',
     'subject',
     'chapter',
     'syllabusTopics',
@@ -156,11 +159,16 @@ function normalizeChapterContext(ctx) {
     'dueReviews',
   ])) return null
 
+  const curriculumSubjectId = normalizedRequiredText(ctx.curriculumSubjectId, 160)
+  const chapterNodeId = normalizedRequiredText(ctx.chapterNodeId, 160)
+  const topicNodeIds = normalizeStringArray(ctx.topicNodeIds, 40, 160, { required: true })
+
   const subject = normalizedRequiredText(ctx.subject, 80)
   const chapter = normalizedRequiredText(ctx.chapter, 200)
   const syllabusTopics = normalizeStringArray(ctx.syllabusTopics, 40, 200, { required: true })
   const studiedTopics = normalizeStringArray(ctx.studiedTopics, 40, 200)
   const unstudiedTopics = normalizeStringArray(ctx.unstudiedTopics, 40, 200)
+  if (!curriculumSubjectId || !chapterNodeId || !topicNodeIds || new Set(topicNodeIds).size !== topicNodeIds.length) return null
   if (!subject || !chapter || !syllabusTopics || !studiedTopics || !unstudiedTopics) return null
 
   if (!Array.isArray(ctx.weakTopics) || ctx.weakTopics.length > 12) return null
@@ -185,6 +193,9 @@ function normalizeChapterContext(ctx) {
   if (ctx.studySources != null && !studySources) return null
 
   return {
+    curriculumSubjectId,
+    chapterNodeId,
+    topicNodeIds,
     subject,
     chapter,
     syllabusTopics,
@@ -250,6 +261,9 @@ export function normalizeInsightsPayload(parsed, chapterContexts) {
     }
 
     return {
+      curriculumSubjectId: ctx.curriculumSubjectId,
+      chapterNodeId: ctx.chapterNodeId,
+      topicNodeIds: ctx.topicNodeIds,
       subject: ctx.subject,
       chapter: ctx.chapter,
       insight: isString(match.insight, 2000) ? match.insight : fallback.insight,
@@ -284,7 +298,7 @@ export function buildInsightsPrompt(chapterContexts) {
     dueReviews: ctx.dueReviews,
   }))
 
-  return `You are a Class 11 PCM study coach for an Indian student preparing from NCERT.
+  return `You are a CBSE Class 11 study coach for an Indian student using the supplied official curriculum.
 
 Analyze the weak chapters below using ONLY the real student data provided. Do not invent scores, books, or topics.
 
@@ -321,7 +335,7 @@ async function generateOnce({ key, model, chapterContexts, deadlineAt }) {
       messages: [
         {
           role: 'system',
-          content: 'You give grounded Class 11 PCM study advice. Reply with valid JSON only. Never invent student data or book titles.',
+          content: 'You give grounded CBSE Class 11 study advice. Reply with valid JSON only. Never invent student data or book titles.',
         },
         {
           role: 'user',

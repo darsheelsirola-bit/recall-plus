@@ -12,6 +12,7 @@ import {
   readBoundedJsonBody,
 } from '../server/requestValidation.js'
 import { sendError } from '../server/http.js'
+import { AppError } from '../server/errors.js'
 import { fetchGroq, readProviderJson } from '../server/upstreamFetch.js'
 import handleUnknownApiRoute from '../api/[...path].js'
 import {
@@ -227,9 +228,47 @@ test('unknown quiz properties are rejected before limiter or provider calls', as
   assert.equal(providerCalls, 0)
 })
 
+test('curriculum denial happens before quota reservation or provider work', async () => {
+  let limiterCalls = 0
+  let providerCalls = 0
+  const response = mockResponse()
+  await handleQuizGeneration(jsonRequest({
+    curriculumSubjectId: 'cbse-2026-27-xi-027',
+    chapterNodeIds: ['history-world'],
+    topicNodeIds: ['history-topic'],
+    count: 5,
+    level: 'mixed',
+    purpose: 'practice',
+  }), response, {
+    authenticatedUser: async () => ({ id: 'verified-user', accessToken: 'verified-token' }),
+    authorizeQuizRequest: async () => {
+      throw new AppError('That curriculum selection is not active in your account.', {
+        code: 'CURRICULUM_ACCESS_DENIED',
+        statusCode: 403,
+      })
+    },
+    runLimitedGeneration: async () => {
+      limiterCalls += 1
+      return {}
+    },
+    requestQuiz: async () => {
+      providerCalls += 1
+      return []
+    },
+  })
+
+  assert.equal(response.statusCode, 403)
+  assert.equal(response.body.code, 'CURRICULUM_ACCESS_DENIED')
+  assert.equal(limiterCalls, 0)
+  assert.equal(providerCalls, 0)
+})
+
 test('insight validation bounds every nested collection and rejects unknown data', () => {
   const valid = {
     chapterContexts: [{
+      curriculumSubjectId: 'cbse-2026-27-xi-042',
+      chapterNodeId: 'physics-motion',
+      topicNodeIds: ['physics-velocity'],
       subject: 'Physics',
       chapter: 'Motion',
       syllabusTopics: ['Velocity'],
@@ -238,6 +277,9 @@ test('insight validation bounds every nested collection and rejects unknown data
   }
   assert.deepEqual(normalizeInsightsRequest(valid), {
     chapterContexts: [{
+      curriculumSubjectId: 'cbse-2026-27-xi-042',
+      chapterNodeId: 'physics-motion',
+      topicNodeIds: ['physics-velocity'],
       subject: 'Physics',
       chapter: 'Motion',
       syllabusTopics: ['Velocity'],
@@ -312,6 +354,9 @@ test('AI insights authenticate only with the dedicated insights credential', asy
   }
   const normalized = normalizeInsightsRequest({
     chapterContexts: [{
+      curriculumSubjectId: 'cbse-2026-27-xi-042',
+      chapterNodeId: 'physics-motion',
+      topicNodeIds: ['physics-velocity'],
       subject: 'Physics',
       chapter: 'Motion',
       syllabusTopics: ['Velocity'],

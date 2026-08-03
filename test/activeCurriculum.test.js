@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   activeSubjectNameSet,
   buildActiveSyllabus,
+  curriculumRequestSelection,
   filterActiveSubjectRecords,
   isActiveSubjectRecord,
   mergeActiveRecordUpdates,
@@ -36,6 +37,30 @@ test('active syllabus preserves the selected PCB combination and excludes Mathem
   )
   assert.equal(syllabus.some((item) => item.subject === 'Mathematics'), false)
   assert.ok(syllabus.find((item) => item.subject === 'Biology')?.chapters.length)
+})
+
+test('quiz selections resolve to stable subject, chapter, and topic node IDs', () => {
+  const syllabus = buildActiveSyllabus([
+    selection('301', 1),
+    selection('042', 2),
+    selection('043', 3),
+    selection('041', 4),
+    selection('083', 5),
+  ])
+  const physics = syllabus.find((item) => item.subject === 'Physics')
+  const chapter = physics.chapters.find((item) => item.topicNodes.length)
+  const topic = chapter.topicNodes[0]
+  const resolved = curriculumRequestSelection(
+    syllabus,
+    physics.subject,
+    [chapter.name],
+    [topic.name],
+  )
+
+  assert.equal(resolved.curriculumSubjectId, physics.subjectId)
+  assert.deepEqual(resolved.chapterNodeIds, [chapter.id])
+  assert.deepEqual(resolved.topicNodeIds, [topic.id])
+  assert.equal(curriculumRequestSelection(syllabus, 'History', [chapter.name], [topic.name]), null)
 })
 
 test('active subject filters exclude removed subjects without deleting history', () => {

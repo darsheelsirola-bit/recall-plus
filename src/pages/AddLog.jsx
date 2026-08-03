@@ -4,7 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import PageHeader from '../components/PageHeader'
-import { useActiveCurriculum } from '../academic/activeCurriculum'
+import { curriculumRequestSelection, useActiveCurriculum } from '../academic/activeCurriculum'
 import { getChapters, getTopics, selectionFromParams } from '../components/SelectionFields'
 import { getTodayDate } from '../utils/dateUtils'
 import { formatStudyMinutes, getLogTopics } from '../utils/logUtils'
@@ -127,7 +127,12 @@ export default function AddLog() {
       studiedChapter: chapter,
       studiedTopics: topics,
     } : null
-    const fields = { subject, curriculumSubjectId: syllabus.find((item) => item.subject === subject)?.subjectId || '', chapter, topics, topic: topics[0], date, timeSpent: actualDuration, confidence, notes: notes.trim(), timetableFollowUp }
+    const curriculumSelection = curriculumRequestSelection(syllabus, subject, [chapter], topics)
+    if (!curriculumSelection) {
+      setSaveError('The selected official curriculum nodes could not be verified.')
+      return
+    }
+    const fields = { subject, curriculumSubjectId: curriculumSelection.curriculumSubjectId, curriculumNodeIds: [...curriculumSelection.chapterNodeIds, ...curriculumSelection.topicNodeIds], chapter, topics, topic: topics[0], date, timeSpent: actualDuration, confidence, notes: notes.trim(), timetableFollowUp }
 
     let savedLog
     try {

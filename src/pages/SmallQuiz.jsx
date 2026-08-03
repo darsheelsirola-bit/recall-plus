@@ -5,7 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import GenerationLimitStatus from '../components/GenerationLimitStatus'
 import PageHeader from '../components/PageHeader'
-import { useActiveCurriculum } from '../academic/activeCurriculum'
+import { curriculumRequestSelection, useActiveCurriculum } from '../academic/activeCurriculum'
 import SelectionFields, { selectionFromParams } from '../components/SelectionFields'
 import { useGenerationUsage } from '../contexts/GenerationUsageContext'
 import { generateQuizQuestions } from '../services/groqService'
@@ -51,6 +51,12 @@ export default function SmallQuiz() {
   const quizUsage = useGenerationUsage('quiz')
 
   const storageKey = createQuestionStorageKey(selection.subject, selection.chapter, selection.topic, 'small')
+  const curriculumSelection = curriculumRequestSelection(
+    syllabus,
+    selection.subject,
+    [selection.chapter],
+    [selection.topic],
+  )
   const generationBlocked = quizUsage.loading || quizUsage.inProgress || quizUsage.exhausted || Boolean(quizUsage.error)
 
   function changeSelection(nextSelection) {
@@ -89,7 +95,8 @@ export default function SmallQuiz() {
     setError('')
     const ownerId = getStorageUser()
     try {
-      const generated = await generateQuizQuestions(selection.subject, selection.chapter, selection.topic, {
+      if (!curriculumSelection) throw new Error('The selected official curriculum nodes could not be verified.')
+      const generated = await generateQuizQuestions(curriculumSelection, {
         count: SMALL_QUIZ_COUNT,
         level: 'mixed',
         purpose: 'recall',
@@ -111,7 +118,7 @@ export default function SmallQuiz() {
   function submit() {
     if (!submissionGuardRef.current.claim()) return
     const summary = calculateScore(questions, answers)
-    const quizResult = { id: createId(), type: 'diagnostic', date: getTodayDate(), completedAt: new Date().toISOString(), ...selection, curriculumSubjectId: syllabus.find((item) => item.subject === selection.subject)?.subjectId || '', ...summary, status: getTopicStatus(summary.percentage) }
+    const quizResult = { id: createId(), type: 'diagnostic', date: getTodayDate(), completedAt: new Date().toISOString(), ...selection, curriculumSubjectId: syllabus.find((item) => item.subject === selection.subject)?.subjectId || '', curriculumNodeIds: curriculumSelection ? [...curriculumSelection.chapterNodeIds, ...curriculumSelection.topicNodeIds] : [], ...summary, status: getTopicStatus(summary.percentage) }
     const statuses = getData(STORAGE_KEYS.topicStatuses, {})
     statuses[`${selection.subject}|${selection.chapter}|${selection.topic}`] = summary.percentage >= 80 ? 'Mastered' : 'Needs Revision'
     const reviewUpdate = createOrUpdateReviewData(

@@ -181,6 +181,7 @@ function collectMissedQuestions(results, subject, chapter) {
 }
 
 export function buildChapterContext({ subject, chapter, weakTopics = [] }, { results = [], logs = [], reviews = [], statuses = {}, syllabus = [] } = {}) {
+  const subjectData = syllabus.find((item) => item.subject === subject)
   const syllabusChapter = getSyllabusChapter(subject, chapter, syllabus)
   const syllabusTopics = syllabusChapter?.topics || []
   const chapterLogs = logs.filter((log) => log.subject === subject && log.chapter === chapter)
@@ -215,6 +216,9 @@ export function buildChapterContext({ subject, chapter, weakTopics = [] }, { res
     }))
 
   return {
+    curriculumSubjectId: subjectData?.subjectId || '',
+    chapterNodeId: syllabusChapter?.id || '',
+    topicNodeIds: (syllabusChapter?.topicNodes || []).map((topic) => topic.id),
     subject,
     chapter,
     syllabusTopics,
@@ -235,6 +239,9 @@ export function buildChapterContexts(weakTopics, data = {}) {
 
 export function weakTopicsFingerprint(chapterContexts = []) {
   const payload = chapterContexts.map((ctx) => ({
+    subjectId: ctx.curriculumSubjectId,
+    chapterNodeId: ctx.chapterNodeId,
+    topicNodeIds: ctx.topicNodeIds,
     subject: ctx.subject,
     chapter: ctx.chapter,
     weak: ctx.weakTopics.map((item) => [item.topic, item.weakestScore, item.recallScore, item.practiceScore]),
@@ -310,6 +317,9 @@ export function buildFallbackChapterInsight(ctx) {
   else insight += ' Review the weak topics below before moving ahead.'
 
   return {
+    curriculumSubjectId: ctx.curriculumSubjectId || null,
+    chapterNodeId: ctx.chapterNodeId || null,
+    topicNodeIds: ctx.topicNodeIds || [],
     subject: ctx.subject,
     chapter: ctx.chapter,
     insight,

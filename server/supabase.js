@@ -74,6 +74,34 @@ export function getSupabaseAdminClient() {
 }
 
 /**
+ * Create a short-lived database client scoped to the caller's verified access
+ * token. All reads made through this client are subject to the caller's RLS
+ * policies; the service-role credential is deliberately not involved.
+ */
+export function getUserScopedSupabaseClient(accessToken) {
+  const url = supabaseUrl()
+  const anonKey = supabaseAnonKey()
+  const missing = [
+    !url && 'SUPABASE_URL',
+    !anonKey && 'SUPABASE_ANON_KEY',
+  ].filter(Boolean)
+  if (missing.length) throw configurationError(missing)
+  if (typeof accessToken !== 'string' || !accessToken.trim()) {
+    throw new AppError('Please sign in before using AI generation.', {
+      code: ERROR_CODES.AUTH_REQUIRED,
+      statusCode: 401,
+    })
+  }
+
+  return createClient(url, anonKey, {
+    ...clientOptions(),
+    global: {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    },
+  })
+}
+
+/**
  * Verify the access token with Supabase Auth on every protected request.
  * Never accept a user id from headers, request bodies, or user_metadata.
  *
@@ -118,5 +146,5 @@ export async function verifySupabaseUser(request) {
     )
   }
 
-  return { id: result.data.user.id }
+  return { id: result.data.user.id, accessToken: match[1] }
 }

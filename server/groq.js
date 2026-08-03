@@ -226,7 +226,7 @@ async function generateOnce({
       messages: [
         {
           role: 'system',
-          content: 'You generate accurate Class 11 Physics, Chemistry, Mathematics, and AI quizzes. Reply with valid JSON only.',
+          content: 'You generate accurate CBSE Class 11 quizzes from the supplied official curriculum selection. Reply with valid JSON only.',
         },
         {
           role: 'user',
@@ -342,19 +342,26 @@ export async function requestQuiz({ subject, chapter, topic, count, level = 'mix
   throw lastError || providerResponseInvalid()
 }
 
+function normalizeNodeIds(value, maxItems) {
+  if (!Array.isArray(value) || !value.length || value.length > maxItems) return null
+  const ids = value.map((id) => normalizedRequiredText(id, 160))
+  if (ids.some((id) => !id) || new Set(ids).size !== ids.length) return null
+  return ids
+}
+
 export function normalizeQuizRequest(body) {
-  if (!hasOnlyKeys(body, ['subject', 'chapter', 'topic', 'count', 'level', 'purpose', 'requestId'])) return null
-  const subject = normalizedRequiredText(body.subject, 80)
-  const chapter = normalizedRequiredText(body.chapter, 600)
-  const topic = normalizedRequiredText(body.topic, 1_000)
+  if (!hasOnlyKeys(body, ['curriculumSubjectId', 'chapterNodeIds', 'topicNodeIds', 'count', 'level', 'purpose', 'requestId'])) return null
+  const curriculumSubjectId = normalizedRequiredText(body.curriculumSubjectId, 160)
+  const chapterNodeIds = normalizeNodeIds(body.chapterNodeIds, 10)
+  const topicNodeIds = normalizeNodeIds(body.topicNodeIds, 40)
   const count = body.count
   const level = body.level ?? 'mixed'
   const purpose = body.purpose ?? 'practice'
-  if (!subject || !chapter || !topic) return null
+  if (!curriculumSubjectId || !chapterNodeIds || !topicNodeIds) return null
   if (!Number.isInteger(count) || count < MIN_QUESTIONS || count > MAX_QUESTIONS) return null
   if (!['mixed', 'easy', 'medium', 'hard'].includes(level)) return null
   if (!['practice', 'recall'].includes(purpose)) return null
-  return { subject, chapter, topic, count, level, purpose }
+  return { curriculumSubjectId, chapterNodeIds, topicNodeIds, count, level, purpose }
 }
 
 export function validateRequest(body) {

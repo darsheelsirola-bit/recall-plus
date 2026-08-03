@@ -27,15 +27,39 @@ function subjectSyllabus(selection) {
     contentStatus: subject.contentStatus,
     selectionType: selection.selectionType,
     subjectPosition: selection.subjectPosition,
-    chapters: topLevel.map((node) => ({
-      id: node.id,
-      name: node.title,
-      nodeType: node.nodeType,
-      sourceUrl: node.sourceUrl,
-      topics: descendants(node, byParent)
+    chapters: topLevel.map((node) => {
+      const topicNodes = descendants(node, byParent)
         .filter((descendant) => descendant.id !== node.id)
-        .map((descendant) => descendant.title),
-    })),
+        .map((descendant) => ({
+          id: descendant.id,
+          name: descendant.title,
+          nodeType: descendant.nodeType,
+        }))
+      return {
+        id: node.id,
+        name: node.title,
+        nodeType: node.nodeType,
+        sourceUrl: node.sourceUrl,
+        topics: topicNodes.map((topic) => topic.name),
+        topicNodes,
+      }
+    }),
+  }
+}
+
+export function curriculumRequestSelection(syllabus, subjectName, chapterNames, topicNames) {
+  const subject = (syllabus || []).find((item) => item.subject === subjectName)
+  if (!subject) return null
+  const requestedChapters = new Set((chapterNames || []).map(String))
+  const requestedTopics = new Set((topicNames || []).map(String))
+  const chapters = subject.chapters.filter((chapter) => requestedChapters.has(chapter.name))
+  const topicNodes = chapters.flatMap((chapter) => chapter.topicNodes || [])
+    .filter((topic) => requestedTopics.has(topic.name))
+  if (!chapters.length || !topicNodes.length) return null
+  return {
+    curriculumSubjectId: subject.subjectId,
+    chapterNodeIds: [...new Set(chapters.map((chapter) => chapter.id))],
+    topicNodeIds: [...new Set(topicNodes.map((topic) => topic.id))],
   }
 }
 

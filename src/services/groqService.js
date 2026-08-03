@@ -9,12 +9,12 @@ import {
 } from './apiClient'
 import { publishGenerationUsage } from '../contexts/GenerationUsageContext'
 
-export async function generateQuizQuestions(subject, chapter, topic, {
+export async function generateQuizQuestions(curriculumSelection, {
   count = 5,
   level = 'mixed',
   purpose = 'practice',
 } = {}) {
-  const payload = { subject, chapter, topic, count, level, purpose }
+  const payload = { ...curriculumSelection, count, level, purpose }
   const payloadKey = JSON.stringify(payload)
   return runGenerationSingleFlight('quiz', payloadKey, async (identity) => {
     const requestId = getGenerationRequestId('quiz', payloadKey, identity.userId)
