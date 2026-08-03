@@ -20,7 +20,7 @@ export interface LegacySubjectCandidate {
   detectedName: string
   curriculumSubjectId: string | null
   occurrenceCount: number
-  confidence: number
+  confidence: 'exact' | 'alias' | 'unresolved'
   resolutionStatus: 'mapped' | 'unresolved' | 'confirmed' | 'dismissed'
 }
 
@@ -51,10 +51,11 @@ interface UserSubjectRow {
 
 interface MigrationCandidateRow {
   id: string
-  detected_name: string
+  normalized_name: string
+  legacy_names: string[]
   curriculum_subject_id: string | null
   occurrence_count: number
-  confidence: number
+  confidence: LegacySubjectCandidate['confidence']
   resolution_status: LegacySubjectCandidate['resolutionStatus']
 }
 
@@ -119,7 +120,7 @@ export async function loadAcademicWorkspace(
         supabase
           .from('user_subject_migration_candidates')
           .select(
-            'id, detected_name, curriculum_subject_id, occurrence_count, confidence, resolution_status',
+            'id, normalized_name, legacy_names, curriculum_subject_id, occurrence_count, confidence, resolution_status',
           )
           .eq('user_id', expectedUserId)
           .in('resolution_status', ['mapped', 'unresolved'])
@@ -152,7 +153,7 @@ export async function loadAcademicWorkspace(
     migrationCandidates: ((candidatesResult.data ?? []) as MigrationCandidateRow[])
       .map((row) => ({
         id: row.id,
-        detectedName: row.detected_name,
+        detectedName: row.legacy_names[0] ?? row.normalized_name,
         curriculumSubjectId: row.curriculum_subject_id,
         occurrenceCount: row.occurrence_count,
         confidence: row.confidence,

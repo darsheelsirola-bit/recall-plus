@@ -11,12 +11,24 @@ const supersededMigrationPath = new URL(
   import.meta.url,
 )
 const migration = readFileSync(migrationPath, 'utf8')
+const academicProfileSource = readFileSync(
+  new URL('../src/academic/academicProfile.ts', import.meta.url),
+  'utf8',
+)
 const topLevelMigration = migration.replace(
   /\$([A-Za-z_]*)\$[\s\S]*?\$\1\$/g,
   '$dollar_quoted_body$',
 )
 
 describe('curriculum database migration safety', () => {
+  it('loads migration candidates using columns defined by the database schema', () => {
+    assert.match(
+      academicProfileSource,
+      /id, normalized_name, legacy_names, curriculum_subject_id, occurrence_count, confidence, resolution_status/,
+    )
+    assert.doesNotMatch(academicProfileSource, /\bdetected_name\b/)
+  })
+
   it('is one explicit transaction and contains no destructive legacy-data statements', () => {
     assert.match(migration, /^-- Recall\+ curriculum-driven[\s\S]*\nbegin;\n/)
     assert.match(migration, /\ncommit;\s*$/)

@@ -431,12 +431,78 @@ Status: complete
 - The disposable project's four security INFO notices remain intentional deny-all RLS tables for
   server-only generation state. Its unused-index notices remain expected without application load.
 
+## Phase 6 - Account matrix, responsive, security, performance, and end-to-end verification
+
+Status: complete
+
+### Completed work
+
+- Used the in-app browser against the disposable `$0` Supabase project and exercised four isolated
+  synthetic accounts: PCM, PCB, Humanities, and a new learner with incomplete onboarding. The
+  completed accounts always opened Home after sign-in; the new learner was routed to onboarding.
+- Verified curriculum isolation in rendered pages:
+  - PCM showed English Core, Physics, Chemistry, Mathematics, and Physical Education;
+  - PCB showed Biology and excluded Mathematics;
+  - Humanities showed English Core, History, Political Science, Psychology, and Sociology while
+    excluding Physics, Chemistry, Mathematics, and Biology;
+  - Syllabus, study-log, and Practice Test selectors used only the signed-in learner's active set.
+- Completed the six-step onboarding flow with validation evidence: an omitted pathway was rejected,
+  the PCM preset added only its three named electives, English Core occupied the required language
+  position, a fifth subject was required, school-record confirmation gated completion, and the
+  finished profile opened Home with five ordered stable-ID subjects.
+- Found and fixed a production-blocking schema mismatch during rendered QA. The academic client
+  requested nonexistent `detected_name` data from `user_subject_migration_candidates`; it now loads
+  the migration's real `normalized_name` and `legacy_names` columns, preserves the first original
+  name for display, and models the database confidence enum accurately.
+- Added a regression test that keeps the migration-candidate client query aligned with the database
+  schema and rejects a return of the nonexistent column.
+- Verified authentication and route safety:
+  - Google remained enabled, Apple remained absent, and password visibility worked;
+  - friendly invalid-email, rate-limit, and password-sign-in failures exposed no raw backend data;
+  - a signed-out direct visit to Practice Test rendered authentication, never protected content;
+  - a completed learner's direct onboarding visit redirected to Home;
+  - workspace loading failed closed during transient JWT/schema errors instead of showing stale or
+    cross-account data.
+- Verified rendered Home and authentication layouts at 320, 375, 768, 1024, and 1440 pixel widths.
+  All measured document widths had no horizontal overflow; mobile navigation, long curriculum
+  labels, the Recall+ logo, cards, and form controls remained usable. Browser console checks ended
+  with zero warnings or errors.
+- Confirmed the production build remains route-split. The largest emitted JavaScript chunks were
+  314.56 kB (99.26 kB gzip) and 263.35 kB (72.53 kB gzip); no new monolithic page bundle was added.
+- Deleted all four exact synthetic Auth users after verification and confirmed cascading cleanup
+  left zero test academic profiles and zero test subject selections. Production Supabase, Vercel,
+  and the Git remote remained untouched.
+
+### Tests run
+
+- Targeted migration-contract test: 8 passed.
+- TypeScript check passed independently after the fix.
+- Rendered browser checks covered public landing, sign-in/create-account controls, PCM/PCB/
+  Humanities account isolation, all onboarding steps, protected-route guards, console state, and
+  responsive layouts.
+- `npm.cmd run check` passed:
+  - React Router compatibility;
+  - 121-subject catalogue validation and deterministic SQL freshness;
+  - exact seven-migration PostgreSQL replay with preserved legacy data;
+  - TypeScript and ESLint;
+  - 183 automated tests;
+  - production build;
+  - repository and complete reachable Git-history secret scans.
+
+### Unresolved errors and risks
+
+- No Phase 6 code, database, security, browser, or automated-test error remains unresolved.
+- Live Groq calls were intentionally not used for QA; deterministic provider mocks and the existing
+  independent answer-verification tests remain the safe correctness gate.
+- The Phase 2 and Phase 5 migrations remain intentionally absent from production. Phase 7 must
+  apply both migrations and deploy the matching frontend/API as one coordinated rollout, then run
+  production smoke, ownership, auth, RLS, and rollback checks before reporting success.
+
 ## Remaining work
 
-1. Phase 6 - Run migration, account-matrix, responsive, security, performance, and end-to-end
-   verification and commit any fixes.
-2. Phase 7 - Push all phase commits, deploy the verified worktree atomically, verify production, and
-   publish the final report.
+1. Phase 7 - After fresh explicit authorization, push all phase commits, apply the coordinated
+   production migrations, deploy the verified worktree atomically, verify production, and publish
+   the final report.
 
 ## Database safety rule
 
