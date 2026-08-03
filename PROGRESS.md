@@ -513,11 +513,79 @@ Status: complete
   apply both migrations and deploy the matching frontend/API as one coordinated rollout, then run
   production smoke, ownership, auth, RLS, and rollback checks before reporting success.
 
+## Phase 7 - Coordinated production rollout
+
+Status: read-only preflight complete; external mutation pending fresh authorization
+
+### Completed preparation
+
+- Re-read the complete 1,069-line goal specification and rechecked the exact current Git,
+  migration, Supabase, Vercel, and live HTTP state instead of relying on historical deployment
+  evidence.
+- Confirmed application-code tip `c653702fe7c8d75ea82c483226cb9b5c7ea44ffd` was eight commits ahead of
+  `origin/main` at `b758cae23d3e826736e1b53724898d6bad356b3b`, with no uncommitted application
+  change before this preflight documentation update. The tested preflight documentation is the
+  ninth local commit candidate.
+- Confirmed production Supabase is healthy, still has exactly the five pre-curriculum migrations,
+  and has none of the six curriculum/user-academic tables. The two pending migrations remain one
+  explicit transaction each and have SHA-256 hashes:
+  - `20260730120000_curriculum_profiles_and_rls.sql`:
+    `C888F4D693BF8305F12E64680FE342FE4FD0A0459125AF760326AC8F2C9C25A7`;
+  - `20260803120000_validate_study_log_curriculum.sql`:
+    `0B17201E5CF7FB32A06475FDE130918D4BD2A43AA25B4356BB7655551413EC5B`.
+- Refreshed the non-identifying production preservation baseline to six Auth users, zero anonymous
+  users, six Recall profiles, six app snapshots, version sum 22, exact owner parity, and aggregate
+  hash `ccbef85bfef01e4adc3c45dddae237b1`.
+- Audited current Supabase security advice. The curriculum migration is expected to clear the two
+  old public `SECURITY DEFINER` warnings and the two anonymous-policy warnings. Four deny-all
+  server-state INFO notices are intentional. Leaked-password protection is Pro-only while the
+  production organization is on the Free plan, so the paid-feature warning is disclosed rather
+  than falsely marked fixed.
+- Confirmed Vercel project linkage, `READY` production deployment
+  `dpl_243LFc8QnXDbSLUK5F2n3cSCREr7`, its three production aliases, rollback-candidate status, and
+  zero grouped runtime errors in the prior 24 hours. The homepage, Privacy, and Terms routes each
+  returned HTTP 200.
+- Corrected the rollout order for Vercel Git integration. A pinned production build will first be
+  created with `--skip-domain`; both database migrations and preservation/security checks must pass
+  before pushing `main` can trigger or any command can promote the new production artifact.
+- Expanded `docs/database/curriculum-migration-runbook.md` with exact targets, gates, paid-feature
+  limitation, automatic-deployment hazard, forward-recovery hold point, live verification, and the
+  current rollback candidate.
+- No Supabase schema/Auth setting, Git remote, Vercel deployment/alias, or live application state
+  was changed during this preflight.
+
+### Read-only checks run
+
+- Supabase project/org listing, migration SQL query, aggregate preservation query, security advisor,
+  and current schema/function inventory.
+- Vercel project, deployment list, current deployment detail, 24-hour runtime-error scan, and
+  authenticated production HTML fetch.
+- External HTTP probes for `/`, `/privacy`, and `/terms`.
+- Local Git status/SHAs/diff check, migration inventory/hashes/transaction boundaries, Vercel link,
+  and deployment configuration review.
+- Final `npm.cmd run check` passed after the preflight edits: seven-migration PostgreSQL replay,
+  124 subjects, 295 nodes, TypeScript, ESLint, 184/184 tests, Vite production build, 254-file working
+  tree secret scan, and 403-blob complete reachable-history secret scan.
+
+### Remaining work and unresolved external limitations
+
+- Fresh authorization is required before downloading/running the pinned official Vercel CLI,
+  creating the skip-domain production artifact, applying either production migration, pushing the
+  nine commits, or moving the live alias.
+- Vercel production environment-variable names cannot be independently listed with the currently
+  installed tools because no Vercel CLI is present. The required `npm run vercel:build` environment
+  validator will fail the unaliased candidate build before any database or live-site change if a
+  required value is absent, mismatched, exposed, or reused incorrectly.
+- Supabase performance-advisor requests were temporarily unavailable during this read-only
+  preflight. It remains a mandatory post-migration gate and must succeed before frontend release.
+- Supabase leaked-password protection cannot be enabled on the organization's Free plan. No paid
+  upgrade will be created or authorized implicitly.
+
 ## Remaining work
 
-1. Phase 7 - After fresh explicit authorization, push all phase commits, apply the coordinated
-   production migrations, deploy the verified worktree atomically, verify production, and publish
-   the final report.
+1. Phase 7 - After fresh explicit authorization, build the unaliased candidate, apply and verify
+   both production migrations, push the nine commits, release the exact artifact, complete live
+   production smoke/security checks, and publish the requirement-by-requirement final report.
 
 ## Database safety rule
 
