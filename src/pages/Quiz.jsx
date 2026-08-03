@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress'
 import PageHeader from '../components/PageHeader'
 import BackButton from '../components/BackButton'
 import GenerationLimitStatus from '../components/GenerationLimitStatus'
-import { curriculumRequestSelection, useActiveCurriculum } from '../academic/activeCurriculum'
+import { curriculumRequestSelection, useActiveCurriculum, useCurriculumSubjects } from '../academic/activeCurriculum'
 import { getChapters, getTopics, selectionFromParams } from '../components/SelectionFields'
 import { useGenerationUsage } from '../contexts/GenerationUsageContext'
 import { generateQuizQuestions } from '../services/groqService'
@@ -87,6 +87,7 @@ export default function Quiz() {
   const submissionGuardRef = useRef(createSubmissionGuard())
   const generationRef = useRef(false)
   const quizUsage = useGenerationUsage('quiz')
+  const { loading: curriculumLoading, error: curriculumError } = useCurriculumSubjects([subject])
 
   const safeDuration = clamp(duration, 5, 180)
   const safeQuestionCount = clamp(questionCount, 5, 30)
@@ -97,7 +98,24 @@ export default function Quiz() {
   const storageKey = configStorageKey(subject, selectedChapters, selectedTopics, difficulty, safeDuration, safeQuestionCount)
   const ready = validateVerifiedQuizQuestions(questions, safeQuestionCount)
   const generationBlocked = quizUsage.loading || quizUsage.inProgress || quizUsage.exhausted || Boolean(quizUsage.error)
+  const displayError = curriculumError || error
   const pastResultsAction = <Button variant="outline" render={<Link to="/quiz/results" />}><History data-icon="inline-start" /> View past test results</Button>
+
+  useEffect(() => {
+    if (selectedChapters.some(Boolean)) return
+    const chapters = getChapters(subject, syllabus)
+    if (!chapters.length) return
+    const requested = selectionFromParams(searchParams, syllabus)
+    const nextChapter = requested.subject === subject && requested.chapter
+      ? requested.chapter
+      : chapters[0].name
+    const nextTopic = getTopics(subject, nextChapter, syllabus)[0] || ''
+    const timer = window.setTimeout(() => {
+      setSelectedChapters([nextChapter])
+      setSelectedTopics([requested.subject === subject && requested.topic ? requested.topic : nextTopic])
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [searchParams, selectedChapters, subject, syllabus])
 
   function resetForConfig(nextSubject, nextChapters, nextTopics, nextDifficulty, nextDuration, nextCount) {
     const key = configStorageKey(nextSubject, nextChapters, nextTopics, nextDifficulty, nextDuration, nextCount)
@@ -165,6 +183,7 @@ export default function Quiz() {
 
   async function prepareAndStart() {
     if (generationRef.current || loading) return
+    if (curriculumLoading) return
     if (!subject || !selectedChapters[0] || !selectedTopics[0]) {
       setError('This subject does not have a verified official outline available for quiz selection yet.')
       return
@@ -305,7 +324,7 @@ export default function Quiz() {
     return (
       <>
         <PageHeader title="Practice Test" />
-        {error ? <Alert variant="destructive" className="mb-5"><X /><AlertTitle>Could not save your test</AlertTitle><AlertDescription>{error}</AlertDescription></Alert> : null}
+        {displayError ? <Alert variant="destructive" className="mb-5"><X /><AlertTitle>Could not save your test</AlertTitle><AlertDescription>{displayError}</AlertDescription></Alert> : null}
         <div className="grid gap-5 lg:grid-cols-[1fr_270px]">
           <section className="panel p-8">
             <div className="flex items-center justify-between"><p className="font-semibold">Question {index + 1} of {questions.length}</p><Badge variant="outline" className="rounded-full capitalize">{question.difficulty}</Badge></div>
@@ -387,7 +406,7 @@ export default function Quiz() {
           </div>
           <Button className="shrink-0" onClick={prepareAndStart} disabled={loading || (!ready && generationBlocked)}>Start test <ArrowRight data-icon="inline-end" /></Button>
         </CardContent>
-        {error ? <div className="px-5 pb-5"><Alert variant="destructive"><X /><AlertTitle>Could not generate this test</AlertTitle><AlertDescription>{error} You can retry, or use saved questions if they are available.</AlertDescription></Alert></div> : null}
+        {displayError ? <div className="px-5 pb-5"><Alert variant="destructive"><X /><AlertTitle>Could not generate this test</AlertTitle><AlertDescription>{displayError} You can retry, or use saved questions if they are available.</AlertDescription></Alert></div> : null}
       </Card>
       <p className="mt-5 text-center text-xs text-muted-foreground">Practice tests do not change your recall schedule. Generated questions are saved with your Recall+ account.</p>
     </>

@@ -11,8 +11,10 @@ import {
 } from 'react'
 import type {
   AcademicPathway,
+  CurriculumNode,
   SubjectSelection,
 } from '../data/curriculum/types.ts'
+import { loadClientCurriculumNodes } from '../data/curriculum/cbse/2026-27/class-11/clientNodes.ts'
 import { useAuth } from '../auth/AuthProvider.tsx'
 import {
   type AcademicWorkspace,
@@ -26,7 +28,11 @@ interface AcademicProfileContextValue {
   loading: boolean
   saving: boolean
   error: string
+  curriculumError: string
+  curriculumLoadingSubjectIds: readonly string[]
+  loadedCurriculumSubjectIds: readonly string[]
   retry: () => void
+  loadCurriculumSubjects: (subjectIds: readonly string[]) => Promise<void>
   saveProgress: (
     pathway: AcademicPathway | null,
     schoolName: string,
@@ -54,10 +60,19 @@ export function AcademicProfileProvider({ children }: PropsWithChildren) {
   const [error, setError] = useState('')
   const [errorOwnerId, setErrorOwnerId] = useState('')
   const [refreshVersion, setRefreshVersion] = useState(0)
+  const [curriculumError, setCurriculumError] = useState('')
+  const [curriculumLoadingSubjectIds, setCurriculumLoadingSubjectIds] = useState<string[]>([])
+  const [loadedCurriculumSubjectIds, setLoadedCurriculumSubjectIds] = useState<string[]>([])
   const epochRef = useRef(0)
+  const curriculumPromisesRef = useRef(new Map<string, Promise<readonly CurriculumNode[]>>())
   const activeWorkspace = ownerId === userId ? workspace : null
   const activeError = errorOwnerId === userId ? error : ''
   const loading = Boolean(userId && dataReady && !activeWorkspace && !activeError)
+
+  useEffect(() => {
+    epochRef.current += 1
+    curriculumPromisesRef.current.clear()
+  }, [userId])
 
   useEffect(() => {
     if (!userId || !dataReady) return undefined
@@ -68,6 +83,9 @@ export function AcademicProfileProvider({ children }: PropsWithChildren) {
     void loadAcademicWorkspace(userId)
       .then((nextWorkspace) => {
         if (!isCurrent()) return
+        setCurriculumError('')
+        setCurriculumLoadingSubjectIds([])
+        setLoadedCurriculumSubjectIds([])
         setWorkspace(nextWorkspace)
         setOwnerId(userId)
         setError('')
@@ -91,6 +109,62 @@ export function AcademicProfileProvider({ children }: PropsWithChildren) {
     setErrorOwnerId('')
     setRefreshVersion((version) => version + 1)
   }, [])
+
+  const loadCurriculumSubjects = useCallback(async (
+    subjectIds: readonly string[],
+  ): Promise<void> => {
+    if (!userId || ownerId !== userId || !activeWorkspace) return
+    const activeIds = new Set(
+      activeWorkspace.subjects.map((selection) => selection.curriculumSubjectId),
+    )
+    const loadedIds = new Set(loadedCurriculumSubjectIds)
+    const missingIds = [...new Set(subjectIds)]
+      .filter((subjectId) => activeIds.has(subjectId) && !loadedIds.has(subjectId))
+    if (!missingIds.length) return
+
+    const epoch = epochRef.current
+    setCurriculumError('')
+    setCurriculumLoadingSubjectIds((current) => [
+      ...new Set([...current, ...missingIds]),
+    ])
+
+    try {
+      const nodeGroups = await Promise.all(missingIds.map((subjectId) => {
+        const existing = curriculumPromisesRef.current.get(subjectId)
+        if (existing) return existing
+        const pending = loadClientCurriculumNodes([subjectId])
+          .finally(() => curriculumPromisesRef.current.delete(subjectId))
+        curriculumPromisesRef.current.set(subjectId, pending)
+        return pending
+      }))
+      if (epochRef.current !== epoch) return
+      const loadedNodes = nodeGroups.flat()
+      setLoadedCurriculumSubjectIds((current) => [
+        ...new Set([...current, ...missingIds]),
+      ])
+      setWorkspace((current) => {
+        if (ownerId !== userId || !current) return current
+        const byId = new Map(
+          current.curriculumNodes.map((node) => [node.id, node]),
+        )
+        loadedNodes.forEach((node) => byId.set(node.id, node))
+        return { ...current, curriculumNodes: [...byId.values()] }
+      })
+    } catch (loadError) {
+      if (epochRef.current === epoch) {
+        setCurriculumError(messageFrom(
+          loadError,
+          'Could not load the selected subject curriculum.',
+        ))
+      }
+    } finally {
+      if (epochRef.current === epoch) {
+        const finished = new Set(missingIds)
+        setCurriculumLoadingSubjectIds((current) =>
+          current.filter((subjectId) => !finished.has(subjectId)))
+      }
+    }
+  }, [activeWorkspace, loadedCurriculumSubjectIds, ownerId, userId])
 
   const saveProgress = useCallback(async (
     pathway: AcademicPathway | null,
@@ -130,6 +204,9 @@ export function AcademicProfileProvider({ children }: PropsWithChildren) {
     try {
       await saveAcademicProfile(userId, pathway, schoolName, selections)
       const nextWorkspace = await loadAcademicWorkspace(userId)
+      setCurriculumError('')
+      setCurriculumLoadingSubjectIds([])
+      setLoadedCurriculumSubjectIds([])
       setWorkspace(nextWorkspace)
       setOwnerId(userId)
       setError('')
@@ -147,7 +224,11 @@ export function AcademicProfileProvider({ children }: PropsWithChildren) {
     loading,
     saving,
     error: activeError,
+    curriculumError,
+    curriculumLoadingSubjectIds,
+    loadedCurriculumSubjectIds,
     retry,
+    loadCurriculumSubjects,
     saveProgress,
     completeProfile,
   }), [
@@ -155,7 +236,11 @@ export function AcademicProfileProvider({ children }: PropsWithChildren) {
     loading,
     saving,
     activeError,
+    curriculumError,
+    curriculumLoadingSubjectIds,
+    loadedCurriculumSubjectIds,
     retry,
+    loadCurriculumSubjects,
     saveProgress,
     completeProfile,
   ])

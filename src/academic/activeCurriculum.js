@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useAcademicProfile } from './AcademicProfileProvider'
 import { buildActiveSyllabus } from './activeCurriculumData'
 
@@ -37,4 +37,39 @@ export function useActiveCurriculum() {
       },
     }
   }, [curriculumNodes, curriculumVersionId, subjectSelections])
+}
+
+export function useCurriculumSubjects(subjectNames = []) {
+  const {
+    workspace,
+    loadCurriculumSubjects,
+    curriculumLoadingSubjectIds,
+    loadedCurriculumSubjectIds,
+    curriculumError,
+  } = useAcademicProfile()
+  const nameKey = [...new Set(subjectNames.filter(Boolean).map(String))]
+    .sort()
+    .join('\u0000')
+  const subjectIds = useMemo(() => {
+    const names = new Set(nameKey ? nameKey.split('\u0000') : [])
+    return (workspace?.subjects || [])
+      .filter((selection) => names.has(selection.subject.name))
+      .map((selection) => selection.curriculumSubjectId)
+  }, [nameKey, workspace?.subjects])
+  const subjectIdKey = subjectIds.join('\u0000')
+
+  useEffect(() => {
+    if (subjectIds.length) void loadCurriculumSubjects(subjectIds)
+  }, [loadCurriculumSubjects, subjectIdKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadingIds = new Set(curriculumLoadingSubjectIds)
+  const loadedIds = new Set(loadedCurriculumSubjectIds)
+  const ready = subjectIds.every((subjectId) => loadedIds.has(subjectId))
+  return {
+    loading: subjectIds.length > 0 && !ready && !curriculumError
+      ? true
+      : subjectIds.some((subjectId) => loadingIds.has(subjectId)),
+    ready,
+    error: curriculumError,
+  }
 }

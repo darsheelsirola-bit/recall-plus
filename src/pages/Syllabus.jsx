@@ -7,7 +7,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/
 import PageHeader from '../components/PageHeader'
 import SubjectCard from '../components/SubjectCard'
 import TopicCard from '../components/TopicCard'
-import { useActiveCurriculum } from '../academic/activeCurriculum'
+import { useActiveCurriculum, useCurriculumSubjects } from '../academic/activeCurriculum'
 import { getData, STORAGE_KEYS } from '../utils/storage'
 
 export default function Syllabus() {
@@ -15,10 +15,14 @@ export default function Syllabus() {
   const [activeSubject, setActiveSubject] = useState(() => syllabus[0]?.subject || '')
   const [openChapter, setOpenChapter] = useState(() => syllabus[0]?.chapters[0]?.name || '')
   const [query, setQuery] = useState('')
+  const { loading: curriculumLoading, error: curriculumError } = useCurriculumSubjects([activeSubject])
   const navigate = useNavigate()
   const statuses = getData(STORAGE_KEYS.topicStatuses, {})
   const results = useMemo(() => syllabus.map((item) => ({ ...item, chapters: item.chapters.map((chapter) => ({ ...chapter, topics: chapter.topics.filter((topic) => `${chapter.name} ${topic}`.toLowerCase().includes(query.toLowerCase())) })).filter((chapter) => chapter.topics.length) })), [query, syllabus])
   const subjectData = results.find((item) => item.subject === activeSubject)
+  const effectiveOpenChapter = subjectData?.chapters.some((chapter) => chapter.name === openChapter)
+    ? openChapter
+    : subjectData?.chapters[0]?.name || ''
 
   function statusFor(chapter, topic) {
     return statuses[`${activeSubject}|${chapter}|${topic}`] || 'Not Started'
@@ -31,7 +35,7 @@ export default function Syllabus() {
         {syllabus.map((item) => {
           const topicCount = item.chapters.reduce((sum, chapter) => sum + chapter.topics.length, 0)
           const studiedCount = item.chapters.reduce((sum, chapter) => sum + chapter.topics.filter((topic) => statuses[`${item.subject}|${chapter.name}|${topic}`]).length, 0)
-          return <SubjectCard key={item.subject} subject={item.subject} chapterCount={item.chapters.length} topicCount={topicCount} studiedCount={studiedCount} onClick={() => { setActiveSubject(item.subject); setOpenChapter(item.chapters[0].name) }} />
+          return <SubjectCard key={item.subject} subject={item.subject} chapterCount={item.chapters.length} topicCount={topicCount} studiedCount={studiedCount} onClick={() => { setActiveSubject(item.subject); setOpenChapter('') }} />
         })}
       </section>
 
@@ -47,7 +51,7 @@ export default function Syllabus() {
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
           {subjectData?.chapters.map((chapter, index) => {
-            const expanded = openChapter === chapter.name
+            const expanded = effectiveOpenChapter === chapter.name
             return (
               <article key={chapter.name} className="overflow-hidden rounded-xl border border-border bg-background">
                 <button onClick={() => setOpenChapter(expanded ? '' : chapter.name)} className="flex min-h-16 w-full items-center gap-3 p-4 text-left transition hover:bg-secondary/30" aria-expanded={expanded}>
@@ -59,7 +63,9 @@ export default function Syllabus() {
               </article>
             )
           })}
-          {!subjectData?.chapters.length ? <Empty className="min-h-56 border border-dashed border-border"><EmptyHeader><EmptyMedia variant="icon"><BookOpen /></EmptyMedia><EmptyTitle>{subjectData?.contentStatus === 'pending_verification' ? 'Official outline pending verification' : 'No matching curriculum items'}</EmptyTitle><EmptyDescription>{subjectData?.contentStatus === 'pending_verification' ? 'This subject is selected and available across Recall+, but chapters and topics will appear only after its official CBSE syllabus has been reviewed.' : 'Try a shorter or different search term.'}</EmptyDescription></EmptyHeader></Empty> : null}
+          {curriculumLoading ? <p role="status" className="rounded-xl border border-border bg-secondary/35 p-4 text-sm text-muted-foreground">Loading {activeSubject} curriculum…</p> : null}
+          {curriculumError ? <p role="alert" className="rounded-xl border border-destructive/25 bg-destructive/10 p-4 text-sm text-destructive">{curriculumError}</p> : null}
+          {!curriculumLoading && !subjectData?.chapters.length ? <Empty className="min-h-56 border border-dashed border-border"><EmptyHeader><EmptyMedia variant="icon"><BookOpen /></EmptyMedia><EmptyTitle>{subjectData?.contentStatus === 'pending_verification' ? 'Official outline pending verification' : 'No matching curriculum items'}</EmptyTitle><EmptyDescription>{subjectData?.contentStatus === 'pending_verification' ? 'This subject is selected and available across Recall+, but chapters and topics will appear only after its official CBSE syllabus has been reviewed.' : 'Try a shorter or different search term.'}</EmptyDescription></EmptyHeader></Empty> : null}
         </CardContent>
       </Card>
     </>

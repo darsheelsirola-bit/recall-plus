@@ -10,6 +10,7 @@ import PageHeader from '../components/PageHeader'
 import {
   filterActiveSubjectRecords,
   useActiveCurriculum,
+  useCurriculumSubjects,
 } from '../academic/activeCurriculum'
 import { useAppData } from '../hooks/useAppData'
 import { generateInsights, loadCachedInsights, saveCachedInsightsForUser } from '../services/insightService'
@@ -114,6 +115,8 @@ export default function Dashboard() {
   const { quote, snapshot, tips, techniques, headline: fallbackHeadline } = buildAiInsights(logs, results, reviews)
 
   const weakTopics = findWeakTopics(results, reviews)
+  const weakSubjectNames = [...new Set(weakTopics.map((item) => item.subject))]
+  const { loading: curriculumLoading, error: curriculumError } = useCurriculumSubjects(weakSubjectNames)
   const chapterContexts = buildChapterContexts(weakTopics, { results, logs, reviews, statuses, syllabus })
   const fingerprint = `${curriculumVersionId}:${weakTopicsFingerprint(chapterContexts)}`
 
@@ -122,6 +125,11 @@ export default function Dashboard() {
   const [notice, setNotice] = useState('')
 
   async function fetchInsights(force = false) {
+    if (curriculumLoading) return
+    if (curriculumError) {
+      setNotice(curriculumError)
+      return
+    }
     if (!chapterContexts.length) {
       setInsights(null)
       setNotice('')
@@ -170,7 +178,7 @@ export default function Dashboard() {
     }, 0)
     return () => window.clearTimeout(timer)
     // Re-run only when weak-topic fingerprint changes, not on every array identity.
-  }, [fingerprint]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [curriculumLoading, fingerprint]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const displayHeadline = insights?.headline || fallbackHeadline
   const hasChapterInsights = Array.isArray(insights?.chapters) && insights.chapters.length > 0

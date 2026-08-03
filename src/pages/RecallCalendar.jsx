@@ -1,7 +1,7 @@
 ﻿import { CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Plus, RotateCcw, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { mergeActiveRecordUpdates, useActiveCurriculum } from '../academic/activeCurriculum'
+import { mergeActiveRecordUpdates, useActiveCurriculum, useCurriculumSubjects } from '../academic/activeCurriculum'
 import EditTimetableModal from '../components/EditTimetableModal'
 import GenerationLimitStatus from '../components/GenerationLimitStatus'
 import OptimalStudyWizard from '../components/OptimalStudyWizard'
@@ -227,6 +227,23 @@ export default function RecallCalendar() {
     dueTime: '17:00',
     durationMinutes: 30,
   })
+  const { loading: manualCurriculumLoading, error: manualCurriculumError } = useCurriculumSubjects(
+    showManual && manual.subject ? [manual.subject] : [],
+  )
+
+  useEffect(() => {
+    if (!showManual || manualCurriculumLoading || !manual.subject) return undefined
+    const subject = syllabus.find((item) => item.subject === manual.subject)
+    const chapter = subject?.chapters.find((item) => item.name === manual.chapter)
+      || subject?.chapters[0]
+    const topic = chapter?.topics.includes(manual.topic) ? manual.topic : chapter?.topics[0] || ''
+    if (chapter?.name === manual.chapter && topic === manual.topic) return undefined
+    const timer = window.setTimeout(() => {
+      setManual((current) => ({ ...current, chapter: chapter?.name || '', topic }))
+      if (!chapter) setScheduleError('This subject does not have reviewed official chapter content yet.')
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [manual.chapter, manual.subject, manual.topic, manualCurriculumLoading, showManual, syllabus])
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 60_000)
@@ -406,20 +423,11 @@ export default function RecallCalendar() {
   }
 
   function openManualForDate(date = selectedDate || today) {
-    const initialSubject = activeSubjectNames.has(manual.subject)
-      ? syllabus.find((item) => item.subject === manual.subject)
-      : syllabus[0]
-    const initialChapter = initialSubject?.chapters?.find((item) => item.name === manual.chapter)
-      || initialSubject?.chapters?.[0]
-    if (!initialSubject || !initialChapter || !initialChapter.topics?.length) {
-      setScheduleError('Your selected curriculum does not have reviewed chapter content available for manual revisions yet.')
-      return
-    }
+    const initialSubject = activeSubjectNames.has(manual.subject) ? manual.subject : syllabus[0]?.subject || ''
+    if (!initialSubject) return
     setManual((current) => ({
       ...current,
-      subject: initialSubject.subject,
-      chapter: initialChapter.name,
-      topic: initialChapter.topics.includes(current.topic) ? current.topic : initialChapter.topics[0],
+      subject: initialSubject,
       dueDate: date,
     }))
     setScheduleError('')
@@ -435,6 +443,7 @@ export default function RecallCalendar() {
       chapter: chapter?.name || '',
       topic: chapter?.topics?.[0] || '',
     }))
+    setScheduleError('')
   }
 
   function changeManualChapter(chapterName) {
@@ -766,7 +775,8 @@ export default function RecallCalendar() {
               <label className="field-label">Date<input className="field" type="date" value={manual.dueDate} onChange={(event) => setManual({ ...manual, dueDate: event.target.value })} /></label>
               <label className="field-label">Time<input className="field" type="time" value={manual.dueTime} onChange={(event) => setManual({ ...manual, dueTime: event.target.value })} /></label>
             </div>
-            {scheduleError ? <p role="alert" className="mt-4 rounded-lg border border-coral/25 bg-coral/10 px-4 py-3 text-sm font-medium text-coral">{scheduleError}</p> : null}
+            {manualCurriculumLoading ? <p role="status" className="mt-4 rounded-lg border border-border bg-secondary/35 px-4 py-3 text-sm text-muted-foreground">Loading {manual.subject} curriculum…</p> : null}
+            {manualCurriculumError || scheduleError ? <p role="alert" className="mt-4 rounded-lg border border-coral/25 bg-coral/10 px-4 py-3 text-sm font-medium text-coral">{manualCurriculumError || scheduleError}</p> : null}
             <div className="mt-6 flex justify-end gap-2">
               <Button type="button" variant="ghost" onClick={() => setShowManual(false)}>Cancel</Button>
               <Button type="submit" disabled={!manualSubject || !manualChapters.length || !manualTopics.length}>Add to calendar</Button>

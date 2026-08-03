@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { useActiveCurriculum } from '../academic/activeCurriculum'
+import { useActiveCurriculum, useCurriculumSubjects } from '../academic/activeCurriculum'
 import PageHeader from '../components/PageHeader'
 import { useAppData } from '../hooks/useAppData'
 import { formatDate } from '../utils/dateUtils'
@@ -16,7 +16,8 @@ const quizLink = ({ subject, chapter, topic }) => `/small-quiz?subject=${encodeU
 
 export default function Recall() {
   useAppData()
-  const { syllabus, isActiveRecord } = useActiveCurriculum()
+  const { syllabus, subjectNames, isActiveRecord } = useActiveCurriculum()
+  const { loading: curriculumLoading, error: curriculumError } = useCurriculumSubjects(subjectNames)
   const allTopics = useMemo(() => syllabus.flatMap((subject) => subject.chapters.flatMap((chapter) => chapter.topics.map((topic) => ({ subject: subject.subject, chapter: chapter.name, topic })))), [syllabus])
   const allReviews = getData(STORAGE_KEYS.reviews, [])
   const reviews = allReviews.filter(isActiveRecord)
@@ -51,7 +52,9 @@ export default function Recall() {
             {suggestions.map((item) => (
               <Card key={`${item.subject}-${item.chapter}-${item.topic}`}><CardHeader><span className="grid size-10 place-items-center rounded-xl bg-secondary text-primary"><BookOpen className="size-4" /></span><Badge variant="outline" className="mt-3 w-fit rounded-full">{item.subject}</Badge><CardTitle className="mt-2 text-lg">{item.topic}</CardTitle><CardDescription>{item.chapter}</CardDescription></CardHeader><CardFooter className="gap-2 bg-transparent"><Button variant="outline" className="flex-1" render={<Link to={`/add-log?subject=${encodeURIComponent(item.subject)}&chapter=${encodeURIComponent(item.chapter)}&topic=${encodeURIComponent(item.topic)}`} />}>Log study</Button><Button className="flex-1" render={<Link to={quizLink(item)} />}>Small quiz</Button></CardFooter></Card>
             ))}
-            {!suggestions.length ? <Empty className="min-h-56 border border-dashed border-border md:col-span-2 xl:col-span-3"><EmptyHeader><EmptyMedia variant="icon"><BookOpen /></EmptyMedia><EmptyTitle>Every topic has been touched</EmptyTitle><EmptyDescription>Take a recall check to keep your recall schedule fresh.</EmptyDescription></EmptyHeader></Empty> : null}
+            {curriculumLoading ? <p role="status" className="text-sm text-muted-foreground md:col-span-2 xl:col-span-3">Loading fresh topics from your selected subjects…</p> : null}
+            {curriculumError ? <p role="alert" className="text-sm text-destructive md:col-span-2 xl:col-span-3">{curriculumError}</p> : null}
+            {!curriculumLoading && !suggestions.length ? <Empty className="min-h-56 border border-dashed border-border md:col-span-2 xl:col-span-3"><EmptyHeader><EmptyMedia variant="icon"><BookOpen /></EmptyMedia><EmptyTitle>Every topic has been touched</EmptyTitle><EmptyDescription>Take a recall check to keep your recall schedule fresh.</EmptyDescription></EmptyHeader></Empty> : null}
           </div>
         </>
       )}

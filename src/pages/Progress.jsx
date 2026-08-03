@@ -12,6 +12,7 @@ import StudyLogList from '../components/StudyLogList'
 import {
   filterActiveSubjectRecords,
   useActiveCurriculum,
+  useCurriculumSubjects,
 } from '../academic/activeCurriculum'
 import { useAppData } from '../hooks/useAppData'
 import { formatDate, getStudyStreak } from '../utils/dateUtils'
@@ -22,7 +23,8 @@ export default function Progress() {
   useAppData()
   const navigate = useNavigate()
   const [view, setView] = useState(null)
-  const { activeSubjectIds, activeSubjectNames, syllabus } = useActiveCurriculum()
+  const { activeSubjectIds, activeSubjectNames, subjectNames, syllabus } = useActiveCurriculum()
+  const { loading: curriculumLoading, error: curriculumError } = useCurriculumSubjects(subjectNames)
   const allLogs = getData(STORAGE_KEYS.logs, [])
   const allResults = getData(STORAGE_KEYS.quizResults, [])
   const logs = filterActiveSubjectRecords(allLogs, activeSubjectNames, activeSubjectIds)
@@ -66,7 +68,7 @@ export default function Progress() {
         ) : (
           <Card>
             <CardHeader><CardTitle>Subject progress</CardTitle><CardDescription>Topics with any active learning status.</CardDescription></CardHeader>
-            <CardContent className="flex flex-col gap-6">{syllabus.map((subject) => {
+            <CardContent className="flex flex-col gap-6">{curriculumLoading ? <p role="status" className="text-sm text-muted-foreground">Loading subject progress…</p> : null}{curriculumError ? <p role="alert" className="text-sm text-destructive">{curriculumError}</p> : null}{syllabus.map((subject) => {
               const total = subject.chapters.reduce((sum, chapter) => sum + chapter.topics.length, 0)
               const studied = subject.chapters.reduce((sum, chapter) => sum + chapter.topics.filter((topic) => statuses[`${subject.subject}|${chapter.name}|${topic}`]).length, 0)
               const percentage = total ? Math.round((studied / total) * 100) : 0

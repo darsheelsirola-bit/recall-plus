@@ -1,10 +1,10 @@
 import { CalendarDays, Clock3, NotebookPen, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import PageHeader from '../components/PageHeader'
-import { curriculumRequestSelection, useActiveCurriculum } from '../academic/activeCurriculum'
+import { curriculumRequestSelection, useActiveCurriculum, useCurriculumSubjects } from '../academic/activeCurriculum'
 import { getChapters, getTopics, selectionFromParams } from '../components/SelectionFields'
 import { getTodayDate } from '../utils/dateUtils'
 import { formatStudyMinutes, getLogTopics } from '../utils/logUtils'
@@ -69,6 +69,7 @@ export default function AddLog() {
   const [timetableBlockId, setTimetableBlockId] = useState(initial.timetableBlockId)
   const [followedTimetable, setFollowedTimetable] = useState(initial.followedTimetable)
   const [saveError, setSaveError] = useState('')
+  const { loading: curriculumLoading, error: curriculumError } = useCurriculumSubjects([subject])
 
   const chapters = getChapters(subject, syllabus)
   const chapterTopics = getTopics(subject, chapter, syllabus)
@@ -76,6 +77,19 @@ export default function AddLog() {
     .filter(isActiveRecord)
   const effectiveTimetableBlockId = timetableBlockId || timetableBlocks[0]?.id || ''
   const selectedTimetableBlock = timetableBlocks.find((block) => block.id === effectiveTimetableBlockId) || null
+
+  useEffect(() => {
+    if (!chapters.length || chapters.some((item) => item.name === chapter)) return
+    const requested = editingLog?.chapter || searchParams.get('chapter') || ''
+    const nextChapter = chapters.find((item) => item.name === requested)?.name || chapters[0].name
+    const availableTopics = getTopics(subject, nextChapter, syllabus)
+    const requestedTopics = editingLog ? getLogTopics(editingLog) : [searchParams.get('topic')].filter(Boolean)
+    const timer = window.setTimeout(() => {
+      setChapter(nextChapter)
+      setTopics(requestedTopics.filter((topic) => availableTopics.includes(topic)))
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [chapter, chapters, editingLog, searchParams, subject, syllabus])
 
   function changeSubject(nextSubject) {
     setSubject(nextSubject)
@@ -184,7 +198,8 @@ export default function AddLog() {
         title={editingLog ? 'Edit study log' : 'Study log'}
         actions={<Button variant="outline" render={<Link to="/logs" />}>View all study logs</Button>}
       />
-      {saveError ? <p role="alert" className="mb-4 rounded-xl border border-destructive/25 bg-destructive/10 p-4 text-sm font-medium text-destructive">{saveError} Your form is still here so you can retry.</p> : null}
+      {curriculumLoading ? <p role="status" className="mb-4 rounded-xl border border-border bg-secondary/35 p-4 text-sm text-muted-foreground">Loading the selected subject curriculum…</p> : null}
+      {curriculumError || saveError ? <p role="alert" className="mb-4 rounded-xl border border-destructive/25 bg-destructive/10 p-4 text-sm font-medium text-destructive">{curriculumError || saveError} Your form is still here so you can retry.</p> : null}
       <form onSubmit={handleSubmit} className="grid max-w-7xl gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="p-5 sm:p-6">
           <div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-xl bg-secondary text-primary"><NotebookPen className="size-5" /></span><div><h2 className="text-lg font-semibold">Study log</h2><p className="text-sm text-muted-foreground">Pick a chapter, then tap every topic you covered.</p></div></div>

@@ -5,7 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import GenerationLimitStatus from '../components/GenerationLimitStatus'
 import PageHeader from '../components/PageHeader'
-import { curriculumRequestSelection, useActiveCurriculum } from '../academic/activeCurriculum'
+import { curriculumRequestSelection, useActiveCurriculum, useCurriculumSubjects } from '../academic/activeCurriculum'
 import SelectionFields, { selectionFromParams } from '../components/SelectionFields'
 import { useGenerationUsage } from '../contexts/GenerationUsageContext'
 import { generateQuizQuestions } from '../services/groqService'
@@ -46,6 +46,7 @@ export default function SmallQuiz() {
   const [answers, setAnswers] = useState({})
   const [result, setResult] = useState(null)
   const [review, setReview] = useState(null)
+  const { loading: curriculumLoading, error: curriculumError } = useCurriculumSubjects([selection.subject])
   const generationRef = useRef(false)
   const submissionGuardRef = useRef(createSubmissionGuard())
   const quizUsage = useGenerationUsage('quiz')
@@ -72,6 +73,11 @@ export default function SmallQuiz() {
 
   async function startQuiz() {
     if (generationRef.current || loading) return
+    if (curriculumLoading) return
+    if (curriculumError) {
+      setError(curriculumError)
+      return
+    }
     if (!selection.subject || !selection.chapter || !selection.topic) {
       setError('Choose a subject with a verified official curriculum outline.')
       return

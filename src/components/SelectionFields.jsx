@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
-import { useActiveCurriculum } from '../academic/activeCurriculum'
+import { useEffect } from 'react'
+import { useActiveCurriculum, useCurriculumSubjects } from '../academic/activeCurriculum'
 
 export function getChapters(subject, syllabus = []) {
   return syllabus.find((item) => item.subject === subject)?.chapters || []
@@ -31,8 +32,23 @@ export function selectionFromParams(searchParams, syllabus = []) {
 
 export default function SelectionFields({ value, onChange, className = '' }) {
   const { syllabus } = useActiveCurriculum()
+  const { loading, error } = useCurriculumSubjects([value.subject])
   const chapters = getChapters(value.subject, syllabus)
   const topics = getTopics(value.subject, value.chapter, syllabus)
+
+  useEffect(() => {
+    if (!chapters.length) return
+    const chapter = chapters.some((item) => item.name === value.chapter)
+      ? value.chapter
+      : chapters[0].name
+    const availableTopics = getTopics(value.subject, chapter, syllabus)
+    const topic = availableTopics.includes(value.topic)
+      ? value.topic
+      : availableTopics[0] || ''
+    if (chapter !== value.chapter || topic !== value.topic) {
+      onChange({ ...value, chapter, topic })
+    }
+  }, [chapters, syllabus, value, onChange])
 
   function changeSubject(subject) {
     const chapter = getChapters(subject, syllabus)[0]?.name || ''
@@ -48,6 +64,8 @@ export default function SelectionFields({ value, onChange, className = '' }) {
       <label className="field-label">Subject<select className="field" value={value.subject} onChange={(event) => changeSubject(event.target.value)}>{syllabus.map((item) => <option key={item.subject}>{item.subject}</option>)}</select></label>
       <label className="field-label">Chapter<select className="field" value={value.chapter} onChange={(event) => changeChapter(event.target.value)}>{chapters.map((item, index) => <option key={item.name} value={item.name}>Chapter {index + 1}: {item.name}</option>)}</select></label>
       <label className="field-label">Topic<select className="field" value={value.topic} onChange={(event) => onChange({ ...value, topic: event.target.value })}>{topics.map((topic) => <option key={topic}>{topic}</option>)}</select></label>
+      {loading ? <p role="status" className="text-sm text-muted-foreground md:col-span-3">Loading the selected subject curriculum…</p> : null}
+      {error ? <p role="alert" className="text-sm text-destructive md:col-span-3">{error}</p> : null}
     </div>
   )
 }

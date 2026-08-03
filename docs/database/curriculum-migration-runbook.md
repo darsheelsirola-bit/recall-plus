@@ -98,7 +98,7 @@ Production targets:
 6. Re-run Supabase security and performance advisors. Require no new ERROR or WARN finding caused
    by the rollout. The four policy-free server-only tables and the Free-plan leaked-password notice
    are documented exceptions.
-7. Push the nine verified commits to GitHub `main` only after both migrations pass. Because Git
+7. Push all verified local commits to GitHub `main` only after both migrations pass. Because Git
    integration can deploy `main`, this ordering prevents a schema-incompatible frontend release.
 8. Observe the automatic Vercel deployment. If it reaches `READY`, verify it is built from the exact
    authorized commit. If it does not start or fails, promote the already verified skip-domain

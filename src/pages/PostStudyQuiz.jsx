@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { curriculumRequestSelection, useActiveCurriculum } from '../academic/activeCurriculum'
+import { curriculumRequestSelection, useActiveCurriculum, useCurriculumSubjects } from '../academic/activeCurriculum'
 import GenerationLimitStatus from '../components/GenerationLimitStatus'
 import PageHeader from '../components/PageHeader'
 import { useGenerationUsage } from '../contexts/GenerationUsageContext'
@@ -51,6 +51,7 @@ export default function PostStudyQuiz() {
   const { curriculumVersionId, isActiveRecord, syllabus } = useActiveCurriculum()
   const logId = searchParams.get('logId')
   const log = getData(STORAGE_KEYS.logs, []).find((item) => item.id === logId)
+  const { loading: curriculumLoading, error: curriculumError } = useCurriculumSubjects(log ? [log.subject] : [])
   const archivedLog = Boolean(log && !isActiveRecord(log))
   const topics = log ? (Array.isArray(log.topics) && log.topics.length ? log.topics : [log.topic].filter(Boolean)) : []
   const curriculumSelection = log
@@ -71,6 +72,13 @@ export default function PostStudyQuiz() {
 
   async function buildQuiz() {
     if (!log || archivedLog || generationRef.current || (loading && mode !== 'loading')) return
+    if (curriculumLoading) return
+    if (curriculumError) {
+      setSaveError(curriculumError)
+      setLoading(false)
+      setMode('missing')
+      return
+    }
     if (quizUsage.exhausted) {
       setQuestions(savedPostStudyQuestions(log.id) || fallbackQuestions(log.subject, topics))
       setNotice(GENERATION_LIMIT_MESSAGE)
@@ -117,10 +125,10 @@ export default function PostStudyQuiz() {
   }
 
   useEffect(() => {
-    if (!log || archivedLog || mode !== 'loading' || quizUsage.loading || quizUsage.inProgress) return undefined
+    if (!log || archivedLog || curriculumLoading || mode !== 'loading' || quizUsage.loading || quizUsage.inProgress) return undefined
     const timer = window.setTimeout(() => buildQuiz(), 0)
     return () => window.clearTimeout(timer)
-  }, [archivedLog, log?.id, mode, quizUsage.loading, quizUsage.inProgress]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [archivedLog, curriculumLoading, log?.id, mode, quizUsage.loading, quizUsage.inProgress]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function submitQuiz() {
     if (!submissionGuardRef.current.claim()) return

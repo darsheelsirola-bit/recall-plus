@@ -1,6 +1,6 @@
 # Recall+ curriculum expansion progress
 
-Last updated: 2026-07-30
+Last updated: 2026-08-04
 
 ## Phase 0 - Audited baseline
 
@@ -311,6 +311,15 @@ Status: complete
 - Removed the final learner-facing static `syllabus.json`, `CORE_SUBJECTS`, and
   `CALENDAR_SUBJECTS` dependencies. The legacy JSON remains versioned but is no longer an
   application authority.
+- Corrected the authenticated startup path so it loads profile and selected-subject metadata only;
+  complete curriculum trees now load on demand for the subject opened by the learner. Aggregate
+  Progress and Recall views request all selected subjects only when those routes are opened.
+- Added owner/epoch-bound request deduplication, subject-membership filtering, pending-outline
+  handling, and loading/error states so account switches or repeated renders cannot mix curriculum
+  nodes across users or issue duplicate subject loads.
+- Updated study-log, quiz, post-study, syllabus, insights, progress, recall, and manual-revision
+  flows to wait for the required subject tree and repair stored selections only after that tree is
+  available.
 - Made no production database, Auth, RLS, application deployment, or Git remote change in this
   phase.
 
@@ -331,6 +340,13 @@ Status: complete
   - 174 automated tests;
   - production build;
   - repository and complete reachable Git-history secret scans.
+- Corrective follow-up `npm.cmd run check` passed on 2026-08-04:
+  - all seven migrations replayed with the legacy snapshot preserved;
+  - catalogue and generated SQL/client curriculum modules were current;
+  - TypeScript and ESLint passed;
+  - 189/189 automated tests passed;
+  - the production build emitted separate subject-specific curriculum chunks;
+  - working-tree and 463-blob complete reachable-history secret scans passed.
 
 ### Unresolved errors and risks
 
@@ -345,6 +361,8 @@ Status: complete
   security policy still blocks localhost. No bypass or production test deployment was attempted.
 - The tested Phase 2 migration remains intentionally absent from production. Deploying this
   frontend before the coordinated database/API rollout would fail closed.
+- No local Phase 4 corrective-test failure remains unresolved. Production rollout and rendered
+  production verification remain Phase 7 work and were not authorized by this local commit.
 
 ## Phase 5 - Server-side curriculum authorization and API hardening
 
@@ -583,7 +601,7 @@ Status: local rollout preparation complete; external mutation pending fresh auth
 
 - Fresh authorization is required before downloading/running the pinned official Vercel CLI,
   creating the skip-domain production artifact, applying either production migration, pushing the
-  ten commits, or moving the live alias.
+  verified local commits, or moving the live alias.
 - Vercel production environment-variable names cannot be independently listed with the currently
   installed tools because no Vercel CLI is present. The required `npm run vercel:build` environment
   validator will fail the unaliased candidate build before any database or live-site change if a
@@ -596,7 +614,7 @@ Status: local rollout preparation complete; external mutation pending fresh auth
 ## Remaining work
 
 1. Phase 7 - After fresh explicit authorization, build the unaliased candidate, apply and verify
-   both production migrations, push the ten commits, release the exact artifact, complete live
+   both production migrations, push all verified local commits, release the exact artifact, complete live
    production smoke/security checks, and publish the requirement-by-requirement final report.
 
 ## Database safety rule
