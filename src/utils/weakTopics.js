@@ -1,4 +1,3 @@
-import syllabus from '../data/syllabus.json' with { type: 'json' }
 import studySources from '../data/studySources.json' with { type: 'json' }
 import { getLogTopics } from './logUtils.js'
 import { resultTimestamp } from './resultUtils.js'
@@ -155,7 +154,7 @@ export function getStudySource(subject, chapter) {
   return studySources.find((item) => item.subject === subject && item.chapter === chapter) || null
 }
 
-export function getSyllabusChapter(subject, chapter) {
+export function getSyllabusChapter(subject, chapter, syllabus = []) {
   const subjectData = syllabus.find((item) => item.subject === subject)
   return subjectData?.chapters.find((item) => item.name === chapter) || null
 }
@@ -181,8 +180,8 @@ function collectMissedQuestions(results, subject, chapter) {
   return missed.slice(0, 5)
 }
 
-export function buildChapterContext({ subject, chapter, weakTopics = [] }, { results = [], logs = [], reviews = [], statuses = {} } = {}) {
-  const syllabusChapter = getSyllabusChapter(subject, chapter)
+export function buildChapterContext({ subject, chapter, weakTopics = [] }, { results = [], logs = [], reviews = [], statuses = {}, syllabus = [] } = {}) {
+  const syllabusChapter = getSyllabusChapter(subject, chapter, syllabus)
   const syllabusTopics = syllabusChapter?.topics || []
   const chapterLogs = logs.filter((log) => log.subject === subject && log.chapter === chapter)
   const studiedTopics = new Set()
@@ -259,7 +258,7 @@ function defaultStudyFrom(ctx) {
   const sources = ctx.studySources
   if (!sources) {
     return {
-      primary: `NCERT Class 11 ${ctx.subject} — ${ctx.chapter}`,
+      primary: `${ctx.subject} — ${ctx.chapter}`,
       sections: ['Read the chapter', 'Solve back-of-chapter exercises'],
       secondary: '',
     }

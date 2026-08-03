@@ -2,7 +2,7 @@ import { CalendarClock, ChevronDown, ChevronUp, Loader2, X } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import GenerationLimitStatus from './GenerationLimitStatus'
-import { SUBJECT_COLORS } from '../constants/subjects'
+import { subjectColor } from '../constants/subjects'
 import { useGenerationUsage } from '../contexts/GenerationUsageContext'
 import { useDialogFocus } from '../hooks/useDialogFocus'
 import { buildFallbackTimetable } from '../utils/studyTimetable'
@@ -16,7 +16,6 @@ const ACTIVE_PERIODS = [
   ['evening', 'Evening'],
   ['night', 'Night'],
 ]
-const SUBJECTS = ['Physics', 'Chemistry', 'Maths']
 const CANDIDATE_TIMES = ['06:30', '09:00', '10:30', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00']
 
 const DEFAULT_PROFILE = {
@@ -89,14 +88,14 @@ function pickSlot(existingBlocks, durationMinutes, seed = 0) {
   return { weekday: seed % 7, startTime: CANDIDATE_TIMES[seed % CANDIDATE_TIMES.length], durationMinutes: duration }
 }
 
-export default function OptimalStudyWizard({ open, initialProfile, onClose, onApply }) {
+export default function OptimalStudyWizard({ open, initialProfile, onClose, onApply, subjects = [] }) {
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState(null)
   const [profile, setProfile] = useState(() => ({ ...DEFAULT_PROFILE, ...initialProfile }))
   const [usedFallback, setUsedFallback] = useState(false)
-  const [expandedSubjects, setExpandedSubjects] = useState(() => Object.fromEntries(SUBJECTS.map((subject) => [subject, true])))
+  const [expandedSubjects, setExpandedSubjects] = useState(() => Object.fromEntries(subjects.map((subject) => [subject, true])))
   const generationRef = useRef(false)
   const dialogRef = useDialogFocus(open, onClose)
   const timetableUsage = useGenerationUsage('timetable')
@@ -132,14 +131,14 @@ export default function OptimalStudyWizard({ open, initialProfile, onClose, onAp
     setError('')
     setUsedFallback(false)
     try {
-      const generated = await generateOptimalTimetable(profile)
+      const generated = await generateOptimalTimetable({ ...profile, subjects })
       setResult({
         blocks: (generated.blocks || []).map((block) => ({ ...block, label: sanitizeStudyLabel(block.label, block.subject) })),
         summary: generated.summary || 'Generated using your routine.',
       })
       setStep(6)
     } catch (generationError) {
-      const fallback = buildFallbackTimetable(profile)
+      const fallback = buildFallbackTimetable({ ...profile, subjects })
       setResult({
         blocks: fallback.map((block) => ({ ...block, label: sanitizeStudyLabel(block.label, block.subject) })),
         summary: 'We could not reach AI right now, so we created a smart local timetable from your answers.',
@@ -219,13 +218,13 @@ export default function OptimalStudyWizard({ open, initialProfile, onClose, onAp
 
   const groupedPreview = useMemo(() => {
     if (!result?.blocks) return []
-    return SUBJECTS.map((subject) => ({
+    return subjects.map((subject) => ({
       subject,
       slots: result.blocks
         .map((block, index) => ({ block, index }))
         .filter((item) => item.block.subject === subject),
     }))
-  }, [result])
+  }, [result, subjects])
 
   if (!open) return null
 
@@ -316,7 +315,7 @@ export default function OptimalStudyWizard({ open, initialProfile, onClose, onAp
           <div className="text-xs text-muted-foreground">Use subject cards below. Set frequency per week, click a subject to edit slots, and drag with the 3-line handle to reorder.</div>
           <div className="mt-3 max-h-[52vh] space-y-3 overflow-x-hidden overflow-y-auto">
             {groupedPreview.map(({ subject, slots }) => {
-              const color = SUBJECT_COLORS[subject]
+              const color = subjectColor(subject)
               const expanded = Boolean(expandedSubjects[subject])
               return (
                 <section key={subject} className="min-w-0 rounded-xl border p-3" style={{ borderColor: `${color}66`, backgroundColor: `${color}10` }}>

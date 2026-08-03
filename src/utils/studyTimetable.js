@@ -1,9 +1,7 @@
-import { CORE_SUBJECTS } from '../constants/subjects.js'
 import { getTimetableTechnique, isTimetableTechniqueId, TECHNIQUE_SUBJECT } from '../data/timetablePsychologyTechniques.js'
 import { toDateOnly } from './dateUtils.js'
 import { createId } from './quizUtils.js'
 
-const VALID_SUBJECTS = [...CORE_SUBJECTS]
 const DEFAULT_DURATION = 60
 const DEFAULT_TIME = '17:00'
 const TECHNIQUE_MIN_DURATION = 5
@@ -140,7 +138,7 @@ export function normalizeTimetableBlock(block = {}) {
     }
   }
 
-  const safeSubject = VALID_SUBJECTS.includes(block.subject) ? block.subject : CORE_SUBJECTS[0]
+  const safeSubject = String(block.subject || '').trim()
   const normalizedLabel = String(block.label || '').trim().replace(/\bfocus\b/gi, 'recall')
   return {
     id: block.id || createId(),
@@ -189,7 +187,10 @@ export function buildFallbackTimetable(input = {}) {
   const blocked = blockedByWeekday(availability)
   const sessionDuration = clampDuration(input.preferredSessionMinutes || DEFAULT_DURATION)
   const targetSessions = Math.min(12, Math.max(4, Number(input.weeklySessions) || 7))
-  const subjects = [...CORE_SUBJECTS]
+  const subjects = Array.isArray(input.subjects)
+    ? [...new Set(input.subjects.map((subject) => String(subject || '').trim()).filter(Boolean))]
+    : []
+  if (!subjects.length) return []
   const candidates = []
   for (let weekday = 0; weekday < 7; weekday += 1) {
     const windows = blocked.get(weekday) || []

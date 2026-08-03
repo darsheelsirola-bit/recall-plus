@@ -1,11 +1,11 @@
-import { CORE_SUBJECTS, SUBJECT_COLORS, UNKNOWN_SUBJECT_COLOR } from '../constants/subjects'
+import { subjectColor } from '../constants/subjects'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { BarChart3 } from 'lucide-react'
 import { formatDate, getTodayDate } from '../utils/dateUtils'
 import { formatStudyMinutes, getWeeklyStudyBySubject } from '../utils/logUtils'
 
-export default function StudyTimeChart({ logs }) {
-  const data = getWeeklyStudyBySubject(logs)
+export default function StudyTimeChart({ logs, subjects = [] }) {
+  const data = getWeeklyStudyBySubject(logs, undefined, subjects)
   const weekTotal = data.reduce((sum, day) => sum + day.total, 0)
 
   if (!weekTotal) {
@@ -26,8 +26,6 @@ export default function StudyTimeChart({ logs }) {
     })
     return totals
   }, {})
-  const unknownSubjects = Object.keys(weeklyBySubject).filter((subject) => !CORE_SUBJECTS.includes(subject))
-  const subjects = [...CORE_SUBJECTS, ...unknownSubjects]
 
   return (
     <div>
@@ -64,7 +62,7 @@ export default function StudyTimeChart({ logs }) {
                       return (
                         <div
                           key={subject}
-                          style={{ flexGrow: minutes, backgroundColor: SUBJECT_COLORS[subject] || UNKNOWN_SUBJECT_COLOR }}
+                          style={{ flexGrow: minutes, backgroundColor: subjectColor(subject) }}
                           title={`${subject}: ${formatStudyMinutes(minutes, { compact: true })}`}
                         />
                       )
@@ -96,7 +94,7 @@ export default function StudyTimeChart({ logs }) {
       <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 border-t border-border pt-5" aria-label="Weekly subject totals">
         {subjects.map((subject) => (
           <div key={subject} className="flex items-center gap-2 text-sm">
-            <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: SUBJECT_COLORS[subject] || UNKNOWN_SUBJECT_COLOR }} />
+            <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: subjectColor(subject) }} />
             <span className="font-medium">{subject}</span>
             <span className="font-medium tabular-nums text-muted-foreground">{formatStudyMinutes(weeklyBySubject[subject] || 0, { compact: true })}</span>
           </div>

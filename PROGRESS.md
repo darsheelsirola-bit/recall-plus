@@ -273,13 +273,85 @@ Status: complete
 - Application features still contain PCM subject arrays and name-based content paths. Phase 4 must
   replace those with the active subject-ID workspace before any production rollout.
 
+## Phase 4 - Active-curriculum learner workspace
+
+Status: complete
+
+### Completed work
+
+- Added one active-curriculum adapter that derives the signed-in learner's ordered syllabus,
+  stable subject-ID set, legacy name fallback, reviewed curriculum sections, and record-visibility
+  predicate from confirmed `user_subjects`.
+- Made stable curriculum subject IDs authoritative for new study logs, diagnostic and practice
+  results, and scheduled recalls. Legacy records without IDs remain readable through exact-name
+  fallback; a conflicting stored ID cannot be activated by a matching display name.
+- Replaced fixed PCM learner options and series across:
+  - Home and Today's Focus;
+  - weekly study charts and subject cards;
+  - Syllabus Tracker and active-curriculum search;
+  - study-log creation and timetable follow-up selectors;
+  - recall checks, practice tests, and post-study checks;
+  - Recall Calendar, manual revisions, timetable generation/editing, filters, and legends;
+  - AI Insight input filtering and curriculum context;
+  - Progress, dashboard statistics, navigation workspace copy, and legacy recall views.
+- Pending-verification subjects remain selectable and visible but expose no invented chapters,
+  topics, quizzes, or manual revisions. The UI explains that official outline review is pending.
+- Dynamic layouts support five or six selected subjects and long names without fixed three-column
+  assumptions in the primary selectors and charts.
+- Replaced PCM-only timetable fallbacks with balanced schedules built from the learner's actual
+  selected subject names. The shared response gate now recognizes the complete official selectable
+  subject catalogue instead of three hardcoded subjects.
+- Preserved archived data:
+  - old study logs and practice tests remain visible with an `Archived subject` label;
+  - removed-subject logs cannot create new post-study quizzes;
+  - archived recalls and timetable blocks are excluded from recommendations and future scheduling;
+  - active calendar/timetable saves merge around archived records instead of deleting them;
+  - archived log editing is disabled while active records remain editable.
+- Replaced unverified PCM-specific study-source fallback wording with neutral curriculum wording.
+- Removed the final learner-facing static `syllabus.json`, `CORE_SUBJECTS`, and
+  `CALENDAR_SUBJECTS` dependencies. The legacy JSON remains versioned but is no longer an
+  application authority.
+- Made no production database, Auth, RLS, application deployment, or Git remote change in this
+  phase.
+
+### Tests run
+
+- Added automated tests proving:
+  - a PCB active syllabus contains Biology and excludes Mathematics;
+  - Humanities active-record filtering excludes a legacy Physics record without deleting it;
+  - a matching display name cannot override a stale curriculum subject ID;
+  - active record updates preserve archived history while replacing/removing only active records;
+  - timetable fallbacks use PCB, Commerce with Applied Mathematics, and Humanities subject sets.
+- `npm.cmd run check` passed:
+  - router compatibility;
+  - catalogue validation with 121 selectable subjects, 24 reviewed outlines, and 295 nodes;
+  - deterministic migration freshness;
+  - exact six-migration PostgreSQL replay and legacy-preservation smoke test;
+  - TypeScript and ESLint;
+  - 174 automated tests;
+  - production build;
+  - repository and complete reachable Git-history secret scans.
+
+### Unresolved errors and risks
+
+- Phase 5 must remove the remaining PCM wording and name-based authorization from the secure AI
+  prompts. Every quiz, timetable, and insight endpoint still needs to retrieve the authenticated
+  user's active subject IDs and official curriculum nodes from Supabase before provider work.
+- Phase 5 must add server-side official node-ID validation and return/store curriculum node IDs
+  with generated content. Phase 4 deliberately does not trust the new browser-visible selectors as
+  server authorization.
+- Full rendered account-matrix and responsive QA remains in Phase 6 because the approved preview
+  deployment path is still unavailable under the current Codex usage limit and the local browser
+  security policy still blocks localhost. No bypass or production test deployment was attempted.
+- The tested Phase 2 migration remains intentionally absent from production. Deploying this
+  frontend before the coordinated database/API rollout would fail closed.
+
 ## Remaining work
 
-1. Phase 4 - Make every learner-facing feature consume only the user's active curriculum subject IDs.
-2. Phase 5 - Enforce curriculum authorization and official-node validation in every AI/API path.
-3. Phase 6 - Run migration, account-matrix, responsive, security, performance, and end-to-end
+1. Phase 5 - Enforce curriculum authorization and official-node validation in every AI/API path.
+2. Phase 6 - Run migration, account-matrix, responsive, security, performance, and end-to-end
    verification and commit any fixes.
-4. Phase 7 - Push all phase commits, deploy the verified worktree atomically, verify production, and
+3. Phase 7 - Push all phase commits, deploy the verified worktree atomically, verify production, and
    publish the final report.
 
 ## Database safety rule

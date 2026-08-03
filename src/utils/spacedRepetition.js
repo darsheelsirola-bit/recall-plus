@@ -56,6 +56,7 @@ export function createOrUpdateReviewData(reviews, subject, chapter, topic, perce
   const review = {
     id: current?.id || `${Date.now()}_${Math.random().toString(36).slice(2)}`,
     subject,
+    curriculumSubjectId: options.curriculumSubjectId || current?.curriculumSubjectId || null,
     chapter,
     topic,
     lastStudiedDate: getTodayDate(),
@@ -86,7 +87,7 @@ export function scheduleFirstReview(subject, chapter, topic, confidence = 'Mediu
   return update.review
 }
 
-export function scheduleFirstReviewData(reviews, subject, chapter, topic, confidence = 'Medium', remarks = '', timetable = []) {
+export function scheduleFirstReviewData(reviews, subject, chapter, topic, confidence = 'Medium', remarks = '', timetable = [], curriculumSubjectId = null) {
   const nextReviews = Array.isArray(reviews) ? reviews.map((review) => ({ ...review })) : []
   const index = nextReviews.findIndex((item) => item.subject === subject && item.chapter === chapter && item.topic === topic)
   const current = index >= 0 ? nextReviews[index] : null
@@ -104,6 +105,7 @@ export function scheduleFirstReviewData(reviews, subject, chapter, topic, confid
   const review = {
     id: current?.id || `${Date.now()}_${Math.random().toString(36).slice(2)}`,
     subject,
+    curriculumSubjectId: curriculumSubjectId || current?.curriculumSubjectId || null,
     chapter,
     topic,
     lastStudiedDate: getTodayDate(),

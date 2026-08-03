@@ -2,7 +2,7 @@ import { ChevronDown, ChevronUp, Loader2, RefreshCw, Trash2, X } from 'lucide-re
 import { useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import GenerationLimitStatus from './GenerationLimitStatus'
-import { SUBJECT_COLORS } from '../constants/subjects'
+import { subjectColor } from '../constants/subjects'
 import { useGenerationUsage } from '../contexts/GenerationUsageContext'
 import { useDialogFocus } from '../hooks/useDialogFocus'
 import { generateOptimalTimetable } from '../services/timetableService'
@@ -10,7 +10,6 @@ import { GENERATION_LIMIT_MESSAGE } from '../types/generation'
 import { buildFallbackTimetable, normalizeTimetableBlock } from '../utils/studyTimetable'
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-const SUBJECTS = ['Physics', 'Chemistry', 'Maths']
 const DEFAULT_PROFILE = {
   wakeTime: '06:30',
   sleepTime: '22:30',
@@ -78,10 +77,10 @@ function viewTitle(view) {
   return 'Edit slots directly'
 }
 
-export default function EditTimetableModal({ open, blocks = [], initialProfile, onClose, onSave, onDelete }) {
+export default function EditTimetableModal({ open, blocks = [], initialProfile, onClose, onSave, onDelete, subjects = [] }) {
   const [profile, setProfile] = useState(() => ({ ...DEFAULT_PROFILE, ...initialProfile }))
   const [draftBlocks, setDraftBlocks] = useState(() => blocks.filter((block) => !block.techniqueId).map((block) => normalizeTimetableBlock(block)))
-  const [expandedSubjects, setExpandedSubjects] = useState(() => Object.fromEntries(SUBJECTS.map((subject) => [subject, true])))
+  const [expandedSubjects, setExpandedSubjects] = useState(() => Object.fromEntries(subjects.map((subject) => [subject, true])))
   const [view, setView] = useState('main')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -90,10 +89,10 @@ export default function EditTimetableModal({ open, blocks = [], initialProfile, 
   const timetableUsage = useGenerationUsage('timetable')
   const generationBlocked = timetableUsage.loading || timetableUsage.inProgress || timetableUsage.exhausted || Boolean(timetableUsage.error)
 
-  const grouped = useMemo(() => SUBJECTS.map((subject) => ({
+  const grouped = useMemo(() => subjects.map((subject) => ({
     subject,
     slots: draftBlocks.map((block, index) => ({ block, index })).filter((item) => item.block.subject === subject && !item.block.techniqueId),
-  })), [draftBlocks])
+  })), [draftBlocks, subjects])
 
   if (!open) return null
 
@@ -191,11 +190,11 @@ export default function EditTimetableModal({ open, blocks = [], initialProfile, 
     setLoading(true)
     setError('')
     try {
-      const generated = await generateOptimalTimetable(profile)
+      const generated = await generateOptimalTimetable({ ...profile, subjects })
       const next = (generated.blocks || []).map((block) => normalizeTimetableBlock({ ...block, label: sanitizeStudyLabel(block.label, block.subject) }))
       setDraftBlocks(next.filter((block) => !block.techniqueId))
     } catch (generationError) {
-      const fallback = buildFallbackTimetable(profile).map((block) => normalizeTimetableBlock({ ...block, label: sanitizeStudyLabel(block.label, block.subject) }))
+      const fallback = buildFallbackTimetable({ ...profile, subjects }).map((block) => normalizeTimetableBlock({ ...block, label: sanitizeStudyLabel(block.label, block.subject) }))
       setDraftBlocks(fallback.filter((block) => !block.techniqueId))
       setError(generationError.message)
     } finally {
@@ -291,7 +290,7 @@ export default function EditTimetableModal({ open, blocks = [], initialProfile, 
         {view === 'main' ? (
           <div className="mt-4 space-y-3">
             {grouped.map(({ subject, slots }) => {
-              const color = SUBJECT_COLORS[subject]
+              const color = subjectColor(subject)
               const expanded = Boolean(expandedSubjects[subject])
               return (
                 <section key={subject} className="rounded-xl border p-3" style={{ borderColor: `${color}66`, backgroundColor: `${color}10` }}>

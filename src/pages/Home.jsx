@@ -7,7 +7,10 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/
 import { Progress } from '@/components/ui/progress'
 import StudyTimeChart from '../components/StudyTimeChart'
 import { useAuth } from '../auth/AuthProvider'
-import syllabus from '../data/syllabus.json'
+import {
+  filterActiveSubjectRecords,
+  useActiveCurriculum,
+} from '../academic/activeCurriculum'
 import { useAppData } from '../hooks/useAppData'
 import { addDays, formatDate, getStudyStreak, getTodayDate, getWeekStart } from '../utils/dateUtils'
 import { formatStudyMinutes, getLogTopicsLabel } from '../utils/logUtils'
@@ -15,15 +18,11 @@ import { buildRecallQueue, suggestNewTopics } from '../utils/recallPlan'
 import { latestResultsByTopic } from '../utils/resultUtils'
 import { getData, STORAGE_KEYS } from '../utils/storage'
 
-const ALL_TOPICS = syllabus.flatMap((subject) =>
-  subject.chapters.flatMap((chapter) => chapter.topics.map((topic) => ({ subject: subject.subject, chapter: chapter.name, topic }))),
-)
-
 function params({ subject, chapter, topic }) {
   return `subject=${encodeURIComponent(subject)}&chapter=${encodeURIComponent(chapter)}&topic=${encodeURIComponent(topic)}`
 }
 
-function buildFocus(reviews, logs, results) {
+function buildFocus(reviews, logs, results, allTopics) {
   const items = []
   const seen = new Set()
   const add = (entry) => {
@@ -42,7 +41,7 @@ function buildFocus(reviews, logs, results) {
     add({ label: 'Practice', ...weak, meta: `${weak.percentage}%`, to: `/quiz?${params(weak)}` }),
   )
 
-  suggestNewTopics(ALL_TOPICS, reviews, logs, 3).forEach((fresh) =>
+  suggestNewTopics(allTopics, reviews, logs, 3).forEach((fresh) =>
     add({ label: 'Study', ...fresh, meta: 'New', to: `/add-log?${params(fresh)}` }),
   )
   return items
@@ -58,10 +57,13 @@ const quickActions = [
 export default function Home() {
   useAppData()
   const { profile } = useAuth()
-  const logs = getData(STORAGE_KEYS.logs, [])
-  const reviews = getData(STORAGE_KEYS.reviews, [])
-  const results = getData(STORAGE_KEYS.quizResults, [])
-  const focus = buildFocus(reviews, logs, results)
+  const { activeSubjectIds, activeSubjectNames, subjectNames, syllabus } = useActiveCurriculum()
+  const logs = filterActiveSubjectRecords(getData(STORAGE_KEYS.logs, []), activeSubjectNames, activeSubjectIds)
+  const reviews = filterActiveSubjectRecords(getData(STORAGE_KEYS.reviews, []), activeSubjectNames, activeSubjectIds)
+  const results = filterActiveSubjectRecords(getData(STORAGE_KEYS.quizResults, []), activeSubjectNames, activeSubjectIds)
+  const allTopics = syllabus.flatMap((subject) =>
+    subject.chapters.flatMap((chapter) => chapter.topics.map((topic) => ({ subject: subject.subject, chapter: chapter.name, topic }))))
+  const focus = buildFocus(reviews, logs, results, allTopics)
   const dueRecallCount = buildRecallQueue(reviews, logs).length
   const primary = focus[0]
   const streak = getStudyStreak(logs)
@@ -132,7 +134,7 @@ export default function Home() {
       <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(300px,.65fr)]">
         <Card>
           <CardHeader><CardTitle>Weekly momentum</CardTitle><CardDescription>Study time by subject, Monday through Sunday.</CardDescription></CardHeader>
-          <CardContent><StudyTimeChart logs={logs} /></CardContent>
+          <CardContent><StudyTimeChart logs={logs} subjects={subjectNames} /></CardContent>
         </Card>
 
         <Card>

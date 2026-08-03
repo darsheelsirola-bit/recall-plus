@@ -4,8 +4,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import PageHeader from '../components/PageHeader'
+import { useActiveCurriculum } from '../academic/activeCurriculum'
 import { getChapters, getTopics, selectionFromParams } from '../components/SelectionFields'
-import syllabus from '../data/syllabus.json'
 import { getTodayDate } from '../utils/dateUtils'
 import { formatStudyMinutes, getLogTopics } from '../utils/logUtils'
 import { createId } from '../utils/quizUtils'
@@ -25,6 +25,7 @@ function formatTime(time = '') {
 }
 
 export default function AddLog() {
+  const { activeSubjectNames, isActiveRecord, syllabus } = useActiveCurriculum()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const editId = searchParams.get('id')
@@ -44,7 +45,7 @@ export default function AddLog() {
         followedTimetable: editingLog.timetableFollowUp?.followed ?? 'yes',
       }
     }
-    const fromParams = selectionFromParams(searchParams)
+    const fromParams = selectionFromParams(searchParams, syllabus)
     return {
       subject: fromParams.subject,
       chapter: fromParams.chapter,
@@ -69,15 +70,16 @@ export default function AddLog() {
   const [followedTimetable, setFollowedTimetable] = useState(initial.followedTimetable)
   const [saveError, setSaveError] = useState('')
 
-  const chapters = getChapters(subject)
-  const chapterTopics = getTopics(subject, chapter)
+  const chapters = getChapters(subject, syllabus)
+  const chapterTopics = getTopics(subject, chapter, syllabus)
   const timetableBlocks = getBlocksForDate(getData(STORAGE_KEYS.studyTimetable, []), date)
+    .filter(isActiveRecord)
   const effectiveTimetableBlockId = timetableBlockId || timetableBlocks[0]?.id || ''
   const selectedTimetableBlock = timetableBlocks.find((block) => block.id === effectiveTimetableBlockId) || null
 
   function changeSubject(nextSubject) {
     setSubject(nextSubject)
-    setChapter(getChapters(nextSubject)[0]?.name || '')
+    setChapter(getChapters(nextSubject, syllabus)[0]?.name || '')
     setTopics([])
   }
 
@@ -95,7 +97,7 @@ export default function AddLog() {
     setTimetableBlockId(blockId)
     if (!block) return
     if (block.subject !== subject) {
-      const firstChapter = getChapters(block.subject)[0]?.name || ''
+      const firstChapter = getChapters(block.subject, syllabus)[0]?.name || ''
       setSubject(block.subject)
       setChapter(firstChapter)
       setTopics([])
@@ -105,6 +107,10 @@ export default function AddLog() {
 
   function handleSubmit(event) {
     event.preventDefault()
+    if (!activeSubjectNames.has(subject)) {
+      setSaveError('This subject is archived. Select one of your active subjects.')
+      return
+    }
     if (!topics.length) return
     setSaveError('')
     const logs = getData(STORAGE_KEYS.logs, [])
@@ -121,7 +127,7 @@ export default function AddLog() {
       studiedChapter: chapter,
       studiedTopics: topics,
     } : null
-    const fields = { subject, chapter, topics, topic: topics[0], date, timeSpent: actualDuration, confidence, notes: notes.trim(), timetableFollowUp }
+    const fields = { subject, curriculumSubjectId: syllabus.find((item) => item.subject === subject)?.subjectId || '', chapter, topics, topic: topics[0], date, timeSpent: actualDuration, confidence, notes: notes.trim(), timetableFollowUp }
 
     let savedLog
     try {
@@ -144,6 +150,7 @@ export default function AddLog() {
             confidence,
             notes.trim(),
             getData(STORAGE_KEYS.studyTimetable, []),
+            fields.curriculumSubjectId,
           ).reviews
         }
       })

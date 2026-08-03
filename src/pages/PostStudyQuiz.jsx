@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useActiveCurriculum } from '../academic/activeCurriculum'
 import GenerationLimitStatus from '../components/GenerationLimitStatus'
 import PageHeader from '../components/PageHeader'
 import { useGenerationUsage } from '../contexts/GenerationUsageContext'
@@ -47,8 +48,10 @@ function savedPostStudyQuestions(logId) {
 
 export default function PostStudyQuiz() {
   const [searchParams] = useSearchParams()
+  const { isActiveRecord } = useActiveCurriculum()
   const logId = searchParams.get('logId')
   const log = getData(STORAGE_KEYS.logs, []).find((item) => item.id === logId)
+  const archivedLog = Boolean(log && !isActiveRecord(log))
   const topics = log ? (Array.isArray(log.topics) && log.topics.length ? log.topics : [log.topic].filter(Boolean)) : []
   const [questions, setQuestions] = useState([])
   const [answers, setAnswers] = useState({})
@@ -64,7 +67,7 @@ export default function PostStudyQuiz() {
   const generationBlocked = quizUsage.loading || quizUsage.inProgress || quizUsage.exhausted || Boolean(quizUsage.error)
 
   async function buildQuiz() {
-    if (!log || generationRef.current || (loading && mode !== 'loading')) return
+    if (!log || archivedLog || generationRef.current || (loading && mode !== 'loading')) return
     if (quizUsage.exhausted) {
       setQuestions(savedPostStudyQuestions(log.id) || fallbackQuestions(log.subject, topics))
       setNotice(GENERATION_LIMIT_MESSAGE)
@@ -110,17 +113,17 @@ export default function PostStudyQuiz() {
   }
 
   useEffect(() => {
-    if (!log || mode !== 'loading' || quizUsage.loading || quizUsage.inProgress) return undefined
+    if (!log || archivedLog || mode !== 'loading' || quizUsage.loading || quizUsage.inProgress) return undefined
     const timer = window.setTimeout(() => buildQuiz(), 0)
     return () => window.clearTimeout(timer)
-  }, [log?.id, mode, quizUsage.loading, quizUsage.inProgress]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [archivedLog, log?.id, mode, quizUsage.loading, quizUsage.inProgress]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function submitQuiz() {
     if (!submissionGuardRef.current.claim()) return
     const summary = calculateScore(questions, answers)
     const quizResult = {
       id: createId(), type: 'post-study', date: getTodayDate(), completedAt: new Date().toISOString(), sourceLogId: log.id,
-      subject: log.subject, chapter: log.chapter, topic: topics.join(', '), topics,
+      subject: log.subject, curriculumSubjectId: log.curriculumSubjectId || null, chapter: log.chapter, topic: topics.join(', '), topics,
       confidence: log.confidence, ...summary, status: getTopicStatus(summary.percentage),
     }
     const statuses = getData(STORAGE_KEYS.topicStatuses, {})
@@ -152,6 +155,8 @@ export default function PostStudyQuiz() {
   }
 
   if (!log) return <><PageHeader title="Quick Check" description="We could not find the study session for this quiz." /><Alert variant="destructive"><X /><AlertTitle>Study log not found</AlertTitle><AlertDescription>Return to Study Logs or add a new session.</AlertDescription></Alert><div className="mt-4 flex gap-3"><Button render={<Link to="/logs" />}>Study logs</Button><Button variant="outline" render={<Link to="/add-log" />}>Add study log</Button></div></>
+
+  if (archivedLog) return <><PageHeader title="Quick Check unavailable" description={`${log.subject} is no longer in your active curriculum.`} /><Alert><Info /><AlertTitle>Archived study session</AlertTitle><AlertDescription>This log remains in your history, but Recall+ will not generate new quizzes or revisions for a removed subject.</AlertDescription></Alert><div className="mt-4"><Button render={<Link to="/logs" />}>Back to study history</Button></div></>
 
   if (loading || mode === 'loading') return <><PageHeader title="Building your Quick Check" description={`${log.subject} · ${log.chapter}`} /><Card><CardContent className="space-y-4 p-8"><Skeleton className="h-5 w-1/3" /><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /><p className="text-sm text-muted-foreground">Creating 2 easy, 4 moderate, and 4 hard questions from your real study topics.</p></CardContent></Card></>
 

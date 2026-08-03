@@ -1,45 +1,46 @@
 /* eslint-disable react-refresh/only-export-components */
-import syllabus from '../data/syllabus.json'
+import { useActiveCurriculum } from '../academic/activeCurriculum'
 
-export function getChapters(subject) {
+export function getChapters(subject, syllabus = []) {
   return syllabus.find((item) => item.subject === subject)?.chapters || []
 }
 
-export function getTopics(subject, chapter) {
-  return getChapters(subject).find((item) => item.name === chapter)?.topics || []
+export function getTopics(subject, chapter, syllabus = []) {
+  return getChapters(subject, syllabus).find((item) => item.name === chapter)?.topics || []
 }
 
-export function createInitialSelection() {
-  const subject = syllabus[1]?.subject || syllabus[0].subject
-  const chapter = getChapters(subject)[0]?.name || ''
-  const topic = getTopics(subject, chapter)[0] || ''
+export function createInitialSelection(syllabus = []) {
+  const subject = syllabus[0]?.subject || ''
+  const chapter = getChapters(subject, syllabus)[0]?.name || ''
+  const topic = getTopics(subject, chapter, syllabus)[0] || ''
   return { subject, chapter, topic }
 }
 
 // Build a valid selection from URL query params, falling back to the default
 // where a param is missing or doesn't match the syllabus.
-export function selectionFromParams(searchParams) {
-  const fallback = createInitialSelection()
+export function selectionFromParams(searchParams, syllabus = []) {
+  const fallback = createInitialSelection(syllabus)
   const subjectCandidate = searchParams.get('subject')
   const subject = syllabus.some((item) => item.subject === subjectCandidate) ? subjectCandidate : fallback.subject
   const chapterCandidate = searchParams.get('chapter')
-  const chapter = getChapters(subject).some((item) => item.name === chapterCandidate) ? chapterCandidate : getChapters(subject)[0]?.name || ''
+  const chapter = getChapters(subject, syllabus).some((item) => item.name === chapterCandidate) ? chapterCandidate : getChapters(subject, syllabus)[0]?.name || ''
   const topicCandidate = searchParams.get('topic')
-  const topic = getTopics(subject, chapter).includes(topicCandidate) ? topicCandidate : getTopics(subject, chapter)[0] || ''
+  const topic = getTopics(subject, chapter, syllabus).includes(topicCandidate) ? topicCandidate : getTopics(subject, chapter, syllabus)[0] || ''
   return { subject, chapter, topic }
 }
 
 export default function SelectionFields({ value, onChange, className = '' }) {
-  const chapters = getChapters(value.subject)
-  const topics = getTopics(value.subject, value.chapter)
+  const { syllabus } = useActiveCurriculum()
+  const chapters = getChapters(value.subject, syllabus)
+  const topics = getTopics(value.subject, value.chapter, syllabus)
 
   function changeSubject(subject) {
-    const chapter = getChapters(subject)[0]?.name || ''
-    onChange({ subject, chapter, topic: getTopics(subject, chapter)[0] || '' })
+    const chapter = getChapters(subject, syllabus)[0]?.name || ''
+    onChange({ subject, chapter, topic: getTopics(subject, chapter, syllabus)[0] || '' })
   }
 
   function changeChapter(chapter) {
-    onChange({ ...value, chapter, topic: getTopics(value.subject, chapter)[0] || '' })
+    onChange({ ...value, chapter, topic: getTopics(value.subject, chapter, syllabus)[0] || '' })
   }
 
   return (

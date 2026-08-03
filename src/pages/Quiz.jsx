@@ -9,9 +9,9 @@ import { Progress } from '@/components/ui/progress'
 import PageHeader from '../components/PageHeader'
 import BackButton from '../components/BackButton'
 import GenerationLimitStatus from '../components/GenerationLimitStatus'
+import { useActiveCurriculum } from '../academic/activeCurriculum'
 import { getChapters, getTopics, selectionFromParams } from '../components/SelectionFields'
 import { useGenerationUsage } from '../contexts/GenerationUsageContext'
-import syllabus from '../data/syllabus.json'
 import { generateQuizQuestions } from '../services/groqService'
 import { GENERATION_LIMIT_MESSAGE } from '../types/generation'
 import { getTodayDate } from '../utils/dateUtils'
@@ -42,8 +42,8 @@ const STUDY_TIPS = [
 
 const TIP_ROTATION_MS = 4000
 
-function getAvailableTopics(subject, chapters) {
-  return chapters.flatMap((chapter) => getTopics(subject, chapter).map((topic) => ({ chapter, topic })))
+function getAvailableTopics(subject, chapters, syllabus) {
+  return chapters.flatMap((chapter) => getTopics(subject, chapter, syllabus).map((topic) => ({ chapter, topic })))
 }
 
 function configStorageKey(subject, chapters, topics, difficulty, duration, questionCount) {
@@ -65,8 +65,9 @@ function loadCachedQuestions(key, expectedCount) {
 }
 
 export default function Quiz() {
+  const { syllabus } = useActiveCurriculum()
   const [searchParams] = useSearchParams()
-  const initialSelection = selectionFromParams(searchParams)
+  const initialSelection = selectionFromParams(searchParams, syllabus)
   const [subject, setSubject] = useState(initialSelection.subject)
   const [selectedChapters, setSelectedChapters] = useState([initialSelection.chapter])
   const [selectedTopics, setSelectedTopics] = useState([initialSelection.topic])
@@ -89,7 +90,7 @@ export default function Quiz() {
 
   const safeDuration = clamp(duration, 5, 180)
   const safeQuestionCount = clamp(questionCount, 5, 30)
-  const availableTopics = getAvailableTopics(subject, selectedChapters)
+  const availableTopics = getAvailableTopics(subject, selectedChapters, syllabus)
   const chapterLabel = selectedChapters.join(', ')
   const topicLabel = selectedTopics.join(', ')
   const storageKey = configStorageKey(subject, selectedChapters, selectedTopics, difficulty, safeDuration, safeQuestionCount)
@@ -109,8 +110,8 @@ export default function Quiz() {
   }
 
   function changeSubject(nextSubject) {
-    const firstChapter = getChapters(nextSubject)[0]?.name || ''
-    const firstTopic = getTopics(nextSubject, firstChapter)[0] || ''
+    const firstChapter = getChapters(nextSubject, syllabus)[0]?.name || ''
+    const firstTopic = getTopics(nextSubject, firstChapter, syllabus)[0] || ''
     setSubject(nextSubject)
     setSelectedChapters([firstChapter])
     setSelectedTopics([firstTopic])
@@ -122,7 +123,7 @@ export default function Quiz() {
     const nextChapters = selectedChapters.includes(chapter)
       ? selectedChapters.filter((item) => item !== chapter)
       : [...selectedChapters, chapter]
-    const allowed = getAvailableTopics(subject, nextChapters)
+    const allowed = getAvailableTopics(subject, nextChapters, syllabus)
     const allowedNames = new Set(allowed.map((item) => item.topic))
     const retainedTopics = selectedTopics.filter((topic) => allowedNames.has(topic))
     const nextTopics = retainedTopics.length ? retainedTopics : [allowed[0]?.topic].filter(Boolean)
@@ -163,6 +164,10 @@ export default function Quiz() {
 
   async function prepareAndStart() {
     if (generationRef.current || loading) return
+    if (!subject || !selectedChapters[0] || !selectedTopics[0]) {
+      setError('This subject does not have a verified official outline available for quiz selection yet.')
+      return
+    }
     if (!ready && quizUsage.exhausted) {
       setError(GENERATION_LIMIT_MESSAGE)
       return
@@ -222,6 +227,7 @@ export default function Quiz() {
       durationMinutes: safeDuration,
       difficulty,
       subject,
+      curriculumSubjectId: syllabus.find((item) => item.subject === subject)?.subjectId || '',
       chapter: chapterLabel,
       topic: topicLabel,
       chapters: selectedChapters,
@@ -345,7 +351,7 @@ export default function Quiz() {
           <CardContent>
             <label className="field-label">Subject<select className="field" value={subject} onChange={(event) => changeSubject(event.target.value)}>{syllabus.map((item) => <option key={item.subject}>{item.subject}</option>)}</select></label>
 
-            <div className="mt-6"><div className="flex items-center justify-between"><p className="field-label">Chapters</p><span className="text-xs text-muted-foreground">{selectedChapters.length} selected</span></div><div className="mt-3 grid max-h-56 grid-cols-2 gap-2 overflow-y-auto pr-1">{getChapters(subject).map((chapter, chapterIndex) => { const active = selectedChapters.includes(chapter.name); return <button type="button" key={chapter.name} aria-pressed={active} onClick={() => toggleChapter(chapter.name)} className={`flex min-h-12 items-center gap-3 rounded-xl border p-3 text-left text-sm font-medium transition ${active ? 'border-primary bg-secondary text-primary' : 'border-border bg-background hover:border-primary/30'}`}><span className={`grid size-7 shrink-0 place-items-center rounded-lg text-xs ${active ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>{active ? <Check className="size-3.5" /> : chapterIndex + 1}</span><span className="line-clamp-2">{chapter.name}</span></button> })}</div></div>
+            <div className="mt-6"><div className="flex items-center justify-between"><p className="field-label">Curriculum sections</p><span className="text-xs text-muted-foreground">{selectedChapters.filter(Boolean).length} selected</span></div><div className="mt-3 grid max-h-56 grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">{getChapters(subject, syllabus).map((chapter, chapterIndex) => { const active = selectedChapters.includes(chapter.name); return <button type="button" key={chapter.name} aria-pressed={active} onClick={() => toggleChapter(chapter.name)} className={`flex min-h-12 items-center gap-3 rounded-xl border p-3 text-left text-sm font-medium transition ${active ? 'border-primary bg-secondary text-primary' : 'border-border bg-background hover:border-primary/30'}`}><span className={`grid size-7 shrink-0 place-items-center rounded-lg text-xs ${active ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>{active ? <Check className="size-3.5" /> : chapterIndex + 1}</span><span className="line-clamp-2">{chapter.name}</span></button> })}</div></div>
 
             <div className="mt-6"><div className="flex items-center justify-between"><p className="field-label">Topics</p><Button variant="link" size="sm" onClick={selectAllTopics}>Select all shown</Button></div><div className="mt-3 grid max-h-72 grid-cols-2 gap-2 overflow-y-auto pr-1">{availableTopics.map(({ chapter, topic }) => { const active = selectedTopics.includes(topic); return <button type="button" key={`${chapter}-${topic}`} aria-pressed={active} onClick={() => toggleTopic(topic)} className={`rounded-xl border p-3 text-left transition ${active ? 'border-primary bg-secondary' : 'border-border bg-background hover:border-primary/30'}`}><span className={`text-sm font-medium ${active ? 'text-primary' : 'text-foreground'}`}>{active ? '✓ ' : ''}{topic}</span><span className="mt-1 block truncate text-xs text-muted-foreground">{chapter}</span></button> })}</div></div>
           </CardContent>

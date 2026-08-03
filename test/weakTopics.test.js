@@ -67,7 +67,19 @@ test('buildChapterContext includes missed questions and study sources', () => {
   const weakTopics = findWeakTopics(results, [])
   const context = buildChapterContext(
     { subject: 'Physics', chapter: 'Motion in a Straight Line', weakTopics },
-    { results, logs, reviews: [], statuses: {} },
+    {
+      results,
+      logs,
+      reviews: [],
+      statuses: {},
+      syllabus: [{
+        subject: 'Physics',
+        chapters: [{
+          name: 'Motion in a Straight Line',
+          topics: ['Velocity and Speed', 'Acceleration', 'Kinematic Equations'],
+        }],
+      }],
+    },
   )
   assert.ok(context.studySources?.ncert?.book.includes('NCERT'))
   assert.equal(context.studiedTopics.includes('Velocity and Speed'), true)

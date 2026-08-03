@@ -1,15 +1,15 @@
 ﻿import { CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Plus, RotateCcw, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { mergeActiveRecordUpdates, useActiveCurriculum } from '../academic/activeCurriculum'
 import EditTimetableModal from '../components/EditTimetableModal'
 import GenerationLimitStatus from '../components/GenerationLimitStatus'
 import OptimalStudyWizard from '../components/OptimalStudyWizard'
-import { SUBJECT_COLORS, UNKNOWN_SUBJECT_COLOR } from '../constants/subjects'
+import { subjectColor } from '../constants/subjects'
 import { useGenerationUsage } from '../contexts/GenerationUsageContext'
-import syllabus from '../data/syllabus.json'
 import { useAppData } from '../hooks/useAppData'
 import { useDialogFocus } from '../hooks/useDialogFocus'
-import { CALENDAR_SUBJECTS, countOverdueRecalls, createRecallItem, normalizeRecallItem, spreadRecallTimes } from '../utils/recallCalendar'
+import { countOverdueRecalls, createRecallItem, normalizeRecallItem, spreadRecallTimes } from '../utils/recallCalendar'
 import { addDays, formatDate, getTodayDate, toDateOnly } from '../utils/dateUtils'
 import { formatStudyMinutes } from '../utils/logUtils'
 import { buildFallbackTimetable, getBlocksForDate, mergeTimetableBlocks, normalizeTimetableBlock } from '../utils/studyTimetable'
@@ -21,7 +21,6 @@ import {
 } from '../utils/storage'
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-const FILTERS = ['All', ...CALENDAR_SUBJECTS]
 const HOURS = Array.from({ length: 24 }, (_, index) => index)
 const HOUR_HEIGHT = 48
 
@@ -56,7 +55,7 @@ function monthTitle(cursor) {
 }
 
 function RecallEvent({ item, onClick }) {
-  const color = SUBJECT_COLORS[item.subject] || UNKNOWN_SUBJECT_COLOR
+  const color = subjectColor(item.subject)
   return (
     <button
       type="button"
@@ -72,7 +71,7 @@ function RecallEvent({ item, onClick }) {
 }
 
 function TimetablePill({ block }) {
-  const color = SUBJECT_COLORS[block.subject] || UNKNOWN_SUBJECT_COLOR
+  const color = subjectColor(block.subject)
   return (
     <div
       className="rounded border border-dashed px-1.5 py-1 text-[10px] font-semibold"
@@ -180,11 +179,16 @@ function resolveTimetableConflicts(blocks = [], { profile, reviews = [], preserv
 
 export default function RecallCalendar() {
   useAppData()
+  const { syllabus, subjectNames, activeSubjectNames, isActiveRecord } = useActiveCurriculum()
   const today = getTodayDate()
-  const logs = getData(STORAGE_KEYS.logs, []).filter((item) => CALENDAR_SUBJECTS.includes(item.subject))
-  const timetable = getData(STORAGE_KEYS.studyTimetable, []).map(normalizeTimetableBlock).filter((block) => !block.techniqueId)
+  const filters = ['All', ...subjectNames]
+  const logs = getData(STORAGE_KEYS.logs, []).filter(isActiveRecord)
+  const allTimetable = getData(STORAGE_KEYS.studyTimetable, []).map(normalizeTimetableBlock)
+  const timetable = allTimetable
+    .filter((block) => !block.techniqueId && isActiveRecord(block))
+  const rawReviews = getData(STORAGE_KEYS.reviews, []).map(normalizeRecallItem)
   const reviews = spreadRecallTimes(
-    getData(STORAGE_KEYS.reviews, []).map(normalizeRecallItem),
+    rawReviews.filter(isActiveRecord),
     timetable,
   )
   const savedAvailability = getData(STORAGE_KEYS.studyAvailability, null)
@@ -193,6 +197,7 @@ export default function RecallCalendar() {
   const [cursor, setCursor] = useState(() => new Date(`${today}T12:00:00`))
   const [selectedDate, setSelectedDate] = useState(null)
   const [filter, setFilter] = useState('All')
+  const activeFilter = filter === 'All' || activeSubjectNames.has(filter) ? filter : 'All'
   const [showManual, setShowManual] = useState(false)
   const manualDialogRef = useDialogFocus(showManual, () => setShowManual(false))
   const [editingId, setEditingId] = useState(null)
@@ -204,11 +209,10 @@ export default function RecallCalendar() {
   const timelineRef = useRef(null)
   const weekScrollRef = useRef(null)
 
-  const initialSubject = syllabus.find((item) => item.subject === 'Physics') || syllabus[0]
   const [manual, setManual] = useState({
-    subject: initialSubject.subject,
-    chapter: initialSubject.chapters[0].name,
-    topic: initialSubject.chapters[0].topics[0],
+    subject: '',
+    chapter: '',
+    topic: '',
     dueDate: today,
     dueTime: '17:00',
     durationMinutes: 30,
@@ -219,8 +223,8 @@ export default function RecallCalendar() {
     return () => window.clearInterval(timer)
   }, [])
 
-  const supported = reviews.filter((item) => CALENDAR_SUBJECTS.includes(item.subject))
-  const filtered = filter === 'All' ? supported : supported.filter((item) => item.subject === filter)
+  const supported = reviews
+  const filtered = activeFilter === 'All' ? supported : supported.filter((item) => item.subject === activeFilter)
   const weeks = useMemo(() => weekRows(toDateOnly(cursor)), [cursor])
 
   const eventsByDate = new Map()
@@ -231,9 +235,9 @@ export default function RecallCalendar() {
 
   const selectedReviews = eventsByDate.get(selectedDate) || []
   const selectedTimetable = (selectedDate ? getBlocksForDate(timetable, selectedDate) : [])
-    .filter((item) => matchesTimetableFilter(item, filter))
+    .filter((item) => matchesTimetableFilter(item, activeFilter))
   const firstSelectedTime = [...selectedReviews.map((item) => item.dueTime), ...selectedTimetable.map((item) => item.startTime)].sort()[0] || ''
-  const selectedLogs = logs.filter((log) => log.date === selectedDate && (filter === 'All' || log.subject === filter))
+  const selectedLogs = logs.filter((log) => log.date === selectedDate && (activeFilter === 'All' || log.subject === activeFilter))
 
   const overdueCount = countOverdueRecalls(filtered, today, selectedDate)
   const monthKey = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`
@@ -243,9 +247,9 @@ export default function RecallCalendar() {
   const currentLineTop = Math.min((currentMinutes / 60) * HOUR_HEIGHT, HOURS.length * HOUR_HEIGHT)
 
   const manualSubject = syllabus.find((item) => item.subject === manual.subject) || syllabus[0]
-  const manualChapters = manualSubject.chapters
+  const manualChapters = manualSubject?.chapters || []
   const manualChapter = manualChapters.find((item) => item.name === manual.chapter) || manualChapters[0]
-  const manualTopics = manualChapter.topics
+  const manualTopics = manualChapter?.topics || []
 
   const selectedWeek = selectedDate
     ? Array.from({ length: 7 }, (_, index) => addDays(selectedDate, index - ((new Date(`${selectedDate}T12:00:00`).getDay() + 6) % 7)))
@@ -257,11 +261,12 @@ export default function RecallCalendar() {
       ? firstSelectedTime.split(':').map(Number).reduce((hours, minutes) => hours * 60 + minutes)
       : selectedDate === today ? (new Date().getHours() * 60) + new Date().getMinutes() : 8 * 60
     timelineRef.current.scrollTop = Math.max((targetMinutes / 60) * HOUR_HEIGHT - HOUR_HEIGHT, 0)
-  }, [selectedDate, filter, firstSelectedTime, today])
+  }, [selectedDate, activeFilter, firstSelectedTime, today])
 
   function persistReviews(next) {
     try {
-      saveDataOrThrow(STORAGE_KEYS.reviews, next)
+      const merged = mergeActiveRecordUpdates(rawReviews, next, isActiveRecord)
+      saveDataOrThrow(STORAGE_KEYS.reviews, merged)
       return true
     } catch (persistenceError) {
       setScheduleError(persistenceError.message)
@@ -271,9 +276,14 @@ export default function RecallCalendar() {
 
   function persistTimetableAndAvailability(profile, next) {
     try {
+      const merged = mergeActiveRecordUpdates(
+        allTimetable,
+        next,
+        (block) => !block.techniqueId && isActiveRecord(block),
+      )
       saveDataBatchOrThrow([
         [STORAGE_KEYS.studyAvailability, profile],
-        [STORAGE_KEYS.studyTimetable, next],
+        [STORAGE_KEYS.studyTimetable, merged],
       ])
       return true
     } catch (persistenceError) {
@@ -386,27 +396,49 @@ export default function RecallCalendar() {
   }
 
   function openManualForDate(date = selectedDate || today) {
-    setManual((current) => ({ ...current, dueDate: date }))
+    const initialSubject = activeSubjectNames.has(manual.subject)
+      ? syllabus.find((item) => item.subject === manual.subject)
+      : syllabus[0]
+    const initialChapter = initialSubject?.chapters?.find((item) => item.name === manual.chapter)
+      || initialSubject?.chapters?.[0]
+    if (!initialSubject || !initialChapter || !initialChapter.topics?.length) {
+      setScheduleError('Your selected curriculum does not have reviewed chapter content available for manual revisions yet.')
+      return
+    }
+    setManual((current) => ({
+      ...current,
+      subject: initialSubject.subject,
+      chapter: initialChapter.name,
+      topic: initialChapter.topics.includes(current.topic) ? current.topic : initialChapter.topics[0],
+      dueDate: date,
+    }))
     setScheduleError('')
     setShowManual(true)
   }
 
   function changeManualSubject(subject) {
     const nextSubject = syllabus.find((item) => item.subject === subject)
-    const chapter = nextSubject.chapters[0]
-    setManual((current) => ({ ...current, subject, chapter: chapter.name, topic: chapter.topics[0] }))
+    const chapter = nextSubject?.chapters?.[0]
+    setManual((current) => ({
+      ...current,
+      subject,
+      chapter: chapter?.name || '',
+      topic: chapter?.topics?.[0] || '',
+    }))
   }
 
   function changeManualChapter(chapterName) {
     const chapter = manualChapters.find((item) => item.name === chapterName)
-    setManual((current) => ({ ...current, chapter: chapterName, topic: chapter.topics[0] }))
+    setManual((current) => ({ ...current, chapter: chapterName, topic: chapter?.topics?.[0] || '' }))
   }
 
   function addManual(event) {
     event.preventDefault()
-    if (!manual.chapter.trim() || !manual.topic.trim()) return
+    if (!activeSubjectNames.has(manual.subject) || !manual.chapter.trim() || !manual.topic.trim()) return
+    const selectedSubject = syllabus.find((item) => item.subject === manual.subject)
     const item = createRecallItem({
       subject: manual.subject,
+      curriculumSubjectId: selectedSubject?.subjectId || null,
       chapter: manual.chapter.trim(),
       topic: manual.topic.trim(),
       dueDate: manual.dueDate,
@@ -429,7 +461,7 @@ export default function RecallCalendar() {
     const aiBlocks = resolveTimetableConflicts(incomingBlocks, { profile, reviews, preservedBlocks })
     const hasConflict = hasTimetableConflict([...preservedBlocks, ...aiBlocks])
     if (hasConflict) {
-      const fallbackBlocks = resolveTimetableConflicts(buildFallbackTimetable(profile).map((item) => normalizeTimetableBlock({ ...item, source: 'ai' })), { profile, reviews, preservedBlocks })
+      const fallbackBlocks = resolveTimetableConflicts(buildFallbackTimetable({ ...profile, subjects: subjectNames }).map((item) => normalizeTimetableBlock({ ...item, source: 'ai' })), { profile, reviews, preservedBlocks })
       if (!persistTimetableAndAvailability(
         profile,
         mergeTimetableBlocks(timetable, fallbackBlocks, 'replace-ai'),
@@ -516,12 +548,12 @@ export default function RecallCalendar() {
           <h2 className="min-w-0 text-base font-semibold sm:text-lg">{monthTitle(new Date(`${visibleMonthDate}T12:00:00`))}</h2>
         </div>
         <div className="flex max-w-full gap-1 overflow-x-auto rounded-lg bg-secondary/60 p-1">
-          {FILTERS.map((subject) => (
+          {filters.map((subject) => (
             <button
               type="button"
               key={subject}
               onClick={() => setFilter(subject)}
-              className={`min-h-11 min-w-11 shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${filter === subject ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:bg-card/60'}`}
+              className={`min-h-11 min-w-11 shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${activeFilter === subject ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:bg-card/60'}`}
             >
               {subject}
             </button>
@@ -540,11 +572,11 @@ export default function RecallCalendar() {
                 <div key={week.weekStart} data-week-start={week.weekStart} className={`grid grid-cols-7 ${weekIndex === weeks.length - 1 ? '' : 'border-b border-border/60'}`}>
                   {week.days.map((cell) => {
                     const items = eventsByDate.get(cell.date) || []
-                    const timetableItems = getBlocksForDate(timetable, cell.date).filter((item) => matchesTimetableFilter(item, filter))
+                    const timetableItems = getBlocksForDate(timetable, cell.date).filter((item) => matchesTimetableFilter(item, activeFilter))
                     const selected = cell.date === selectedDate
                     const cellDate = new Date(`${cell.date}T12:00:00`)
                     const inVisibleMonth = cellDate.getMonth() === visibleMonth.getMonth() && cellDate.getFullYear() === visibleMonth.getFullYear()
-                    const studied = logs.some((log) => log.date === cell.date && (filter === 'All' || log.subject === filter))
+                    const studied = logs.some((log) => log.date === cell.date && (activeFilter === 'All' || log.subject === activeFilter))
                     return (
                       <div
                         key={cell.date}
@@ -634,7 +666,7 @@ export default function RecallCalendar() {
                 ) : null}
 
                 {selectedTimetable.map((item) => {
-                  const color = SUBJECT_COLORS[item.subject] || UNKNOWN_SUBJECT_COLOR
+                  const color = subjectColor(item.subject)
                   const [hours, minutes] = item.startTime.split(':').map(Number)
                   const eventHeight = Math.max(36, (item.durationMinutes / 60) * HOUR_HEIGHT)
                   const top = Math.min(((hours * 60 + minutes) / 60) * HOUR_HEIGHT, (HOURS.length * HOUR_HEIGHT) - eventHeight)
@@ -651,7 +683,7 @@ export default function RecallCalendar() {
                 })}
 
                 {selectedReviews.map((item) => {
-                  const color = SUBJECT_COLORS[item.subject] || UNKNOWN_SUBJECT_COLOR
+                  const color = subjectColor(item.subject)
                   const [hours, minutes] = item.dueTime.split(':').map(Number)
                   const eventHeight = Math.max(40, (item.durationMinutes / 60) * HOUR_HEIGHT)
                   const top = Math.min(((hours * 60 + minutes) / 60) * HOUR_HEIGHT, (HOURS.length * HOUR_HEIGHT) - eventHeight)
@@ -690,7 +722,7 @@ export default function RecallCalendar() {
         <span><strong className="text-foreground">{monthCount}</strong> revisions this month</span>
         <span><strong className={overdueCount ? 'text-coral' : 'text-foreground'}>{overdueCount}</strong> {selectedDate ? 'overdue on this day' : 'overdue overall'}</span>
         <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-secondary" />Study block</span>
-        {CALENDAR_SUBJECTS.map((subject) => <span key={subject} className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ backgroundColor: SUBJECT_COLORS[subject] }} />{subject}</span>)}
+        {subjectNames.map((subject) => <span key={subject} className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ backgroundColor: subjectColor(subject) }} />{subject}</span>)}
       </div>
 
       {showManual ? (
@@ -699,7 +731,7 @@ export default function RecallCalendar() {
             <div className="flex justify-between">
               <div>
                 <h2 className="text-xl font-semibold">Add a revision</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Choose directly from your Class 11 syllabus.</p>
+                <p className="mt-1 text-sm text-muted-foreground">Choose directly from your active curriculum.</p>
               </div>
               <Button type="button" data-dialog-autofocus size="icon-sm" variant="ghost" aria-label="Close" onClick={() => setShowManual(false)}><X /></Button>
             </div>
@@ -714,7 +746,7 @@ export default function RecallCalendar() {
             {scheduleError ? <p role="alert" className="mt-4 rounded-lg border border-coral/25 bg-coral/10 px-4 py-3 text-sm font-medium text-coral">{scheduleError}</p> : null}
             <div className="mt-6 flex justify-end gap-2">
               <Button type="button" variant="ghost" onClick={() => setShowManual(false)}>Cancel</Button>
-              <Button type="submit">Add to calendar</Button>
+              <Button type="submit" disabled={!manualSubject || !manualChapters.length || !manualTopics.length}>Add to calendar</Button>
             </div>
           </form>
         </div>
@@ -722,6 +754,7 @@ export default function RecallCalendar() {
 
       <OptimalStudyWizard
         open={showWizard}
+        subjects={subjectNames}
         initialProfile={savedAvailability || undefined}
         onClose={() => setShowWizard(false)}
         onApply={applyOptimalPlan}
@@ -730,6 +763,7 @@ export default function RecallCalendar() {
       {showTimetableEditor ? <EditTimetableModal
         open={showTimetableEditor}
         blocks={timetable}
+        subjects={subjectNames}
         initialProfile={savedAvailability || undefined}
         onClose={() => setShowTimetableEditor(false)}
         onSave={saveEditedTimetable}

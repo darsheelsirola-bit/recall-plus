@@ -9,7 +9,10 @@ import PageHeader from '../components/PageHeader'
 import BackButton from '../components/BackButton'
 import ProgressCard from '../components/ProgressCard'
 import StudyLogList from '../components/StudyLogList'
-import syllabus from '../data/syllabus.json'
+import {
+  filterActiveSubjectRecords,
+  useActiveCurriculum,
+} from '../academic/activeCurriculum'
 import { useAppData } from '../hooks/useAppData'
 import { formatDate, getStudyStreak } from '../utils/dateUtils'
 import { latestResultsByTopic } from '../utils/resultUtils'
@@ -19,8 +22,11 @@ export default function Progress() {
   useAppData()
   const navigate = useNavigate()
   const [view, setView] = useState(null)
-  const logs = getData(STORAGE_KEYS.logs, [])
-  const results = getData(STORAGE_KEYS.quizResults, [])
+  const { activeSubjectIds, activeSubjectNames, syllabus } = useActiveCurriculum()
+  const allLogs = getData(STORAGE_KEYS.logs, [])
+  const allResults = getData(STORAGE_KEYS.quizResults, [])
+  const logs = filterActiveSubjectRecords(allLogs, activeSubjectNames, activeSubjectIds)
+  const results = filterActiveSubjectRecords(allResults, activeSubjectNames, activeSubjectIds)
   const statuses = getData(STORAGE_KEYS.topicStatuses, {})
   const average = results.length ? Math.round(results.reduce((sum, result) => sum + result.percentage, 0) / results.length) : 0
   const latestByTopic = latestResultsByTopic(results)
@@ -44,7 +50,7 @@ export default function Progress() {
 
       <section className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,.7fr)]">
         {view === 'logs' ? (
-          <Card><CardHeader><CardTitle>All study logs</CardTitle><CardDescription>{logs.length} session{logs.length === 1 ? '' : 's'} recorded.</CardDescription></CardHeader><CardContent><StudyLogList logs={logs} onEdit={(log) => navigate(`/add-log?id=${log.id}`)} emptyHint="Log a study session to see it here." /></CardContent></Card>
+          <Card><CardHeader><CardTitle>Active-subject study logs</CardTitle><CardDescription>{logs.length} active-subject session{logs.length === 1 ? '' : 's'} recorded. Archived-subject history remains available from Study logs.</CardDescription></CardHeader><CardContent><StudyLogList logs={logs} onEdit={(log) => navigate(`/add-log?id=${log.id}`)} emptyHint="Log a study session to see it here." /></CardContent></Card>
         ) : view === 'quiz' ? (
           <Card>
             <CardHeader><CardTitle>Quiz history</CardTitle><CardDescription>Your most recent attempts first.</CardDescription></CardHeader>

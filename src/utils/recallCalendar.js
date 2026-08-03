@@ -1,7 +1,6 @@
 import { addDays, getTodayDate, isDueToday, isOverdue } from './dateUtils.js'
 import { createId } from './quizUtils.js'
 
-export const CALENDAR_SUBJECTS = ['Physics', 'Chemistry', 'Maths']
 const RECALL_TIME_SLOTS = Array.from({ length: 28 }, (_, index) => {
   const totalMinutes = (7 * 60) + (index * 30)
   const hours = String(Math.floor(totalMinutes / 60)).padStart(2, '0')
@@ -219,7 +218,7 @@ export function normalizeRecallItem(item) {
   }
 }
 
-export function createRecallItem({ subject, chapter, topic, confidence = 'Medium', remarks = '', score = null, totalQuestions = 5, percentage = null, dueDate, dueTime = null, durationMinutes = null, source = 'manual', sourceLogId = null, quizResultId = null, existing = null, scheduledItems = [], timetable = [] }) {
+export function createRecallItem({ subject, curriculumSubjectId = null, chapter, topic, confidence = 'Medium', remarks = '', score = null, totalQuestions = 5, percentage = null, dueDate, dueTime = null, durationMinutes = null, source = 'manual', sourceLogId = null, quizResultId = null, existing = null, scheduledItems = [], timetable = [] }) {
   const now = new Date().toISOString()
   const correct = score == null ? null : Number(score)
   const scorePercent = percentage ?? (correct == null ? null : (correct / Math.max(1, Number(totalQuestions) || 5)) * 100)
@@ -240,7 +239,7 @@ export function createRecallItem({ subject, chapter, topic, confidence = 'Medium
     })
   const nextReviewDate = balanced?.nextReviewDate || preferredDate
   return normalizeRecallItem({
-    id: existing?.id || createId(), subject, chapter, topic, confidence, remarks: String(remarks || '').trim(),
+    id: existing?.id || createId(), subject, curriculumSubjectId: curriculumSubjectId || existing?.curriculumSubjectId || null, chapter, topic, confidence, remarks: String(remarks || '').trim(),
     source, sourceLogId, quizResultId, dueTime: balanced?.dueTime || dueTime || getSuggestedRecallTime(subject, topic, nextReviewDate), durationMinutes: recallDuration, nextReviewDate,
     lastStudiedDate: getTodayDate(), lastQuizCorrect: correct,
     lastQuizScore: percentage ?? (correct == null ? existing?.lastQuizScore ?? null : correct * 20),
@@ -258,6 +257,7 @@ export function upsertPostStudyRecalls(reviews, log, quizResult, timetable = [])
     const existing = index >= 0 ? next[index] : null
     const item = createRecallItem({
       subject: log.subject, chapter: log.chapter, topic, confidence: log.confidence, remarks: log.notes,
+      curriculumSubjectId: log.curriculumSubjectId || null,
       score: quizResult.score, totalQuestions: quizResult.totalQuestions, percentage: quizResult.percentage, source: 'post-study-quiz',
       sourceLogId: log.id, quizResultId: quizResult.id, existing,
       scheduledItems: next.filter((scheduled) => scheduled.id !== existing?.id),

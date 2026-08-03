@@ -5,6 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import GenerationLimitStatus from '../components/GenerationLimitStatus'
 import PageHeader from '../components/PageHeader'
+import { useActiveCurriculum } from '../academic/activeCurriculum'
 import SelectionFields, { selectionFromParams } from '../components/SelectionFields'
 import { useGenerationUsage } from '../contexts/GenerationUsageContext'
 import { generateQuizQuestions } from '../services/groqService'
@@ -35,8 +36,9 @@ function recallMessage(percentage, days) {
 }
 
 export default function SmallQuiz() {
+  const { syllabus } = useActiveCurriculum()
   const [searchParams] = useSearchParams()
-  const [selection, setSelection] = useState(() => selectionFromParams(searchParams))
+  const [selection, setSelection] = useState(() => selectionFromParams(searchParams, syllabus))
   const [questions, setQuestions] = useState([])
   const [mode, setMode] = useState('setup')
   const [loading, setLoading] = useState(false)
@@ -64,6 +66,10 @@ export default function SmallQuiz() {
 
   async function startQuiz() {
     if (generationRef.current || loading) return
+    if (!selection.subject || !selection.chapter || !selection.topic) {
+      setError('Choose a subject with a verified official curriculum outline.')
+      return
+    }
     const cached = getData(storageKey, [])
     if (validateVerifiedQuizQuestions(cached, SMALL_QUIZ_COUNT)) {
       setQuestions(cached)
@@ -105,7 +111,7 @@ export default function SmallQuiz() {
   function submit() {
     if (!submissionGuardRef.current.claim()) return
     const summary = calculateScore(questions, answers)
-    const quizResult = { id: createId(), type: 'diagnostic', date: getTodayDate(), completedAt: new Date().toISOString(), ...selection, ...summary, status: getTopicStatus(summary.percentage) }
+    const quizResult = { id: createId(), type: 'diagnostic', date: getTodayDate(), completedAt: new Date().toISOString(), ...selection, curriculumSubjectId: syllabus.find((item) => item.subject === selection.subject)?.subjectId || '', ...summary, status: getTopicStatus(summary.percentage) }
     const statuses = getData(STORAGE_KEYS.topicStatuses, {})
     statuses[`${selection.subject}|${selection.chapter}|${selection.topic}`] = summary.percentage >= 80 ? 'Mastered' : 'Needs Revision'
     const reviewUpdate = createOrUpdateReviewData(
@@ -114,7 +120,10 @@ export default function SmallQuiz() {
       selection.chapter,
       selection.topic,
       summary.percentage,
-      { timetable: getData(STORAGE_KEYS.studyTimetable, []) },
+      {
+        timetable: getData(STORAGE_KEYS.studyTimetable, []),
+        curriculumSubjectId: quizResult.curriculumSubjectId,
+      },
     )
     try {
       saveDataBatchOrThrow([

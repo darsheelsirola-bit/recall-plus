@@ -1,4 +1,3 @@
-import { CORE_SUBJECTS } from '../constants/subjects.js'
 import { addDays, getTodayDate, getWeekStart } from './dateUtils.js'
 
 const WEEKDAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
@@ -48,9 +47,9 @@ export function getWeeklyStudyMinutes(logs, referenceDate = getTodayDate()) {
   return getWeeklyStudyBySubject(logs, referenceDate).map(({ date, total }) => ({ date, minutes: total }))
 }
 
-export function getWeeklyStudyBySubject(logs, referenceDate = getTodayDate()) {
+export function getWeeklyStudyBySubject(logs, referenceDate = getTodayDate(), subjects = []) {
   const monday = getWeekStart(referenceDate)
-  const emptySubjects = () => Object.fromEntries(CORE_SUBJECTS.map((subject) => [subject, 0]))
+  const emptySubjects = () => Object.fromEntries(subjects.map((subject) => [subject, 0]))
   const buckets = Array.from({ length: 7 }, (_, index) => ({
     date: addDays(monday, index),
     label: WEEKDAY_LABELS[index],

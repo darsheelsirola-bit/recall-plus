@@ -70,7 +70,7 @@ test('generated timetable validation rejects blocked overlaps', () => {
 test('generated timetable validation accepts valid non-overlapping blocks', () => {
   const blocks = [
     { weekday: 0, startTime: '15:30', durationMinutes: 60, subject: 'Physics', label: 'Physics focus' },
-    { weekday: 2, startTime: '19:00', durationMinutes: 60, subject: 'Maths', label: 'Maths practice' },
+    { weekday: 2, startTime: '19:00', durationMinutes: 60, subject: 'Mathematics', label: 'Mathematics practice' },
   ]
   assert.equal(validateGeneratedTimetable(blocks, profile), true)
 })

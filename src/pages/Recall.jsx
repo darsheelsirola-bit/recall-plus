@@ -5,24 +5,26 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { useActiveCurriculum } from '../academic/activeCurriculum'
 import PageHeader from '../components/PageHeader'
-import syllabus from '../data/syllabus.json'
 import { useAppData } from '../hooks/useAppData'
 import { formatDate } from '../utils/dateUtils'
 import { buildRecallQueue, suggestNewTopics } from '../utils/recallPlan'
 import { getData, saveData, STORAGE_KEYS } from '../utils/storage'
 
-const ALL_TOPICS = syllabus.flatMap((subject) => subject.chapters.flatMap((chapter) => chapter.topics.map((topic) => ({ subject: subject.subject, chapter: chapter.name, topic }))))
 const quizLink = ({ subject, chapter, topic }) => `/small-quiz?subject=${encodeURIComponent(subject)}&chapter=${encodeURIComponent(chapter)}&topic=${encodeURIComponent(topic)}`
 
 export default function Recall() {
   useAppData()
-  const reviews = getData(STORAGE_KEYS.reviews, [])
-  const logs = getData(STORAGE_KEYS.logs, [])
-  const queue = useMemo(() => buildRecallQueue(reviews, logs), [reviews, logs])
-  const suggestions = useMemo(() => suggestNewTopics(ALL_TOPICS, reviews, logs, 6), [reviews, logs])
+  const { syllabus, isActiveRecord } = useActiveCurriculum()
+  const allTopics = useMemo(() => syllabus.flatMap((subject) => subject.chapters.flatMap((chapter) => chapter.topics.map((topic) => ({ subject: subject.subject, chapter: chapter.name, topic })))), [syllabus])
+  const allReviews = getData(STORAGE_KEYS.reviews, [])
+  const reviews = allReviews.filter(isActiveRecord)
+  const logs = getData(STORAGE_KEYS.logs, []).filter(isActiveRecord)
+  const queue = buildRecallQueue(reviews, logs)
+  const suggestions = suggestNewTopics(allTopics, reviews, logs, 6)
   const totalMinutes = queue.reduce((sum, item) => sum + item.reviseMinutes, 0)
-  const markRevised = (id) => saveData(STORAGE_KEYS.reviews, reviews.map((review) => (review.id === id ? { ...review, completed: true } : review)))
+  const markRevised = (id) => saveData(STORAGE_KEYS.reviews, allReviews.map((review) => (review.id === id ? { ...review, completed: true } : review)))
 
   return (
     <>

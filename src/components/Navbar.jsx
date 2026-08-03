@@ -20,6 +20,7 @@ import {
 import { useEffect, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { useAcademicProfile } from '../academic/AcademicProfileProvider'
 import { useDialogFocus } from '../hooks/useDialogFocus'
 import {
   INDIA_TIMEZONE_DETAIL,
@@ -56,7 +57,7 @@ function normalizeProfile(raw = {}, user = null, syncedProfile = null) {
   ).trim() || 'Recall+ User'
   return {
     name,
-    className: String(syncedProfile?.className || raw.className || metadata.class_name || 'Class 11 PCM').trim() || 'Class 11 PCM',
+    className: String(syncedProfile?.className || raw.className || metadata.class_name || 'CBSE XI workspace').trim() || 'CBSE XI workspace',
     email: String(syncedProfile?.email || user?.email || raw.email || '').trim(),
   }
 }
@@ -71,6 +72,7 @@ export default function Navbar() {
     updateProfileName,
     updatingProfileName,
   } = useAuth()
+  const { workspace } = useAcademicProfile()
   const [expanded, setExpanded] = useState(false)
   const [showProfileDetails, setShowProfileDetails] = useState(false)
   const [signOutError, setSignOutError] = useState('')
@@ -204,7 +206,7 @@ export default function Navbar() {
         >
           <Logo compact={!expanded} inverse />
         </Link>
-        <p className={`mt-2 overflow-hidden whitespace-nowrap px-2 text-xs font-medium text-white/45 transition-all ${expanded ? 'max-w-48 opacity-100' : 'max-w-0 opacity-0'}`}>PCM workspace</p>
+        <p className={`mt-2 overflow-hidden whitespace-nowrap px-2 text-xs font-medium capitalize text-white/45 transition-all ${expanded ? 'max-w-56 opacity-100' : 'max-w-0 opacity-0'}`}>{workspace?.profile.pathway} · {workspace?.subjects.length || 0} subjects</p>
         <nav className="mt-4 flex flex-1 flex-col gap-2 overflow-y-auto pr-1" aria-label="Primary navigation">
           {navItems.map(({ label, path, icon: Icon }) => (
             <NavLink key={path} to={path} end={path === '/'} title={label} onClick={closeAfterNavigation} className={({ isActive }) => `flex min-h-11 items-center gap-2.5 rounded-xl px-2.5 text-[15px] font-semibold transition-all duration-300 ${isActive ? 'bg-primary text-white shadow-md shadow-primary/20' : 'text-white/65 hover:bg-white/10 hover:text-white'}`}>

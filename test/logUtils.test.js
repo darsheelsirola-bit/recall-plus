@@ -50,7 +50,7 @@ test('getWeeklyStudyBySubject aggregates stacked subject totals', () => {
     { date: '2026-06-28', subject: 'Maths', timeSpent: 90 },
     { date: '2026-06-24', subject: 'Computer Science', timeSpent: 25 },
     { date: '2026-06-29', subject: 'Physics', timeSpent: 100 },
-  ], '2026-06-24')
+  ], '2026-06-24', ['Physics', 'Chemistry', 'Maths'])
 
   assert.deepEqual(data.map((day) => day.label), ['M', 'T', 'W', 'T', 'F', 'S', 'S'])
   assert.deepEqual(data[0].bySubject, { Physics: 50, Chemistry: 45, Maths: 0 })

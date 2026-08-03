@@ -7,16 +7,17 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/
 import PageHeader from '../components/PageHeader'
 import SubjectCard from '../components/SubjectCard'
 import TopicCard from '../components/TopicCard'
-import syllabus from '../data/syllabus.json'
+import { useActiveCurriculum } from '../academic/activeCurriculum'
 import { getData, STORAGE_KEYS } from '../utils/storage'
 
 export default function Syllabus() {
-  const [activeSubject, setActiveSubject] = useState('Physics')
-  const [openChapter, setOpenChapter] = useState('Units and Measurements')
+  const { syllabus } = useActiveCurriculum()
+  const [activeSubject, setActiveSubject] = useState(() => syllabus[0]?.subject || '')
+  const [openChapter, setOpenChapter] = useState(() => syllabus[0]?.chapters[0]?.name || '')
   const [query, setQuery] = useState('')
   const navigate = useNavigate()
   const statuses = getData(STORAGE_KEYS.topicStatuses, {})
-  const results = useMemo(() => syllabus.map((item) => ({ ...item, chapters: item.chapters.map((chapter) => ({ ...chapter, topics: chapter.topics.filter((topic) => `${chapter.name} ${topic}`.toLowerCase().includes(query.toLowerCase())) })).filter((chapter) => chapter.topics.length) })), [query])
+  const results = useMemo(() => syllabus.map((item) => ({ ...item, chapters: item.chapters.map((chapter) => ({ ...chapter, topics: chapter.topics.filter((topic) => `${chapter.name} ${topic}`.toLowerCase().includes(query.toLowerCase())) })).filter((chapter) => chapter.topics.length) })), [query, syllabus])
   const subjectData = results.find((item) => item.subject === activeSubject)
 
   function statusFor(chapter, topic) {
@@ -26,7 +27,7 @@ export default function Syllabus() {
   return (
     <>
       <PageHeader title="Class 11 syllabus" />
-      <section className="grid gap-3 sm:grid-cols-3">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {syllabus.map((item) => {
           const topicCount = item.chapters.reduce((sum, chapter) => sum + chapter.topics.length, 0)
           const studiedCount = item.chapters.reduce((sum, chapter) => sum + chapter.topics.filter((topic) => statuses[`${item.subject}|${chapter.name}|${topic}`]).length, 0)
@@ -58,7 +59,7 @@ export default function Syllabus() {
               </article>
             )
           })}
-          {!subjectData?.chapters.length ? <Empty className="min-h-56 border border-dashed border-border"><EmptyHeader><EmptyMedia variant="icon"><BookOpen /></EmptyMedia><EmptyTitle>No matching topics</EmptyTitle><EmptyDescription>Try a shorter or different search term.</EmptyDescription></EmptyHeader></Empty> : null}
+          {!subjectData?.chapters.length ? <Empty className="min-h-56 border border-dashed border-border"><EmptyHeader><EmptyMedia variant="icon"><BookOpen /></EmptyMedia><EmptyTitle>{subjectData?.contentStatus === 'pending_verification' ? 'Official outline pending verification' : 'No matching curriculum items'}</EmptyTitle><EmptyDescription>{subjectData?.contentStatus === 'pending_verification' ? 'This subject is selected and available across Recall+, but chapters and topics will appear only after its official CBSE syllabus has been reviewed.' : 'Try a shorter or different search term.'}</EmptyDescription></EmptyHeader></Empty> : null}
         </CardContent>
       </Card>
     </>

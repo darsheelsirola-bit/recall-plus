@@ -3,6 +3,7 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useActiveCurriculum } from '../academic/activeCurriculum'
 import BackButton from '../components/BackButton'
 import PageHeader from '../components/PageHeader'
 import { formatDate } from '../utils/dateUtils'
@@ -57,7 +58,7 @@ function DifficultyBreakdown({ questionReview = [] }) {
   )
 }
 
-function PastTestDetail({ test }) {
+function PastTestDetail({ test, archived }) {
   const hasQuestionReview = Array.isArray(test.questionReview) && test.questionReview.length
   return (
     <>
@@ -71,7 +72,10 @@ function PastTestDetail({ test }) {
           <div>
             <p className="text-sm text-white/60">Final score</p>
             <p className="mt-1 text-5xl font-semibold">{test.percentage}%</p>
-            <Badge className="mt-3 bg-white/10 text-white">{test.status || 'Result'}</Badge>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Badge className="bg-white/10 text-white">{test.status || 'Result'}</Badge>
+              {archived ? <Badge className="bg-white/10 text-white">Archived subject</Badge> : null}
+            </div>
           </div>
           <div className="text-sm text-white/75">
             <p>{test.score}/{test.totalQuestions} correct · {test.difficulty} level</p>
@@ -118,6 +122,7 @@ function PastTestDetail({ test }) {
 
 export default function PastTestResults() {
   const { resultId } = useParams()
+  const { isActiveRecord } = useActiveCurriculum()
   const tests = getPracticeTests()
   if (!resultId) {
     return (
@@ -131,11 +136,14 @@ export default function PastTestResults() {
           <div className="space-y-3">
             {tests.map((test) => (
               <Link key={test.id} to={`/quiz/results/${test.id}`} className="block">
-                <Card className="transition hover:-translate-y-0.5 hover:shadow-md">
+                <Card className={`transition hover:-translate-y-0.5 hover:shadow-md ${isActiveRecord(test) ? '' : 'opacity-75'}`}>
                   <CardHeader>
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <CardTitle className="text-lg">{test.subject} · {test.chapter}</CardTitle>
-                      <Badge variant="outline">{test.percentage}%</Badge>
+                      <div className="flex flex-wrap gap-2">
+                        {!isActiveRecord(test) ? <Badge variant="outline">Archived subject</Badge> : null}
+                        <Badge variant="outline">{test.percentage}%</Badge>
+                      </div>
                     </div>
                     <CardDescription>{test.topic}</CardDescription>
                   </CardHeader>
@@ -163,5 +171,5 @@ export default function PastTestResults() {
 
   const test = tests.find((item) => item.id === resultId)
   if (!test) return <Navigate to="/quiz/results" replace />
-  return <PastTestDetail test={test} />
+  return <PastTestDetail test={test} archived={!isActiveRecord(test)} />
 }

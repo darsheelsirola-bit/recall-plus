@@ -7,6 +7,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import PageHeader from '../components/PageHeader'
+import {
+  filterActiveSubjectRecords,
+  useActiveCurriculum,
+} from '../academic/activeCurriculum'
 import { useAppData } from '../hooks/useAppData'
 import { generateInsights, loadCachedInsights, saveCachedInsightsForUser } from '../services/insightService'
 import { buildAiInsights } from '../utils/aiInsight'
@@ -90,14 +94,15 @@ function ChapterInsightCard({ chapter }) {
 
 export default function Dashboard() {
   useAppData()
-  const logs = getData(STORAGE_KEYS.logs, [])
-  const results = getData(STORAGE_KEYS.quizResults, [])
-  const reviews = getData(STORAGE_KEYS.reviews, [])
+  const { syllabus, activeSubjectIds, activeSubjectNames } = useActiveCurriculum()
+  const logs = filterActiveSubjectRecords(getData(STORAGE_KEYS.logs, []), activeSubjectNames, activeSubjectIds)
+  const results = filterActiveSubjectRecords(getData(STORAGE_KEYS.quizResults, []), activeSubjectNames, activeSubjectIds)
+  const reviews = filterActiveSubjectRecords(getData(STORAGE_KEYS.reviews, []), activeSubjectNames, activeSubjectIds)
   const statuses = getData(STORAGE_KEYS.topicStatuses, {})
   const { quote, snapshot, tips, techniques, headline: fallbackHeadline } = buildAiInsights(logs, results, reviews)
 
   const weakTopics = findWeakTopics(results, reviews)
-  const chapterContexts = buildChapterContexts(weakTopics, { results, logs, reviews, statuses })
+  const chapterContexts = buildChapterContexts(weakTopics, { results, logs, reviews, statuses, syllabus })
   const fingerprint = weakTopicsFingerprint(chapterContexts)
 
   const [insights, setInsights] = useState(() => loadCachedInsights(fingerprint))

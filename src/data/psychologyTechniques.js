@@ -123,7 +123,7 @@ export const psychologyTechniques = [
     id: 'implementation-intention',
     name: 'Implementation intentions',
     summary: 'Pre-plan your actions so you delay less.',
-    action: 'Use If-Then plans, like: "If it is 6:30 PM, then I open Physics and solve 10 numericals."',
+    action: 'Use If-Then plans, like: "If it is 6:30 PM, then I open my chosen subject and complete one focused practice set."',
     whyItWorks: 'Pre-deciding removes decision fatigue at study time. Clear triggers help you start even on low-motivation days.',
     steps: [
       'Write one If-Then line per subject.',

@@ -1,24 +1,27 @@
 import { Pencil, Plus, Trash2, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { CORE_SUBJECTS } from '../constants/subjects'
+import { useActiveCurriculum } from '../academic/activeCurriculum'
 import { useDialogFocus } from '../hooks/useDialogFocus'
 import { createTimetableBlock } from '../utils/studyTimetable'
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-const SUBJECT_OPTIONS = [...CORE_SUBJECTS, 'General']
-
-const EMPTY_FORM = {
+function emptyForm(subject) {
+  return {
   weekday: 0,
   startTime: '17:00',
   durationMinutes: 60,
-  subject: 'Physics',
+  subject,
   label: '',
   notes: '',
+  }
 }
 
 export default function StudyTimetableModal({ open, blocks = [], onClose, onAdd, onUpdate, onDelete }) {
-  const [form, setForm] = useState(EMPTY_FORM)
+  const { subjectNames } = useActiveCurriculum()
+  const subjectOptions = subjectNames
+  const [form, setForm] = useState(() => emptyForm(''))
+  const formSubject = subjectOptions.includes(form.subject) ? form.subject : subjectOptions[0] || ''
   const [editingId, setEditingId] = useState(null)
   const [draft, setDraft] = useState(null)
   const dialogRef = useDialogFocus(open, onClose)
@@ -29,14 +32,16 @@ export default function StudyTimetableModal({ open, blocks = [], onClose, onAdd,
 
   function addBlock(event) {
     event.preventDefault()
+    if (!formSubject) return
     const block = createTimetableBlock({
       ...form,
+      subject: formSubject,
       durationMinutes: Number(form.durationMinutes),
       source: 'manual',
-      label: form.label.trim() || `${form.subject} study`,
+      label: form.label.trim() || `${formSubject} study`,
     })
     onAdd?.(block)
-    setForm(EMPTY_FORM)
+    setForm(emptyForm(subjectNames[0] || ''))
   }
 
   function startEdit(block) {
@@ -72,13 +77,13 @@ export default function StudyTimetableModal({ open, blocks = [], onClose, onAdd,
           <label className="field-label">Start time<input className="field mt-1" type="time" value={form.startTime} onChange={(event) => setForm({ ...form, startTime: event.target.value })} /></label>
           <label className="field-label">Duration (minutes)<input className="field mt-1" type="number" min="30" max="180" step="5" value={form.durationMinutes} onChange={(event) => setForm({ ...form, durationMinutes: event.target.value })} /></label>
           <label className="field-label">Subject
-            <select className="field mt-1" value={form.subject} onChange={(event) => setForm({ ...form, subject: event.target.value })}>
-              {SUBJECT_OPTIONS.map((subject) => <option key={subject}>{subject}</option>)}
+            <select className="field mt-1" value={formSubject} onChange={(event) => setForm({ ...form, subject: event.target.value })}>
+              {subjectOptions.map((subject) => <option key={subject}>{subject}</option>)}
             </select>
           </label>
-          <label className="field-label lg:col-span-2">Label<input className="field mt-1" placeholder="Physics focus" value={form.label} onChange={(event) => setForm({ ...form, label: event.target.value })} /></label>
+          <label className="field-label lg:col-span-2">Label<input className="field mt-1" placeholder="Focused study block" value={form.label} onChange={(event) => setForm({ ...form, label: event.target.value })} /></label>
           <label className="field-label sm:col-span-2 lg:col-span-3">Notes (optional)<textarea className="field mt-1 min-h-20" value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} /></label>
-          <div className="sm:col-span-2 lg:col-span-3"><Button type="submit"><Plus data-icon="inline-start" /> Add block</Button></div>
+          <div className="sm:col-span-2 lg:col-span-3"><Button type="submit" disabled={!formSubject}><Plus data-icon="inline-start" /> Add block</Button></div>
         </form>
 
         <div className="mt-5 space-y-2">
@@ -101,7 +106,7 @@ export default function StudyTimetableModal({ open, blocks = [], onClose, onAdd,
                   <select className="field" value={draft.weekday} onChange={(event) => setDraft({ ...draft, weekday: Number(event.target.value) })}>{DAY_LABELS.map((label, index) => <option key={label} value={index}>{label}</option>)}</select>
                   <input className="field" type="time" value={draft.startTime} onChange={(event) => setDraft({ ...draft, startTime: event.target.value })} />
                   <input className="field" type="number" min="30" max="180" step="5" value={draft.durationMinutes} onChange={(event) => setDraft({ ...draft, durationMinutes: event.target.value })} />
-                  <select className="field sm:col-span-1" value={draft.subject} onChange={(event) => setDraft({ ...draft, subject: event.target.value })}>{SUBJECT_OPTIONS.map((subject) => <option key={subject}>{subject}</option>)}</select>
+                  <select className="field sm:col-span-1" value={draft.subject} onChange={(event) => setDraft({ ...draft, subject: event.target.value })}>{subjectOptions.map((subject) => <option key={subject}>{subject}</option>)}</select>
                   <input className="field sm:col-span-2" value={draft.label} onChange={(event) => setDraft({ ...draft, label: event.target.value })} />
                 </div> : null}
               </article>

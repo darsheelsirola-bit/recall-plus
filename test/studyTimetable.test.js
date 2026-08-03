@@ -33,6 +33,7 @@ test('mergeTimetableBlocks replace-ai keeps manual blocks', () => {
 
 test('fallback timetable respects blocked school window', () => {
   const profile = {
+    subjects: ['English Core', 'Physics', 'Chemistry', 'Biology', 'Physical Education'],
     wakeTime: '06:00',
     sleepTime: '22:00',
     school: { days: [0, 1, 2, 3, 4], startTime: '08:00', endTime: '14:00' },
@@ -54,6 +55,7 @@ test('fallback timetable respects blocked school window', () => {
 
 test('fallback timetable avoids fixed blocked windows 08-09 and 14-15', () => {
   const profile = {
+    subjects: ['English Core', 'Accountancy', 'Business Studies', 'Economics', 'Applied Mathematics'],
     wakeTime: '06:00',
     sleepTime: '22:00',
     school: { days: [0, 1, 2, 3, 4], startTime: '09:00', endTime: '13:00' },
@@ -77,6 +79,7 @@ test('fallback timetable avoids fixed blocked windows 08-09 and 14-15', () => {
 
 test('fallback timetable can suggest multiple slots in one day', () => {
   const profile = {
+    subjects: ['English Core', 'History', 'Political Science', 'Geography', 'Psychology'],
     wakeTime: '05:30',
     sleepTime: '22:30',
     school: { days: [0, 1, 2, 3, 4], startTime: '09:00', endTime: '13:00' },
