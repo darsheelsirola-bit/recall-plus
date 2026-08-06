@@ -33,6 +33,7 @@ export function selectionFromParams(searchParams, syllabus = []) {
 export default function SelectionFields({ value, onChange, className = '' }) {
   const { syllabus } = useActiveCurriculum()
   const { loading, error } = useCurriculumSubjects([value.subject])
+  const subjectData = syllabus.find((item) => item.subject === value.subject)
   const chapters = getChapters(value.subject, syllabus)
   const topics = getTopics(value.subject, value.chapter, syllabus)
 
@@ -66,6 +67,7 @@ export default function SelectionFields({ value, onChange, className = '' }) {
       <label className="field-label">Topic<select className="field" value={value.topic} onChange={(event) => onChange({ ...value, topic: event.target.value })}>{topics.map((topic) => <option key={topic}>{topic}</option>)}</select></label>
       {loading ? <p role="status" className="text-sm text-muted-foreground md:col-span-3">Loading the selected subject curriculum…</p> : null}
       {error ? <p role="alert" className="text-sm text-destructive md:col-span-3">{error}</p> : null}
+      {!loading && !error && subjectData?.contentStatus === 'pending_verification' ? <p className="text-sm text-muted-foreground md:col-span-3">This selected subject has no verified official chapter or topic outline yet.</p> : null}
     </div>
   )
 }

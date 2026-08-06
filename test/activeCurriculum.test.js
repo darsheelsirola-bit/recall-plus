@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   activeSubjectNameSet,
   buildActiveSyllabus,
+  curriculumSubjectIdsForNames,
   curriculumRequestSelection,
   filterActiveSubjectRecords,
   isActiveSubjectRecord,
@@ -38,6 +39,22 @@ test('active syllabus preserves the selected PCB combination and excludes Mathem
   )
   assert.equal(syllabus.some((item) => item.subject === 'Mathematics'), false)
   assert.ok(syllabus.find((item) => item.subject === 'Biology')?.chapters.length)
+})
+
+test('demand loading resolves only opened active subjects to stable IDs', () => {
+  const selected = [
+    selection('301', 1),
+    selection('042', 2),
+    selection('043', 3),
+    selection('044', 4),
+    selection('048', 5),
+  ]
+
+  assert.deepEqual(
+    curriculumSubjectIdsForNames(selected, ['Biology', 'Physics', 'Biology']),
+    [selected[1].curriculumSubjectId, selected[3].curriculumSubjectId],
+  )
+  assert.deepEqual(curriculumSubjectIdsForNames(selected, ['Mathematics']), [])
 })
 
 test('quiz selections resolve to stable subject, chapter, and topic node IDs', () => {

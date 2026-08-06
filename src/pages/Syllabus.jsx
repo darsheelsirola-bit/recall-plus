@@ -7,11 +7,13 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/
 import PageHeader from '../components/PageHeader'
 import SubjectCard from '../components/SubjectCard'
 import TopicCard from '../components/TopicCard'
+import { useAcademicProfile } from '../academic/AcademicProfileProvider'
 import { useActiveCurriculum, useCurriculumSubjects } from '../academic/activeCurriculum'
 import { getData, STORAGE_KEYS } from '../utils/storage'
 
 export default function Syllabus() {
   const { syllabus } = useActiveCurriculum()
+  const { curriculumLoadingSubjectIds, loadedCurriculumSubjectIds } = useAcademicProfile()
   const [activeSubject, setActiveSubject] = useState(() => syllabus[0]?.subject || '')
   const [openChapter, setOpenChapter] = useState(() => syllabus[0]?.chapters[0]?.name || '')
   const [query, setQuery] = useState('')
@@ -19,6 +21,14 @@ export default function Syllabus() {
   const navigate = useNavigate()
   const statuses = getData(STORAGE_KEYS.topicStatuses, {})
   const results = useMemo(() => syllabus.map((item) => ({ ...item, chapters: item.chapters.map((chapter) => ({ ...chapter, topics: chapter.topics.filter((topic) => `${chapter.name} ${topic}`.toLowerCase().includes(query.toLowerCase())) })).filter((chapter) => chapter.topics.length) })), [query, syllabus])
+  const loadingSubjectIds = useMemo(
+    () => new Set(curriculumLoadingSubjectIds),
+    [curriculumLoadingSubjectIds],
+  )
+  const loadedSubjectIds = useMemo(
+    () => new Set(loadedCurriculumSubjectIds),
+    [loadedCurriculumSubjectIds],
+  )
   const subjectData = results.find((item) => item.subject === activeSubject)
   const effectiveOpenChapter = subjectData?.chapters.some((chapter) => chapter.name === openChapter)
     ? openChapter
@@ -35,7 +45,12 @@ export default function Syllabus() {
         {syllabus.map((item) => {
           const topicCount = item.chapters.reduce((sum, chapter) => sum + chapter.topics.length, 0)
           const studiedCount = item.chapters.reduce((sum, chapter) => sum + chapter.topics.filter((topic) => statuses[`${item.subject}|${chapter.name}|${topic}`]).length, 0)
-          return <SubjectCard key={item.subject} subject={item.subject} chapterCount={item.chapters.length} topicCount={topicCount} studiedCount={studiedCount} onClick={() => { setActiveSubject(item.subject); setOpenChapter('') }} />
+          const curriculumState = loadingSubjectIds.has(item.subjectId)
+            ? 'loading'
+            : loadedSubjectIds.has(item.subjectId)
+              ? 'loaded'
+              : 'idle'
+          return <SubjectCard key={item.subject} subject={item.subject} chapterCount={item.chapters.length} topicCount={topicCount} studiedCount={studiedCount} curriculumState={curriculumState} contentStatus={item.contentStatus} onClick={() => { setActiveSubject(item.subject); setOpenChapter('') }} />
         })}
       </section>
 

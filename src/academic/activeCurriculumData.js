@@ -76,6 +76,15 @@ export function activeSubjectNameSet(subjectSelections = []) {
   return new Set(subjectSelections.map((selection) => selection.subject.name))
 }
 
+export function curriculumSubjectIdsForNames(subjectSelections = [], subjectNames = []) {
+  const requestedNames = new Set(
+    (subjectNames || []).filter(Boolean).map((subjectName) => String(subjectName)),
+  )
+  return (subjectSelections || [])
+    .filter((selection) => requestedNames.has(selection.subject.name))
+    .map((selection) => selection.curriculumSubjectId)
+}
+
 export function isActiveSubjectRecord(record, activeNames, activeIds = new Set()) {
   const subjectId = String(record?.curriculumSubjectId || '').trim()
   if (subjectId) return activeIds.has(subjectId)

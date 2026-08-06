@@ -72,6 +72,7 @@ export default function AddLog() {
   const { loading: curriculumLoading, error: curriculumError } = useCurriculumSubjects([subject])
 
   const chapters = getChapters(subject, syllabus)
+  const subjectData = syllabus.find((item) => item.subject === subject)
   const chapterTopics = getTopics(subject, chapter, syllabus)
   const timetableBlocks = getBlocksForDate(getData(STORAGE_KEYS.studyTimetable, []), date)
     .filter(isActiveRecord)
@@ -200,6 +201,7 @@ export default function AddLog() {
       />
       {curriculumLoading ? <p role="status" className="mb-4 rounded-xl border border-border bg-secondary/35 p-4 text-sm text-muted-foreground">Loading the selected subject curriculum…</p> : null}
       {curriculumError || saveError ? <p role="alert" className="mb-4 rounded-xl border border-destructive/25 bg-destructive/10 p-4 text-sm font-medium text-destructive">{curriculumError || saveError} Your form is still here so you can retry.</p> : null}
+      {!curriculumLoading && !curriculumError && subjectData?.contentStatus === 'pending_verification' ? <p className="mb-4 rounded-xl border border-border bg-secondary/35 p-4 text-sm text-muted-foreground">This subject is active, but its official chapter and topic outline is still awaiting verification. Recall+ will not invent study-log topics for it.</p> : null}
       <form onSubmit={handleSubmit} className="grid max-w-7xl gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="p-5 sm:p-6">
           <div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-xl bg-secondary text-primary"><NotebookPen className="size-5" /></span><div><h2 className="text-lg font-semibold">Study log</h2><p className="text-sm text-muted-foreground">Pick a chapter, then tap every topic you covered.</p></div></div>
