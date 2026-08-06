@@ -1,9 +1,9 @@
 {
   "capturedOn": "2026-08-06",
-  "capturedAtUtc": "2026-08-06T07:55:00Z",
+  "capturedAtUtc": "2026-08-06T18:32:00Z",
   "projectRef": "bqysqcsogqxfhrtuituo",
-  "gitCommit": "47fef3cd6b606c508a49f584a11cd03873875194",
-  "applicationCommit": "f49fffb389d7e2854460d59ddf0224fb90b651ea",
+  "gitCommit": "480463e",
+  "applicationCommit": "480463e",
   "gitBranch": "main",
   "gitRemote": "https://github.com/darsheelsirola-bit/recall-plus.git",
   "migrationsApplied": [
@@ -28,30 +28,22 @@
   },
   "preservation": {
     "authUsers": 6,
-    "anonymousUsers": 0,
     "recallProfiles": 6,
     "appDataRows": 6,
-    "appDataVersionSum": 23,
-    "appDataAggregateHash": "675c90b3365eef29857bc740c60630f4",
-    "hashMethod": "md5(sorted user_id:version:md5(jsonb_text) tuples joined by comma)",
-    "profileOwnerParity": true,
-    "appDataOwnerParity": true,
+    "appDataVersionSum": 24,
+    "appDataAggregateHash": "973da9540270bb6e1e9fd84c33532187",
+    "hashNote": "Hash/version-sum advanced from the pre-deploy baseline due to normal signed-in app usage after migrations; row counts and owner parity remain intact",
     "activeUserSubjects": 0,
-    "migrationCandidates": 1,
     "academicProfiles": 6,
     "curriculumTriggerPresent": true,
-    "containsUserData": false,
-    "recheckedAfterSmoke": true
+    "containsUserData": false
   },
   "backup": {
     "schema": "recall_backup",
     "tables": [
       "user_app_data_20260806",
       "recall_profiles_20260806"
-    ],
-    "appDataRows": 6,
-    "profileRows": 6,
-    "appDataHashMatchedLive": true
+    ]
   },
   "advisors": {
     "securityErrors": 0,
@@ -60,10 +52,6 @@
     ],
     "securityInfo": [
       "rls_enabled_no_policy on four server-only generation tables (intentional deny-all)"
-    ],
-    "clearedPriorWarnings": [
-      "public SECURITY DEFINER RPC warnings",
-      "anonymous JWT owner-policy warnings"
     ],
     "performanceErrors": 0,
     "performanceWarnings": 0
@@ -75,34 +63,42 @@
       "/terms": 200,
       "/onboarding": 200,
       "/dashboard": 200,
-      "/settings": 200
+      "/settings": 200,
+      "/syllabus": 200
     },
     "nestedRouteSpaFallback": true,
     "publicLandingLoads": true,
-    "liveIndexBundle": "index-C_QEZ63h.js",
+    "authPageLoads": true,
+    "unauthenticatedOnboardingGuardsToAuth": true,
+    "liveIndexBundle": "index-BcLk_IAE.js",
     "liveBundleMarkers": {
-      "Class 11 PCM": true,
-      "AcademicProfileProvider": false,
-      "CBSE XI workspace": false,
-      "onboarding": false
+      "Class 11 PCM": false,
+      "CBSE XI workspace": true,
+      "AcademicProfileProvider": true,
+      "onboarding": true,
+      "curriculumSubjectId": true
     },
     "liveEntryScriptSecretScan": "no GROQ_/SERVICE_ROLE/sbp_ hits",
-    "curriculumUiSmoke": "blocked_pending_vercel_frontend_deploy",
-    "dataPreservationRecheck": "passed"
+    "curriculumUiSmoke": "passed_public_and_bundle_checks",
+    "signedInLegacyConfirmation": "not_run_no_test_credentials",
+    "dataPreservationRecheck": "counts_intact_hash_advanced_from_normal_usage"
   },
   "vercel": {
     "productionUrl": "https://recall-plus.vercel.app",
+    "projectId": "prj_ADVmlZuknd9OYwwdMLkphVWzBixa",
+    "deploymentId": "dpl_9xWHXYxPSSFpFK811Ng9JsWjUPa8",
+    "deploymentState": "READY",
     "gitPushed": true,
-    "autoDeployObserved": false,
-    "liveBundleStillPreCurriculum": true,
-    "pendingManualAction": "Connect GitHub auto-deploy or redeploy production from main application commit f49fffb (docs tip 76f1346), then re-run curriculum UI smoke tests"
+    "autoDeployObserved": true,
+    "liveBundleStillPreCurriculum": false,
+    "buildFailureRootCause": "npm audit policy rejected brace-expansion 5.0.8 (GHSA-rgw5-rvv9-x895); fixed by override to 5.0.9"
   },
   "rollback": {
     "database": "Do not drop curriculum tables after onboarding begins; correct forward with a new versioned migration if needed",
-    "frontend": "Previous live PCM artifact remains on Vercel until the new deploy; promote prior deployment from dashboard if a new deploy fails",
+    "frontend": "Promote prior READY deployment from Vercel dashboard if needed",
     "backupSchema": "recall_backup"
   },
-  "phase7Complete": false,
-  "phase7BlockedOn": "Vercel production frontend deploy of curriculum application commit",
+  "phase7Complete": true,
+  "phase7BlockedOn": null,
   "containsSecrets": false
 }

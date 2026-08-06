@@ -533,7 +533,7 @@ Status: complete
 
 ## Phase 7 - Coordinated production rollout
 
-Status: production database migrated and GitHub `main` updated; Vercel frontend release pending owner auto-deploy
+Status: complete — production database migrated, GitHub `main` updated, Vercel production serving curriculum frontend (`dpl_9xWHXYxPSSFpFK811Ng9JsWjUPa8`, commit `480463e`)
 
 ### Completed production mutations (2026-08-06)
 
@@ -562,20 +562,20 @@ Status: production database migrated and GitHub `main` updated; Vercel frontend 
 - Wrote non-secret status artifact:
   `reports/database/phase-7-rollout-status.json`.
 
-### Smoke tests (2026-08-06, before Vercel curriculum deploy)
+### Vercel release unblock and final smoke (2026-08-06)
 
-Passed against the still-live pre-curriculum frontend and migrated database:
-
-- HTTP 200 for `/`, `/privacy`, `/terms`, `/onboarding`, `/dashboard`, `/settings`
-- Nested-route SPA fallback (no hard 404)
-- Public landing page loads
-- Aggregate data-hash re-check unchanged at `675c90b3365eef29857bc740c60630f4`
-- Live entry-script secret-pattern scan found no `GROQ_`, `SERVICE_ROLE`, or `sbp_` hits
-
-Blocked until Vercel serves application commit `f49fffb`:
-
-- Curriculum onboarding / legacy confirmation / selected-subject UI smoke
-- Live bundle still contains `Class 11 PCM` and lacks `AcademicProfileProvider`
+- Auto-deploy was connected, but production builds failed after a successful Vite build because
+  `npm run audit:all` rejected transitive `brace-expansion@5.0.8` (`GHSA-rgw5-rvv9-x895`).
+- Fixed by pinning `overrides.brace-expansion` to `5.0.9`, updating the lockfile, and pushing
+  commit `480463e`. Deployment `dpl_9xWHXYxPSSFpFK811Ng9JsWjUPa8` reached `READY`.
+- Live production bundle is now `index-BcLk_IAE.js` with curriculum markers present and
+  `Class 11 PCM` absent.
+- Final smoke passed: HTTP 200 for public/app routes, auth page loads, unauthenticated
+  `/onboarding` guards to sign-in, secret-pattern scan clean, catalogue/trigger intact, and
+  user/profile/snapshot counts remain 6/6/6. Aggregate hash advanced from normal post-migration
+  app usage (`version_sum` 24).
+- Signed-in legacy subject confirmation was not exercised in this session (no production test
+  credentials).
 
 Non-secret artifacts:
 
@@ -584,11 +584,10 @@ Non-secret artifacts:
 
 ### Remaining work
 
-1. Owner enables Vercel Git auto-deploy (or manually deploys application commit `f49fffb`) to production.
-2. Confirm the live bundle no longer contains `Class 11 PCM` and includes curriculum onboarding.
-3. Re-run curriculum UI smoke / security checks and append results to the Phase 7 report.
-4. Optionally revoke the temporary `SUPABASE_ACCESS_TOKEN` used for the Management API migration.
-5. Next product phase after Phase 7 frontend verification: verified question-bank system.
+1. Optionally revoke temporary `SUPABASE_ACCESS_TOKEN` and `VERCEL_TOKEN`.
+2. Spot-check one existing production user through subject confirmation and selected-subject
+   Syllabus / Add Log / Quiz selectors.
+3. Next product phase: verified question-bank system.
 
 ## Database safety rule
 
