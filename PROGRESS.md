@@ -562,31 +562,33 @@ Status: production database migrated and GitHub `main` updated; Vercel frontend 
 - Wrote non-secret status artifact:
   `reports/database/phase-7-rollout-status.json`.
 
-### Frontend deployment status
+### Smoke tests (2026-08-06, before Vercel curriculum deploy)
 
-- `https://recall-plus.vercel.app` still served the pre-curriculum PCM bundle after the Git push
-  (`Class 11 PCM` present; no `AcademicProfileProvider` / onboarding markers in the live index).
-- Observed Vercel project UI showed no connected Git auto-deploy for the session used during
-  rollout. Owner will connect GitHub auto-deploy or manually redeploy production from
-  `main@f49fffb`.
-- The new database objects remain backward-compatible with the currently live old frontend.
-- After the new frontend is live, run production smoke tests before claiming Phase 7 complete:
-  sign-in, legacy subject confirmation, new-user onboarding redirect, selected-subject filtering,
-  nested-route refresh, console cleanliness, and a final aggregate data-hash re-check.
+Passed against the still-live pre-curriculum frontend and migrated database:
 
-### Local verification retained
+- HTTP 200 for `/`, `/privacy`, `/terms`, `/onboarding`, `/dashboard`, `/settings`
+- Nested-route SPA fallback (no hard 404)
+- Public landing page loads
+- Aggregate data-hash re-check unchanged at `675c90b3365eef29857bc740c60630f4`
+- Live entry-script secret-pattern scan found no `GROQ_`, `SERVICE_ROLE`, or `sbp_` hits
 
-- Final pre-push `npm.cmd run check` passed: seven-migration PostgreSQL replay, catalogue
-  validation, generated client modules, TypeScript, ESLint, 192 automated tests, production build,
-  and secret scans.
+Blocked until Vercel serves application commit `f49fffb`:
+
+- Curriculum onboarding / legacy confirmation / selected-subject UI smoke
+- Live bundle still contains `Class 11 PCM` and lacks `AcademicProfileProvider`
+
+Non-secret artifacts:
+
+- `reports/database/phase-7-rollout-status.json`
+- `reports/database/phase-7-rollout-report.md`
 
 ### Remaining work
 
-1. Owner enables Vercel Git auto-deploy (or manually deploys `main@f49fffb`) to production.
+1. Owner enables Vercel Git auto-deploy (or manually deploys application commit `f49fffb`) to production.
 2. Confirm the live bundle no longer contains `Class 11 PCM` and includes curriculum onboarding.
-3. Run production smoke / security checks and append results to the Phase 7 report.
+3. Re-run curriculum UI smoke / security checks and append results to the Phase 7 report.
 4. Optionally revoke the temporary `SUPABASE_ACCESS_TOKEN` used for the Management API migration.
-5. Next product phase after Phase 7 verification: verified question-bank system.
+5. Next product phase after Phase 7 frontend verification: verified question-bank system.
 
 ## Database safety rule
 

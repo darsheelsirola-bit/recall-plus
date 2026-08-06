@@ -1,8 +1,9 @@
 {
   "capturedOn": "2026-08-06",
-  "capturedAtUtc": "2026-08-06T07:40:00Z",
+  "capturedAtUtc": "2026-08-06T07:55:00Z",
   "projectRef": "bqysqcsogqxfhrtuituo",
-  "gitCommit": "f49fffb389d7e2854460d59ddf0224fb90b651ea",
+  "gitCommit": "76f1346389d7e2854460d59ddf0224fb90b651ea",
+  "applicationCommit": "f49fffb389d7e2854460d59ddf0224fb90b651ea",
   "gitBranch": "main",
   "gitRemote": "https://github.com/darsheelsirola-bit/recall-plus.git",
   "migrationsApplied": [
@@ -38,7 +39,9 @@
     "activeUserSubjects": 0,
     "migrationCandidates": 1,
     "academicProfiles": 6,
-    "containsUserData": false
+    "curriculumTriggerPresent": true,
+    "containsUserData": false,
+    "recheckedAfterSmoke": true
   },
   "backup": {
     "schema": "recall_backup",
@@ -65,12 +68,41 @@
     "performanceErrors": 0,
     "performanceWarnings": 0
   },
+  "smokeTests": {
+    "httpRoutes": {
+      "/": 200,
+      "/privacy": 200,
+      "/terms": 200,
+      "/onboarding": 200,
+      "/dashboard": 200,
+      "/settings": 200
+    },
+    "nestedRouteSpaFallback": true,
+    "publicLandingLoads": true,
+    "liveIndexBundle": "index-C_QEZ63h.js",
+    "liveBundleMarkers": {
+      "Class 11 PCM": true,
+      "AcademicProfileProvider": false,
+      "CBSE XI workspace": false,
+      "onboarding": false
+    },
+    "liveEntryScriptSecretScan": "no GROQ_/SERVICE_ROLE/sbp_ hits",
+    "curriculumUiSmoke": "blocked_pending_vercel_frontend_deploy",
+    "dataPreservationRecheck": "passed"
+  },
   "vercel": {
     "productionUrl": "https://recall-plus.vercel.app",
     "gitPushed": true,
     "autoDeployObserved": false,
     "liveBundleStillPreCurriculum": true,
-    "pendingManualAction": "Connect GitHub auto-deploy or redeploy production from main@f49fffb, then run smoke tests"
+    "pendingManualAction": "Connect GitHub auto-deploy or redeploy production from main application commit f49fffb (docs tip 76f1346), then re-run curriculum UI smoke tests"
   },
+  "rollback": {
+    "database": "Do not drop curriculum tables after onboarding begins; correct forward with a new versioned migration if needed",
+    "frontend": "Previous live PCM artifact remains on Vercel until the new deploy; promote prior deployment from dashboard if a new deploy fails",
+    "backupSchema": "recall_backup"
+  },
+  "phase7Complete": false,
+  "phase7BlockedOn": "Vercel production frontend deploy of curriculum application commit",
   "containsSecrets": false
 }
