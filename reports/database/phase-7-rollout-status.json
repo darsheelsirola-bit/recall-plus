@@ -1,0 +1,76 @@
+{
+  "capturedOn": "2026-08-06",
+  "capturedAtUtc": "2026-08-06T07:40:00Z",
+  "projectRef": "bqysqcsogqxfhrtuituo",
+  "gitCommit": "f49fffb389d7e2854460d59ddf0224fb90b651ea",
+  "gitBranch": "main",
+  "gitRemote": "https://github.com/darsheelsirola-bit/recall-plus.git",
+  "migrationsApplied": [
+    {
+      "localFile": "20260730120000_curriculum_profiles_and_rls.sql",
+      "recordedVersion": "20260806073627",
+      "recordedName": "curriculum_profiles_and_rls",
+      "status": "applied"
+    },
+    {
+      "localFile": "20260803120000_validate_study_log_curriculum.sql",
+      "recordedVersion": "20260806073813",
+      "recordedName": "validate_study_log_curriculum",
+      "status": "applied"
+    }
+  ],
+  "catalogue": {
+    "curriculumVersions": 1,
+    "subjectRecords": 124,
+    "selectableSubjects": 121,
+    "curriculumNodes": 295
+  },
+  "preservation": {
+    "authUsers": 6,
+    "anonymousUsers": 0,
+    "recallProfiles": 6,
+    "appDataRows": 6,
+    "appDataVersionSum": 23,
+    "appDataAggregateHash": "675c90b3365eef29857bc740c60630f4",
+    "hashMethod": "md5(sorted user_id:version:md5(jsonb_text) tuples joined by comma)",
+    "profileOwnerParity": true,
+    "appDataOwnerParity": true,
+    "activeUserSubjects": 0,
+    "migrationCandidates": 1,
+    "academicProfiles": 6,
+    "containsUserData": false
+  },
+  "backup": {
+    "schema": "recall_backup",
+    "tables": [
+      "user_app_data_20260806",
+      "recall_profiles_20260806"
+    ],
+    "appDataRows": 6,
+    "profileRows": 6,
+    "appDataHashMatchedLive": true
+  },
+  "advisors": {
+    "securityErrors": 0,
+    "securityWarnings": [
+      "auth_leaked_password_protection (Free-plan limitation; not claimed fixed)"
+    ],
+    "securityInfo": [
+      "rls_enabled_no_policy on four server-only generation tables (intentional deny-all)"
+    ],
+    "clearedPriorWarnings": [
+      "public SECURITY DEFINER RPC warnings",
+      "anonymous JWT owner-policy warnings"
+    ],
+    "performanceErrors": 0,
+    "performanceWarnings": 0
+  },
+  "vercel": {
+    "productionUrl": "https://recall-plus.vercel.app",
+    "gitPushed": true,
+    "autoDeployObserved": false,
+    "liveBundleStillPreCurriculum": true,
+    "pendingManualAction": "Connect GitHub auto-deploy or redeploy production from main@f49fffb, then run smoke tests"
+  },
+  "containsSecrets": false
+}

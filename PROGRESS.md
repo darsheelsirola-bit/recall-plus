@@ -1,6 +1,6 @@
 # Recall+ curriculum expansion progress
 
-Last updated: 2026-08-04
+Last updated: 2026-08-06
 
 ## Phase 0 - Audited baseline
 
@@ -533,92 +533,63 @@ Status: complete
 
 ## Phase 7 - Coordinated production rollout
 
-Status: local rollout preparation complete; external mutation pending fresh authorization
+Status: production database migrated and GitHub `main` updated; Vercel frontend release pending owner auto-deploy
 
-### Completed preparation
+### Completed production mutations (2026-08-06)
 
-- Re-read the complete 1,069-line goal specification and rechecked the exact current Git,
-  migration, Supabase, Vercel, and live HTTP state instead of relying on historical deployment
-  evidence.
-- Confirmed application-code tip `c653702fe7c8d75ea82c483226cb9b5c7ea44ffd` was eight commits ahead of
-  `origin/main` at `b758cae23d3e826736e1b53724898d6bad356b3b`, with no uncommitted application
-  change before this preflight documentation update. The tested preflight documentation is the
-  ninth local commit candidate.
-- Confirmed production Supabase is healthy, still has exactly the five pre-curriculum migrations,
-  and has none of the six curriculum/user-academic tables. The two pending migrations remain one
-  explicit transaction each and have SHA-256 hashes:
-  - `20260730120000_curriculum_profiles_and_rls.sql`:
-    `C888F4D693BF8305F12E64680FE342FE4FD0A0459125AF760326AC8F2C9C25A7`;
-  - `20260803120000_validate_study_log_curriculum.sql`:
-    `CD1A26958358DD6B31BF136C7BC8E97BF6930C22216DC58885A23FEC17751DCB`.
-- Refreshed the non-identifying production preservation baseline to six Auth users, zero anonymous
-  users, six Recall profiles, six app snapshots, version sum 22, exact owner parity, and aggregate
-  hash `ccbef85bfef01e4adc3c45dddae237b1`.
-- Audited current Supabase security advice. The curriculum migration is expected to clear the two
-  old public `SECURITY DEFINER` warnings and the two anonymous-policy warnings. Four deny-all
-  server-state INFO notices are intentional. Leaked-password protection is Pro-only while the
-  production organization is on the Free plan, so the paid-feature warning is disclosed rather
-  than falsely marked fixed.
-- Confirmed Vercel project linkage, `READY` production deployment
-  `dpl_243LFc8QnXDbSLUK5F2n3cSCREr7`, its three production aliases, rollback-candidate status, and
-  zero grouped runtime errors in the prior 24 hours. The homepage, Privacy, and Terms routes each
-  returned HTTP 200.
-- Corrected the rollout order for Vercel Git integration. A pinned production build will first be
-  created with `--skip-domain`; both database migrations and preservation/security checks must pass
-  before pushing `main` can trigger or any command can promote the new production artifact.
-- Expanded `docs/database/curriculum-migration-runbook.md` with exact targets, gates, paid-feature
-  limitation, automatic-deployment hazard, forward-recovery hold point, live verification, and the
-  current rollback candidate.
-- Split the 24 reviewed curriculum outlines into generated per-subject client modules so an
-  authenticated learner downloads nodes only for selected subjects instead of bundling every
-  reviewed outline into the startup path. The server authorization layer now also fetches nodes
-  only for the subject required by a quiz or insight request and skips nodes for timetable requests.
-- Stamped the active curriculum version onto new study logs, practice and diagnostic results,
-  reviews, recall items, timetable blocks, and AI insight cards. The pending validation trigger now
-  requires that version on new or changed post-onboarding study logs while preserving untouched
-  legacy records.
-- Added authorization and migration regression coverage for request-scoped node loading,
-  unselected-subject rejection, and curriculum-version validation. The production build emits 24
-  subject-specific curriculum chunks and keeps the shared active-curriculum chunk at 2.40 kB.
-- No Supabase schema/Auth setting, Git remote, Vercel deployment/alias, or live application state
-  was changed during this preflight.
+- Created private in-database backup copies before mutating:
+  `recall_backup.user_app_data_20260806` and `recall_backup.recall_profiles_20260806`
+  (6+6 rows; live aggregate hash matched).
+- Applied both curriculum migrations to production Supabase `bqysqcsogqxfhrtuituo` through the
+  Management API. Recorded migration history versions (API timestamps):
+  - `20260806073627_curriculum_profiles_and_rls`
+  - `20260806073813_validate_study_log_curriculum`
+- Verified catalogue seed: 1 curriculum version, 124 subject records, 121 selectable subjects,
+  295 curriculum nodes.
+- Verified data preservation after both migrations: 6 Auth users, 0 anonymous users, 6 profiles,
+  6 app snapshots, version sum 23, aggregate hash `675c90b3365eef29857bc740c60630f4` unchanged,
+  owner parity true. Active subject selections remain 0 until owners confirm onboarding; 1 legacy
+  migration candidate row exists.
+- Verified `recall_private.enforce_user_app_data_curriculum` trigger is installed and execute rights
+  remain revoked from `anon` / `authenticated`.
+- Re-ran security and performance advisors:
+  - cleared the prior public `SECURITY DEFINER` and anonymous-policy WARN findings;
+  - remaining security WARN is Free-plan leaked-password protection (disclosed, not claimed fixed);
+  - four deny-all generation-table INFO notices remain intentional;
+  - performance notices are INFO-only unused indexes / backup-table primary-key notes.
+- Pushed verified application commits to GitHub `main` at
+  `f49fffb389d7e2854460d59ddf0224fb90b651ea`.
+- Wrote non-secret status artifact:
+  `reports/database/phase-7-rollout-status.json`.
 
-### Read-only checks run
+### Frontend deployment status
 
-- Supabase project/org listing, migration SQL query, aggregate preservation query, security advisor,
-  and current schema/function inventory.
-- Vercel project, deployment list, current deployment detail, 24-hour runtime-error scan, and
-  authenticated production HTML fetch.
-- External HTTP probes for `/`, `/privacy`, and `/terms`.
-- Local Git status/SHAs/diff check, migration inventory/hashes/transaction boundaries, Vercel link,
-  and deployment configuration review.
-- Final `npm.cmd run check` passed after the corrective edits: seven-migration PostgreSQL replay,
-  124 subjects, 24 reviewed outlines, 295 nodes, exact generated-client-module verification,
-  TypeScript, ESLint, 189/189 tests, Vite production build, 304-file working-tree secret scan, and
-  406-blob complete reachable-history secret scan.
+- `https://recall-plus.vercel.app` still served the pre-curriculum PCM bundle after the Git push
+  (`Class 11 PCM` present; no `AcademicProfileProvider` / onboarding markers in the live index).
+- Observed Vercel project UI showed no connected Git auto-deploy for the session used during
+  rollout. Owner will connect GitHub auto-deploy or manually redeploy production from
+  `main@f49fffb`.
+- The new database objects remain backward-compatible with the currently live old frontend.
+- After the new frontend is live, run production smoke tests before claiming Phase 7 complete:
+  sign-in, legacy subject confirmation, new-user onboarding redirect, selected-subject filtering,
+  nested-route refresh, console cleanliness, and a final aggregate data-hash re-check.
 
-### Remaining work and unresolved external limitations
+### Local verification retained
 
-- Fresh authorization is required before downloading/running the pinned official Vercel CLI,
-  creating the skip-domain production artifact, applying either production migration, pushing the
-  verified local commits, or moving the live alias.
-- Vercel production environment-variable names cannot be independently listed with the currently
-  installed tools because no Vercel CLI is present. The required `npm run vercel:build` environment
-  validator will fail the unaliased candidate build before any database or live-site change if a
-  required value is absent, mismatched, exposed, or reused incorrectly.
-- Supabase performance-advisor requests were temporarily unavailable during this read-only
-  preflight. It remains a mandatory post-migration gate and must succeed before frontend release.
-- Supabase leaked-password protection cannot be enabled on the organization's Free plan. No paid
-  upgrade will be created or authorized implicitly.
+- Final pre-push `npm.cmd run check` passed: seven-migration PostgreSQL replay, catalogue
+  validation, generated client modules, TypeScript, ESLint, 192 automated tests, production build,
+  and secret scans.
 
-## Remaining work
+### Remaining work
 
-1. Phase 7 - After fresh explicit authorization, build the unaliased candidate, apply and verify
-   both production migrations, push all verified local commits, release the exact artifact, complete live
-   production smoke/security checks, and publish the requirement-by-requirement final report.
+1. Owner enables Vercel Git auto-deploy (or manually deploys `main@f49fffb`) to production.
+2. Confirm the live bundle no longer contains `Class 11 PCM` and includes curriculum onboarding.
+3. Run production smoke / security checks and append results to the Phase 7 report.
+4. Optionally revoke the temporary `SUPABASE_ACCESS_TOKEN` used for the Management API migration.
+5. Next product phase after Phase 7 verification: verified question-bank system.
 
 ## Database safety rule
 
-No database migration or security change will be applied to the live project until its complete phase
-is implemented, tested, reviewed for rollback and compatibility, and ready to apply as one coherent
-unit.
+No further production schema change should be applied until it is implemented, tested, reviewed for
+rollback and compatibility, and ready to apply as one coherent unit. The Phase 7 curriculum
+migrations above were applied only after that bar was met.

@@ -5,7 +5,12 @@ Migrations, in dependency order:
 1. `20260730120000_curriculum_profiles_and_rls`
 2. `20260803120000_validate_study_log_curriculum`
 
-Last application-code commit: `c653702fe7c8d75ea82c483226cb9b5c7ea44ffd`
+Last application-code commit on GitHub `main`: `f49fffb389d7e2854460d59ddf0224fb90b651ea`
+
+Production database status (2026-08-06): both curriculum migrations are applied
+(`20260806073627_curriculum_profiles_and_rls`, `20260806073813_validate_study_log_curriculum`).
+Vercel production frontend release is pending owner Git auto-deploy / redeploy from that commit.
+See `reports/database/phase-7-rollout-status.json`.
 
 Production targets:
 
