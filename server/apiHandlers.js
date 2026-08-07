@@ -13,7 +13,7 @@ import {
   runLimitedInsightGeneration,
 } from './generationLimit.js'
 import { sendError, sendMethodNotAllowed, setPrivateNoStore } from './http.js'
-import { isSupabaseConfigured, verifySupabaseUser } from './supabase.js'
+import { isSupabaseConfigured, getSupabaseAdminClient, verifySupabaseUser } from './supabase.js'
 import { hasOnlyKeys, readBoundedJsonBody } from './requestValidation.js'
 import {
   authorizeInsightsRequest,
@@ -202,6 +202,51 @@ export async function handleInsightGeneration(request, response, operations = {}
     })
     response.setHeader('X-Idempotent-Replay', limited.replay ? 'true' : 'false')
     return response.status(200).json(limited.result)
+  } catch (error) {
+    return sendError(response, error)
+  }
+}
+
+/**
+ * Permanently deletes the authenticated Supabase Auth user. Cascading FK
+ * policies remove owner-scoped public rows. Requires an explicit confirmation
+ * string so a stray click cannot destroy an account.
+ */
+export async function handleAccountDeletion(request, response, operations = {}) {
+  if (request.method !== 'POST') return sendMethodNotAllowed(response, ['POST'])
+  setPrivateNoStore(response)
+
+  try {
+    const body = readBoundedJsonBody(request)
+    if (!hasOnlyKeys(body, ['confirmation'])) {
+      throw new AppError('Invalid account-deletion request.', {
+        code: ERROR_CODES.INVALID_REQUEST,
+        statusCode: 400,
+      })
+    }
+    if (String(body.confirmation || '').trim() !== 'DELETE MY ACCOUNT') {
+      throw new AppError('Type DELETE MY ACCOUNT to confirm permanent deletion.', {
+        code: ERROR_CODES.ACCOUNT_DELETE_CONFIRMATION_REQUIRED,
+        statusCode: 400,
+      })
+    }
+
+    const user = await injected(operations, 'authenticatedUser', authenticatedUser)(request)
+    const admin = injected(operations, 'getSupabaseAdminClient', getSupabaseAdminClient)()
+    const { error } = await admin.auth.admin.deleteUser(user.id)
+    if (error) {
+      throw new AppError('Your account could not be deleted right now. Please try again or email support.', {
+        code: ERROR_CODES.ACCOUNT_DELETE_FAILED,
+        statusCode: 503,
+        cause: error,
+        details: { retryable: true },
+      })
+    }
+
+    return response.status(200).json({
+      deleted: true,
+      message: 'Your Recall+ account and associated cloud data have been deleted.',
+    })
   } catch (error) {
     return sendError(response, error)
   }

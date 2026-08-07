@@ -1,4 +1,4 @@
-import { Download, GraduationCap, ShieldCheck, Upload } from 'lucide-react'
+import { Download, GraduationCap, ShieldCheck, Trash2, Upload } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -8,6 +8,7 @@ import ContactEmailDialog from '../components/ContactEmailDialog'
 import PageHeader from '../components/PageHeader'
 import { useAuth } from '../auth/AuthProvider'
 import { useAcademicProfile } from '../academic/AcademicProfileProvider'
+import { ApiRequestError, authenticatedFetch, readApiError } from '../services/apiClient'
 import {
   exportAllDataForUser,
   importAllDataForUser,
@@ -17,11 +18,13 @@ import { getTodayDate } from '../utils/dateUtils'
 import { INDIA_TIMEZONE_DETAIL, INDIA_TIMEZONE_NAME } from '../utils/profile'
 
 export default function Settings() {
-  const { profile, syncing, user } = useAuth()
+  const { profile, syncing, user, signOut } = useAuth()
   const { workspace } = useAcademicProfile()
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [contactOpen, setContactOpen] = useState(false)
+  const [deleteConfirmation, setDeleteConfirmation] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   function exportBackup() {
     setError('')
@@ -58,6 +61,38 @@ export default function Settings() {
       setNotice('Backup imported. Your restored data will sync to your account.')
     } catch (backupError) {
       setError(backupError instanceof Error ? backupError.message : 'Could not import this backup.')
+    }
+  }
+
+  async function deleteAccount() {
+    setError('')
+    setNotice('')
+    if (deleteConfirmation.trim() !== 'DELETE MY ACCOUNT') {
+      setError('Type DELETE MY ACCOUNT exactly to confirm permanent deletion.')
+      return
+    }
+    if (!window.confirm('This permanently deletes your Recall+ account and cloud study data. Continue?')) {
+      return
+    }
+    setDeleting(true)
+    try {
+      const response = await authenticatedFetch('/api/delete-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmation: 'DELETE MY ACCOUNT' }),
+      })
+      if (!response.ok) {
+        throw await readApiError(response, 'Account deletion failed.')
+      }
+      await signOut()
+      window.location.assign('/')
+    } catch (deleteError) {
+      const message = deleteError instanceof ApiRequestError || deleteError instanceof Error
+        ? deleteError.message
+        : 'Account deletion failed.'
+      setError(message)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -150,6 +185,38 @@ export default function Settings() {
               Review or edit subjects
             </Link>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4 border-destructive/30">
+        <CardHeader>
+          <span className="grid size-11 place-items-center rounded-xl bg-destructive/10 text-destructive"><Trash2 className="size-5" /></span>
+          <CardTitle className="mt-3">Delete account</CardTitle>
+          <CardDescription>
+            Permanently deletes your authentication account and associated Recall+ cloud data.
+            Download a backup first if you may need your study history. Backup copies retained for
+            disaster recovery are removed on the documented retention schedule.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <label className="field-label">
+            Type DELETE MY ACCOUNT to confirm
+            <input
+              className="field"
+              value={deleteConfirmation}
+              onChange={(event) => setDeleteConfirmation(event.target.value)}
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </label>
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={deleting || deleteConfirmation.trim() !== 'DELETE MY ACCOUNT'}
+            onClick={deleteAccount}
+          >
+            {deleting ? 'Deleting…' : 'Delete my account permanently'}
+          </Button>
         </CardContent>
       </Card>
 
