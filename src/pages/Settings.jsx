@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import ContactEmailDialog from '../components/ContactEmailDialog'
 import PageHeader from '../components/PageHeader'
 import { useAuth } from '../auth/AuthProvider'
 import { useAcademicProfile } from '../academic/AcademicProfileProvider'
@@ -20,6 +21,7 @@ export default function Settings() {
   const { workspace } = useAcademicProfile()
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [contactOpen, setContactOpen] = useState(false)
 
   function exportBackup() {
     setError('')
@@ -162,9 +164,22 @@ export default function Settings() {
         <CardContent className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
           <Link className="font-semibold text-primary hover:underline" to="/privacy">Read the Privacy Policy</Link>
           <Link className="font-semibold text-primary hover:underline" to="/terms">Read the Terms of Service</Link>
-          <a className="font-semibold text-primary hover:underline" href="mailto:darsheel.sirola@gmail.com">Request account-data help</a>
+          <button
+            type="button"
+            className="font-semibold text-primary hover:underline"
+            onClick={() => setContactOpen(true)}
+          >
+            Request account-data help
+          </button>
         </CardContent>
       </Card>
+
+      <ContactEmailDialog
+        open={contactOpen}
+        onClose={() => setContactOpen(false)}
+        title="Account-data help"
+        description="Email us from the address connected to your Recall+ account for access, correction, or deletion requests."
+      />
 
       {error ? (
         <Alert variant="destructive" className="mt-4">

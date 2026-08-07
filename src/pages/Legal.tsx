@@ -1,11 +1,12 @@
 import { ArrowLeft } from 'lucide-react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import ContactEmailDialog, { SUPPORT_EMAIL } from '../components/ContactEmailDialog'
 import Logo from '../components/Logo'
 
 type LegalDocument = 'privacy' | 'terms'
 
 const EFFECTIVE_DATE = '29 July 2026'
-const SUPPORT_EMAIL = 'darsheel.sirola@gmail.com'
 
 const documents = {
   privacy: {
@@ -123,6 +124,7 @@ const documents = {
 
 export default function Legal({ document }: { document: LegalDocument }) {
   const content = documents[document]
+  const [contactOpen, setContactOpen] = useState(false)
 
   return (
     <main className="min-h-dvh bg-background px-4 py-8 text-foreground sm:px-6 lg:px-8">
@@ -161,11 +163,17 @@ export default function Legal({ document }: { document: LegalDocument }) {
         <footer className="flex flex-wrap gap-x-5 gap-y-2 border-t border-border py-8 text-sm">
           <Link className="font-semibold text-primary hover:underline" to="/privacy">Privacy Policy</Link>
           <Link className="font-semibold text-primary hover:underline" to="/terms">Terms of Service</Link>
-          <a className="font-semibold text-primary hover:underline" href={`mailto:${SUPPORT_EMAIL}`}>
+          <button
+            type="button"
+            className="font-semibold text-primary hover:underline"
+            onClick={() => setContactOpen(true)}
+          >
             Contact
-          </a>
+          </button>
         </footer>
       </article>
+
+      <ContactEmailDialog open={contactOpen} onClose={() => setContactOpen(false)} />
     </main>
   )
 }

@@ -6,7 +6,9 @@ import {
   CheckCircle2,
   ShieldCheck,
 } from 'lucide-react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import ContactEmailDialog from '../components/ContactEmailDialog'
 import Logo from '../components/Logo'
 
 const features = [
@@ -31,6 +33,8 @@ const features = [
 ] as const
 
 export default function PublicLanding() {
+  const [contactOpen, setContactOpen] = useState(false)
+
   return (
     <main className="min-h-dvh bg-background text-foreground">
       <header className="border-b border-border bg-background/95">
@@ -160,10 +164,18 @@ export default function PublicLanding() {
           <nav className="flex flex-wrap gap-x-5 gap-y-2" aria-label="Legal links">
             <Link className="font-semibold text-foreground hover:underline" to="/privacy">Privacy Policy</Link>
             <Link className="font-semibold text-foreground hover:underline" to="/terms">Terms of Service</Link>
-            <a className="font-semibold text-foreground hover:underline" href="mailto:darsheel.sirola@gmail.com">Contact</a>
+            <button
+              type="button"
+              className="font-semibold text-foreground hover:underline"
+              onClick={() => setContactOpen(true)}
+            >
+              Contact
+            </button>
           </nav>
         </div>
       </footer>
+
+      <ContactEmailDialog open={contactOpen} onClose={() => setContactOpen(false)} />
     </main>
   )
 }
