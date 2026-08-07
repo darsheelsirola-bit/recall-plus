@@ -9,6 +9,7 @@ export type SubjectCategory =
   | 'skill_elective'
   | 'internal_assessment'
 export type CurriculumNodeType =
+  | 'book'
   | 'unit'
   | 'chapter'
   | 'topic'

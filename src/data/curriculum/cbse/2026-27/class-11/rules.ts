@@ -7,6 +7,7 @@ import type {
 import {
   CBSE_2026_27_XI_SELECTABLE_SUBJECTS,
   CBSE_2026_27_XI_SUBJECTS_BY_ID,
+  RECALL_XI_LANGUAGE_CODES,
 } from './catalogue.ts'
 
 const codeToId = new Map(
@@ -17,17 +18,13 @@ const codeToId = new Map(
 )
 
 export const CBSE_2026_27_XI_SUBJECT_CODES = Object.freeze({
-  englishElective: '001',
   englishCore: '301',
-  hindiElective: '002',
   hindiCore: '302',
+  french: '118',
   mathematics: '041',
   appliedMathematics: '241',
   computerScience: '083',
-  informaticsPractices: '065',
-  informationTechnology: '802',
   businessStudies: '054',
-  businessAdministration: '833',
 })
 
 export const CBSE_2026_27_XI_RULES = Object.freeze({
@@ -40,41 +37,18 @@ export const CBSE_2026_27_XI_RULES = Object.freeze({
   validSubjectCount: [5, 6] as const,
   subjectOne: Object.freeze({
     allowedGroup: 'L',
-    allowedCodes: [
-      CBSE_2026_27_XI_SUBJECT_CODES.englishElective,
-      CBSE_2026_27_XI_SUBJECT_CODES.englishCore,
-      CBSE_2026_27_XI_SUBJECT_CODES.hindiElective,
-      CBSE_2026_27_XI_SUBJECT_CODES.hindiCore,
-    ] as const,
+    allowedCodes: [...RECALL_XI_LANGUAGE_CODES] as const,
   }),
   subjectTwoAllowedGroups: ['L', 'A'] as const,
   subjectThreeToFourAllowedGroups: ['A', 'S'] as const,
   subjectFiveAllowedGroup: 'A',
   subjectSixAllowedGroups: ['L', 'A', 'S'] as const,
-  requiredLanguageCodes: [
-    CBSE_2026_27_XI_SUBJECT_CODES.englishElective,
-    CBSE_2026_27_XI_SUBJECT_CODES.englishCore,
-    CBSE_2026_27_XI_SUBJECT_CODES.hindiElective,
-    CBSE_2026_27_XI_SUBJECT_CODES.hindiCore,
-  ] as const,
+  requiredLanguageCodes: [...RECALL_XI_LANGUAGE_CODES] as const,
   mutuallyExclusiveSets: [
     [
       CBSE_2026_27_XI_SUBJECT_CODES.mathematics,
       CBSE_2026_27_XI_SUBJECT_CODES.appliedMathematics,
     ],
-    [
-      CBSE_2026_27_XI_SUBJECT_CODES.computerScience,
-      CBSE_2026_27_XI_SUBJECT_CODES.informaticsPractices,
-      CBSE_2026_27_XI_SUBJECT_CODES.informationTechnology,
-    ],
-    [
-      CBSE_2026_27_XI_SUBJECT_CODES.businessStudies,
-      CBSE_2026_27_XI_SUBJECT_CODES.businessAdministration,
-    ],
-    ['001', '301'],
-    ['002', '302'],
-    ['003', '303'],
-    ['022', '322'],
   ] as const,
   sourceUrl:
     'https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf',
@@ -199,7 +173,7 @@ export function validateCbse2026ClassXiCombination(
   ) {
     errors.push(error(
       'SUBJECT_ONE_LANGUAGE',
-      'Subject 1 must be English Core, English Elective, Hindi Core, or Hindi Elective.',
+      'Subject 1 must be English Core, Hindi Core, or French.',
       subjectOne.subjectCode ? [subjectOne.subjectCode] : [],
     ))
   }
@@ -264,43 +238,13 @@ export function validateCbse2026ClassXiCombination(
     !CBSE_2026_27_XI_RULES.requiredLanguageCodes.some((code) =>
       selectedCodes.has(code))
   ) {
-    errors.push(error('REQUIRED_LANGUAGE', 'Your combination must include English or Hindi at Core or Elective level.'))
+    errors.push(error('REQUIRED_LANGUAGE', 'Your combination must include English Core, Hindi Core, or French.'))
   }
 
   const mathConflict = conflict(selectedCodes, ['041', '241'])
   if (mathConflict.length > 1) {
     errors.push(error('MATH_CONFLICT', 'You cannot select both Mathematics and Applied Mathematics.', mathConflict))
   }
-
-  const computerConflict = conflict(selectedCodes, ['083', '065', '802'])
-  if (computerConflict.length > 1) {
-    errors.push(error(
-      'COMPUTER_CONFLICT',
-      'You may select only one of Computer Science, Informatics Practices, or Information Technology.',
-      computerConflict,
-    ))
-  }
-
-  const businessConflict = conflict(selectedCodes, ['054', '833'])
-  if (businessConflict.length > 1) {
-    errors.push(error(
-      'BUSINESS_CONFLICT',
-      'You cannot select both Business Studies and Business Administration.',
-      businessConflict,
-    ))
-  }
-
-  ;([['001', '301'], ['002', '302'], ['003', '303'], ['022', '322']] as const)
-    .forEach((pair) => {
-      const matched = conflict(selectedCodes, pair)
-      if (matched.length > 1) {
-        errors.push(error(
-          'LANGUAGE_LEVEL_CONFLICT',
-          'The same language cannot be selected at both Core and Elective level.',
-          matched,
-        ))
-      }
-    })
 
   return {
     valid: errors.length === 0,

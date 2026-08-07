@@ -81,6 +81,33 @@ test('quiz selections resolve to stable subject, chapter, and topic node IDs', (
   assert.equal(curriculumRequestSelection(syllabus, 'History', [chapter.name], [topic.name]), null)
 })
 
+test('English Hornbill chapters resolve through book hierarchy', () => {
+  const syllabus = buildActiveSyllabus([
+    selection('301', 1),
+    selection('042', 2),
+    selection('043', 3),
+    selection('041', 4),
+    selection('083', 5),
+  ], CBSE_2026_27_XI_NODES)
+  const english = syllabus.find((item) => item.subject === 'English Core')
+  assert.ok(english.books.some((book) => book.name === 'Hornbill'))
+  assert.ok(english.books.some((book) => book.name === 'Snapshots'))
+  assert.equal(english.chapters.some((chapter) => chapter.name === 'Hornbill'), false)
+
+  const portrait = english.chapters.find((chapter) => chapter.name === 'The Portrait of a Lady')
+  assert.equal(portrait.bookName, 'Hornbill')
+  const topic = portrait.topicNodes[0]
+  const resolved = curriculumRequestSelection(
+    syllabus,
+    'English Core',
+    [portrait.name],
+    [topic.name],
+  )
+  assert.ok(resolved.chapterNodeIds.includes(portrait.bookId))
+  assert.ok(resolved.chapterNodeIds.includes(portrait.id))
+  assert.deepEqual(resolved.topicNodeIds, [topic.id])
+})
+
 test('active subject filters exclude removed subjects without deleting history', () => {
   const selected = [
     selection('301', 1),

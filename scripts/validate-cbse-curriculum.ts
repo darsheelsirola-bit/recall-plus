@@ -16,10 +16,10 @@ export function validateCheckedInCbseCurriculum() {
     nodes: CBSE_2026_27_XI_NODES,
     reviewedSubjectCodes: CBSE_2026_27_XI_REVIEWED_SUBJECT_CODES,
     expectedGroupCounts: {
-      L: 39,
-      A: 39,
-      S: 43,
-      IA: 3,
+      L: 3,
+      A: 19,
+      S: 2,
+      IA: 0,
     },
   })
 }

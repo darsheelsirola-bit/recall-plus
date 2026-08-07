@@ -7,7 +7,7 @@ import { PGlite } from '@electric-sql/pglite'
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const migrationDirectory = path.join(projectRoot, 'supabase', 'migrations')
 const expectedCurriculumMigration = '20260730120000_curriculum_profiles_and_rls.sql'
-const expectedLatestMigration = '20260803120000_validate_study_log_curriculum.sql'
+const expectedLatestMigration = '20260807210100_allowlist_subject_combination_rules.sql'
 
 const bootstrapSql = `
 do $roles$
@@ -220,16 +220,33 @@ try {
     db,
     `select
       count(*)::integer as total,
-      count(*) filter (where subject_group <> 'IA')::integer as selectable
+      count(*) filter (where active and subject_group <> 'IA')::integer as active_selectable,
+      count(*) filter (where active and subject_group = 'L')::integer as active_languages
     from public.curriculum_subjects`,
   )
-  assert.deepEqual(catalogue, { total: 124, selectable: 121 })
+  assert.deepEqual(catalogue, {
+    total: 124,
+    active_selectable: 24,
+    active_languages: 3,
+  })
+
+  const activeBooks = await scalar(
+    db,
+    `select count(*)::integer as count
+     from public.curriculum_nodes
+     where active and node_type = 'book'`,
+  )
+  assert.ok(activeBooks.count >= 5)
 
   const nodes = await scalar(
     db,
-    'select count(*)::integer as count from public.curriculum_nodes',
+    `select
+      count(*)::integer as total,
+      count(*) filter (where active)::integer as active
+    from public.curriculum_nodes`,
   )
-  assert.equal(nodes.count, 295)
+  assert.ok(nodes.total >= 295)
+  assert.ok(nodes.active > 0)
 
   await db.query(
     `insert into auth.users (id, email, raw_user_meta_data)

@@ -41,7 +41,6 @@ import {
   type OnboardingDraft,
 } from '../academic/onboarding.ts'
 import {
-  CBSE_2026_27_XI_SUBJECTS,
   CBSE_2026_27_XI_SUBJECTS_BY_ID,
 } from '../data/curriculum/cbse/2026-27/class-11/catalogue.ts'
 import type {
@@ -75,15 +74,9 @@ const pathwayOptions: Array<{
   },
 ]
 
-const requiredLanguageCodes = new Set(['001', '301', '002', '302'])
+const requiredLanguageCodes = new Set(['301', '302', '118'])
 const requiredLanguages = academicSubjectCatalogue.filter((subject) =>
   requiredLanguageCodes.has(subject.subjectCode ?? ''))
-const allLanguages = academicSubjectCatalogue.filter(
-  (subject) => subject.subjectGroup === 'L',
-)
-const internalAssessmentAreas = CBSE_2026_27_XI_SUBJECTS.filter(
-  (subject) => subject.subjectGroup === 'IA',
-)
 
 function subjectById(id: string): CurriculumSubject | null {
   return CBSE_2026_27_XI_SUBJECTS_BY_ID.get(id) ?? null
@@ -307,10 +300,10 @@ function StepFour({
         <Languages className="size-4" />
         <AlertTitle>Choose the required primary language</AlertTitle>
         <AlertDescription>
-          Under the current scheme, Subject 1 must be English or Hindi at Core or Elective level. You can add another Group-L language in the next step.
+          Subject 1 must be English Core, Hindi Core, or French. These are the only language subjects in Recall+.
         </AlertDescription>
       </Alert>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
         {requiredLanguages.map((subject) => {
           const checked = draft.subjectIds.includes(subject.id)
           return (
@@ -342,21 +335,6 @@ function StepFour({
           )
         })}
       </div>
-      <details className="mt-5 rounded-2xl border border-border bg-card p-4">
-        <summary className="min-h-11 cursor-pointer py-2 text-sm font-semibold">
-          View all {allLanguages.length} official Group-L languages
-        </summary>
-        <p className="mt-2 text-xs leading-5 text-muted-foreground">
-          Every current Group-L language is available under “More CBSE subjects” in the next step.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {allLanguages.map((subject) => (
-            <span key={subject.id} className="rounded-lg bg-muted px-2.5 py-1.5 text-xs">
-              {subject.name} · {subject.subjectCode}
-            </span>
-          ))}
-        </div>
-      </details>
     </div>
   )
 }
@@ -452,22 +430,8 @@ function StepFive({
         <ChevronDown className={`size-4 transition ${showAll ? 'rotate-180' : ''}`} />
       </Button>
       <p className="mt-3 text-xs leading-5 text-muted-foreground">
-        “More CBSE subjects” includes all {academicSubjectCatalogue.length} selectable Group-L, Group-A and Group-S subjects in this curriculum version. Cross-disciplinary choices remain available where the official scheme permits them.
+        “More CBSE subjects” includes all {academicSubjectCatalogue.length} approved Class XI subjects in this Recall+ catalogue.
       </p>
-
-      <div className="mt-5 rounded-2xl border border-border bg-muted/20 p-4">
-        <p className="text-sm font-semibold">Compulsory internal assessment areas</p>
-        <p className="mt-1 text-xs leading-5 text-muted-foreground">
-          These are recorded as internal assessment subjects and do not occupy one of your five or six selectable positions.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {internalAssessmentAreas.map((subject) => (
-            <span key={subject.id} className="rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs">
-              {subject.name}
-            </span>
-          ))}
-        </div>
-      </div>
     </div>
   )
 }

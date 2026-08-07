@@ -50,6 +50,7 @@ function curriculumClient(calls) {
       name: subject.name,
       short_name: subject.name,
       subject_code: subject.id.slice(-3),
+      active: true,
     })),
     curriculum_nodes: workspace().nodes.filter((node) => node.subject_id === PHYSICS),
   }

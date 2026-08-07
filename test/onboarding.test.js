@@ -8,6 +8,7 @@ import {
   PATHWAY_PRESETS,
   presetSubjectIds,
   readOnboardingDraft,
+  recommendedSubjects,
   shouldPersistOnboardingProgress,
   writeOnboardingDraft,
 } from '../src/academic/onboarding.ts'
@@ -132,8 +133,13 @@ test('subject arranger rejects incomplete and conflicting combinations', () => {
     null,
   )
   assert.equal(
-    arrangeSubjectSelections(ids('301', '042', '043', '083', '065')),
-    null,
+    recommendedSubjects('science').some((subject) => subject.subjectCode === '065'),
+    false,
+  )
+  assert.equal(
+    recommendedSubjects('science').every((subject) =>
+      ['301', '302', '118'].includes(subject.subjectCode) || subject.subjectGroup !== 'L'),
+    true,
   )
 })
 

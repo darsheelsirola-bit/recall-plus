@@ -20,26 +20,26 @@ type SubjectTuple = readonly [
   pathwayTags?: readonly PathwayTag[],
 ]
 
+/** Authoritative Recall+ Class XI subject allowlist for this release. */
+export const RECALL_XI_ALLOWLIST_CODES = Object.freeze([
+  '027', '028', '029', '030', '034', '037', '039', '041', '042', '043', '044',
+  '048', '049', '054', '055', '066', '074', '083', '118', '241', '301', '302',
+  '843', '837',
+] as const)
+
+export const RECALL_XI_LANGUAGE_CODES = Object.freeze(['301', '302', '118'] as const)
+
 const ACADEMIC_BASE =
   'https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/'
 const SKILL_BASE =
   'https://cbseacademic.nic.in/web_material/Curriculum27/SrSec/'
+const NCERT_TEXTBOOKS = 'https://ncert.nic.in/textbook.php'
 
 const reviewedSources: Readonly<Record<string, CurriculumSource>> = Object.freeze({
-  '001': {
-    url: `${ACADEMIC_BASE}English_elective_SecP2_2026-27.pdf`,
-    title: 'English Elective, Classes XI-XII, 2026-27',
-    sha256: '624caad4033a7fd99760c96ec5fa23763739d243b12c52446c9ab6d581fbecb2',
-  },
   '301': {
     url: `${ACADEMIC_BASE}English_core_SecP2_2026-27.pdf`,
     title: 'English Core, Classes XI-XII, 2026-27',
     sha256: 'd2af35ab80de3dc6f1f62f3cd2b58f9cc95a39ca1d47abc45412a1034459092c',
-  },
-  '002': {
-    url: `${ACADEMIC_BASE}Hindi_Elective_SecP2_2026-27.pdf`,
-    title: 'Hindi Elective, Classes XI-XII, 2026-27',
-    sha256: '6f288e1cc34cdb341348d176ad6a748a6760966675dc93e6644e5fe971dbbccb',
   },
   '302': {
     url: `${ACADEMIC_BASE}Hindi_Core_SecP2_2026-27.pdf`,
@@ -116,16 +116,6 @@ const reviewedSources: Readonly<Record<string, CurriculumSource>> = Object.freez
     title: 'Accountancy, Classes XI-XII, 2026-27',
     sha256: '4a87dbd15758e42c2aa454d83708299a04b6fc12896392b13d12b9ae857ecc27',
   },
-  '064': {
-    url: `${ACADEMIC_BASE}Home_Science_SecP2_2026-27.pdf`,
-    title: 'Home Science, Classes XI-XII, 2026-27',
-    sha256: 'a8bb5904a25b50a3a4b145cca47f74fa9a6f9e4cf66d39a5fec09e50e1358fdb',
-  },
-  '065': {
-    url: `${ACADEMIC_BASE}Informatics_Practices_SecP2_2026-27.pdf`,
-    title: 'Informatics Practices, Classes XI-XII, 2026-27',
-    sha256: '05747d6271e50d1221f312c710a3175e967f6d2d0f29a0f2cbc992f8267f8d34',
-  },
   '083': {
     url: `${ACADEMIC_BASE}Computer_Science_SecP2_2026-27.pdf`,
     title: 'Computer Science, Classes XI-XII, 2026-27',
@@ -136,11 +126,6 @@ const reviewedSources: Readonly<Record<string, CurriculumSource>> = Object.freez
     title: 'Legal Studies, Classes XI-XII, 2026-27',
     sha256: 'd1f7836c059406e66d6b092cffddb5120adb27a826be7b6413936fc330dd7348',
   },
-  '802': {
-    url: `${SKILL_BASE}802-IT.pdf`,
-    title: 'Information Technology (802), Classes XI-XII, 2026-27',
-    sha256: 'c85720f1a12459593ed5096fed7d7f2b36cfed88f89cd897806b66cc993364c7',
-  },
   '843': {
     url: `${SKILL_BASE}843-AI-XI.pdf`,
     title: 'Artificial Intelligence (843), Class XI, 2026-27',
@@ -149,45 +134,9 @@ const reviewedSources: Readonly<Record<string, CurriculumSource>> = Object.freez
 })
 
 const languageSubjects: readonly SubjectTuple[] = [
-  ['001', 'English Elective', 'English Elective', ['common', 'language']],
   ['301', 'English Core', 'English Core', ['common', 'language']],
-  ['002', 'Hindi Elective', 'Hindi Elective', ['common', 'language']],
   ['302', 'Hindi Core', 'Hindi Core', ['common', 'language']],
-  ['003', 'Urdu Elective'],
-  ['303', 'Urdu Core'],
-  ['022', 'Sanskrit Elective'],
-  ['322', 'Sanskrit Core'],
-  ['104', 'Punjabi'],
-  ['105', 'Bengali'],
-  ['106', 'Tamil'],
-  ['107', 'Telugu (AP)', 'Telugu AP'],
-  ['189', 'Telugu (Telangana)', 'Telugu Telangana'],
-  ['108', 'Sindhi'],
-  ['109', 'Marathi'],
-  ['110', 'Gujarati'],
-  ['111', 'Manipuri'],
-  ['112', 'Malayalam'],
-  ['113', 'Odia'],
-  ['114', 'Assamese'],
-  ['115', 'Kannada'],
-  ['116', 'Arabic'],
-  ['117', 'Tibetan'],
-  ['118', 'French'],
-  ['120', 'German'],
-  ['121', 'Russian'],
-  ['123', 'Persian'],
-  ['124', 'Nepali'],
-  ['125', 'Limboo'],
-  ['126', 'Lepcha'],
-  ['188', 'Bhoti'],
-  ['191', 'Kokborok'],
-  ['192', 'Bodo'],
-  ['193', 'Tangkhul'],
-  ['194', 'Japanese'],
-  ['195', 'Bhutia'],
-  ['196', 'Spanish'],
-  ['197', 'Kashmiri'],
-  ['198', 'Mizo'],
+  ['118', 'French', 'French', ['common', 'language']],
 ]
 
 const academicSubjects: readonly SubjectTuple[] = [
@@ -195,87 +144,26 @@ const academicSubjects: readonly SubjectTuple[] = [
   ['028', 'Political Science', 'Political Science', ['humanities']],
   ['029', 'Geography', 'Geography', ['humanities']],
   ['030', 'Economics', 'Economics', ['commerce', 'humanities']],
-  ['031', 'Carnatic Music (Vocal)'],
-  ['032', 'Carnatic Music (Melodic Instruments)'],
-  ['033', 'Carnatic Music (Percussion Instruments - Mridangam)'],
-  ['034', 'Hindustani Music (Vocal)'],
-  ['035', 'Hindustani Music (Melodic Instruments)'],
-  ['036', 'Hindustani Music (Percussion Instruments)'],
-  ['037', 'Psychology', 'Psychology', ['humanities']],
+  ['034', 'Hindustani Music Vocal', 'Hindustani Music Vocal', ['humanities']],
+  ['037', 'Psychology', 'Psychology', ['science', 'humanities']],
   ['039', 'Sociology', 'Sociology', ['humanities']],
   ['041', 'Mathematics', 'Mathematics', ['science', 'commerce', 'humanities']],
   ['241', 'Applied Mathematics', 'Applied Mathematics', ['commerce', 'humanities']],
   ['042', 'Physics', 'Physics', ['science']],
   ['043', 'Chemistry', 'Chemistry', ['science']],
   ['044', 'Biology', 'Biology', ['science']],
-  ['045', 'Biotechnology', 'Biotechnology', ['science']],
-  ['046', 'Engineering Graphics', 'Engineering Graphics', ['science']],
   ['048', 'Physical Education', 'Physical Education', ['common']],
-  ['049', 'Painting'],
-  ['050', 'Graphics'],
-  ['051', 'Sculpture'],
-  ['052', 'Applied/Commercial Art'],
+  ['049', 'Painting', 'Painting', ['humanities']],
   ['054', 'Business Studies', 'Business Studies', ['commerce']],
   ['055', 'Accountancy', 'Accountancy', ['commerce']],
-  ['056', 'Kathak Dance'],
-  ['057', 'Bharatanatyam Dance'],
-  ['058', 'Kuchipudi Dance'],
-  ['059', 'Odissi Dance'],
-  ['060', 'Manipuri Dance'],
-  ['061', 'Kathakali Dance'],
-  ['064', 'Home Science', 'Home Science', ['humanities']],
-  ['065', 'Informatics Practices', 'Informatics Practices', ['science', 'commerce', 'humanities']],
-  ['083', 'Computer Science', 'Computer Science', ['science', 'commerce', 'humanities']],
-  ['066', 'Entrepreneurship', 'Entrepreneurship', ['commerce']],
-  ['073', 'Knowledge Tradition and Practices of India', 'Knowledge Traditions'],
+  ['066', 'Entrepreneurship', 'Entrepreneurship', ['commerce', 'humanities']],
   ['074', 'Legal Studies', 'Legal Studies', ['commerce', 'humanities']],
-  ['076', 'NCC'],
+  ['083', 'Computer Science', 'Computer Science', ['science', 'commerce', 'humanities']],
 ]
 
 const skillSubjects: readonly SubjectTuple[] = [
-  ['801', 'Retail'],
-  ['802', 'Information Technology', 'Information Technology'],
-  ['803', 'Web Application'],
-  ['804', 'Automotive'],
-  ['805', 'Financial Markets Management'],
-  ['806', 'Tourism'],
-  ['807', 'Beauty and Wellness'],
-  ['808', 'Agriculture'],
-  ['809', 'Food Production'],
-  ['810', 'Front Office Operations'],
-  ['811', 'Banking'],
-  ['812', 'Marketing'],
-  ['813', 'Health Care'],
-  ['814', 'Insurance'],
-  ['816', 'Horticulture'],
-  ['817', 'Typography and Computer Application'],
-  ['818', 'Geospatial Technology'],
-  ['819', 'Electrical Technology'],
-  ['820', 'Electronic Technology'],
-  ['821', 'Multi-Media'],
-  ['822', 'Taxation'],
-  ['823', 'Cost Accounting'],
-  ['824', 'Office Procedures and Practices'],
-  ['825', 'Shorthand (English)'],
-  ['826', 'Shorthand (Hindi)'],
-  ['827', 'Air-Conditioning and Refrigeration'],
-  ['828', 'Medical Diagnostics'],
-  ['829', 'Textile Design'],
-  ['830', 'Design'],
-  ['831', 'Salesmanship'],
-  ['833', 'Business Administration', 'Business Administration', ['commerce']],
-  ['834', 'Food Nutrition and Dietetics'],
-  ['835', 'Mass Media Studies', 'Mass Media Studies', ['humanities']],
-  ['836', 'Library and Information Science'],
-  ['837', 'Fashion Studies'],
-  ['841', 'Yoga'],
-  ['842', 'Early Childhood Care and Education'],
   ['843', 'Artificial Intelligence', 'Artificial Intelligence', ['science', 'commerce', 'humanities']],
-  ['844', 'Data Science', 'Data Science', ['science', 'commerce']],
-  ['845', 'Physical Activity Trainer'],
-  ['846', 'Land Transportation Associate'],
-  ['847', 'Electronics and Hardware'],
-  ['848', 'Design Thinking and Innovation'],
+  ['837', 'Fashion Studies', 'Fashion Studies', ['humanities', 'skill']],
 ]
 
 function catalogueSource(group: SubjectGroup): CurriculumSource {
@@ -311,41 +199,30 @@ function toSubject(
     subjectGroup: group,
     category,
     hasTheory: group === 'S' ? true : reviewed ? true : null,
-    hasPractical: group === 'S' ? true : reviewed ? ['037', '042', '043', '044', '048', '055', '064', '065', '083'].includes(subjectCode) : null,
-    hasInternalAssessment: reviewed ? ['001', '002', '301', '302', '037', '048'].includes(subjectCode) : null,
+    hasPractical: group === 'S'
+      ? true
+      : reviewed
+        ? ['037', '042', '043', '044', '048', '055', '083'].includes(subjectCode)
+        : null,
+    hasInternalAssessment: reviewed
+      ? ['301', '302', '037', '048'].includes(subjectCode)
+      : null,
     pathwayTags: group === 'L'
       ? [...new Set<PathwayTag>([...pathwayTags, 'language'])]
       : group === 'S'
         ? [...new Set<PathwayTag>([...pathwayTags, 'skill'])]
         : pathwayTags,
-    source,
+    source: subjectCode === '301' || subjectCode === '302'
+      ? Object.freeze({
+          ...source,
+          title: `${source.title}; textbooks indexed via ${NCERT_TEXTBOOKS}`,
+        })
+      : source,
     contentStatus: (reviewed ? 'verified_outline' : 'pending_verification') as CurriculumContentStatus,
     officialOrder,
     active: true,
   })
 }
-
-const internalSubjects: readonly CurriculumSubject[] = [
-  ['hpe', 'Health and Physical Education'],
-  ['work-experience', 'Work Experience'],
-  ['general-studies', 'General Studies'],
-].map(([key, name], index): CurriculumSubject => Object.freeze({
-    id: `cbse-2026-27-xi-ia-${key}`,
-    curriculumVersionId: CBSE_2026_27_XI_VERSION_ID,
-    subjectCode: null,
-    name,
-    shortName: name,
-    subjectGroup: 'IA',
-    category: 'internal_assessment',
-    hasTheory: null,
-    hasPractical: null,
-    hasInternalAssessment: true,
-    pathwayTags: ['common'] as const,
-    source: catalogueSource('IA'),
-    contentStatus: 'pending_verification',
-    officialOrder: index + 1,
-    active: true,
-  }))
 
 export const CBSE_2026_27_XI_SUBJECTS: readonly CurriculumSubject[] =
   Object.freeze([
@@ -355,11 +232,9 @@ export const CBSE_2026_27_XI_SUBJECTS: readonly CurriculumSubject[] =
       toSubject(subject, 'A', 'academic_elective', index + 1)),
     ...skillSubjects.map((subject, index) =>
       toSubject(subject, 'S', 'skill_elective', index + 1)),
-    ...internalSubjects,
   ])
 
-export const CBSE_2026_27_XI_SELECTABLE_SUBJECTS =
-  CBSE_2026_27_XI_SUBJECTS.filter((subject) => subject.subjectGroup !== 'IA')
+export const CBSE_2026_27_XI_SELECTABLE_SUBJECTS = CBSE_2026_27_XI_SUBJECTS
 
 export const CBSE_2026_27_XI_SUBJECTS_BY_ID = new Map(
   CBSE_2026_27_XI_SUBJECTS.map((subject) => [subject.id, subject]),
@@ -374,5 +249,7 @@ export const CBSE_2026_27_XI_GROUP_COUNTS = Object.freeze({
   L: languageSubjects.length,
   A: academicSubjects.length,
   S: skillSubjects.length,
-  IA: internalSubjects.length,
+  IA: 0,
 })
+
+export const CBSE_2026_27_XI_NCRT_TEXTBOOK_INDEX = NCERT_TEXTBOOKS
