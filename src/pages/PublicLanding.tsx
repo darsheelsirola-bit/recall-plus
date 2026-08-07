@@ -156,6 +156,9 @@ export default function PublicLanding() {
             Read our Privacy Policy
           </Link>
         </div>
+        <p className="mt-4 text-xs leading-5 text-muted-foreground">
+          Recall+ is an independent study platform and is not affiliated with or endorsed by CBSE or NCERT.
+        </p>
       </section>
 
       <footer className="border-t border-border">
