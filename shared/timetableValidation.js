@@ -1,9 +1,8 @@
-import { CBSE_2026_27_XI_SELECTABLE_SUBJECTS } from '../src/data/curriculum/index.ts'
+import { VALID_TIMETABLE_SUBJECTS } from './timetableSubjects.js'
 import { isTimetableTechniqueId, TECHNIQUE_SUBJECT } from '../src/data/timetablePsychologyTechniques.js'
 
 export const VALID_ACTIVE_PERIODS = ['morning', 'afternoon', 'evening', 'night']
-export const VALID_TIMETABLE_SUBJECTS = CBSE_2026_27_XI_SELECTABLE_SUBJECTS
-  .map((subject) => subject.name)
+export { VALID_TIMETABLE_SUBJECTS }
 export { TECHNIQUE_SUBJECT }
 const FIXED_BLOCK_WINDOWS = Object.freeze([
   ['08:00', '09:00'],
