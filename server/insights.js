@@ -1,4 +1,4 @@
-import { buildBasedOnLine, buildFallbackChapterInsight, buildFallbackInsights } from '../src/utils/weakTopics.js'
+import { buildBasedOnLine, buildFallbackChapterInsight, buildFallbackInsights } from './insightFallbacks.js'
 import { AppError, ERROR_CODES } from './errors.js'
 import {
   fetchGroq,

@@ -1,38 +1,40 @@
 -- Recall+ security audit: defense-in-depth RLS for private/backup schemas
 -- Additive only. Does not modify user data rows.
--- Verified before apply: anon lacks USAGE on recall_backup; still enable RLS.
+-- Safe when backup/private objects are absent (e.g. staging without recall_backup).
 
 begin;
 
--- ---------------------------------------------------------------------------
--- Backup tables: enable RLS, force RLS, revoke client roles
--- ---------------------------------------------------------------------------
-alter table if exists recall_backup.user_app_data_20260806 enable row level security;
-alter table if exists recall_backup.user_app_data_20260806 force row level security;
-alter table if exists recall_backup.recall_profiles_20260806 enable row level security;
-alter table if exists recall_backup.recall_profiles_20260806 force row level security;
+do $migrate$
+begin
+  if to_regnamespace('recall_backup') is not null then
+    if to_regclass('recall_backup.user_app_data_20260806') is not null then
+      execute 'alter table recall_backup.user_app_data_20260806 enable row level security';
+      execute 'alter table recall_backup.user_app_data_20260806 force row level security';
+      execute 'revoke all on table recall_backup.user_app_data_20260806 from public, anon, authenticated';
+      execute $c$comment on table recall_backup.user_app_data_20260806 is
+        'Pre-curriculum migration backup. Not client-accessible. RLS forced; revoke client grants.'$c$;
+    end if;
 
-revoke all on table recall_backup.user_app_data_20260806 from public, anon, authenticated;
-revoke all on table recall_backup.recall_profiles_20260806 from public, anon, authenticated;
-revoke usage on schema recall_backup from public, anon, authenticated;
+    if to_regclass('recall_backup.recall_profiles_20260806') is not null then
+      execute 'alter table recall_backup.recall_profiles_20260806 enable row level security';
+      execute 'alter table recall_backup.recall_profiles_20260806 force row level security';
+      execute 'revoke all on table recall_backup.recall_profiles_20260806 from public, anon, authenticated';
+      execute $c$comment on table recall_backup.recall_profiles_20260806 is
+        'Pre-curriculum migration backup. Not client-accessible. RLS forced; revoke client grants.'$c$;
+    end if;
 
--- ---------------------------------------------------------------------------
--- Private alias table: enable RLS + deny client roles (server/SECURITY DEFINER only)
--- ---------------------------------------------------------------------------
-alter table if exists recall_private.curriculum_legacy_subject_aliases enable row level security;
-alter table if exists recall_private.curriculum_legacy_subject_aliases force row level security;
+    execute 'revoke usage on schema recall_backup from public, anon, authenticated';
+  end if;
 
-revoke all on table recall_private.curriculum_legacy_subject_aliases
-  from public, anon, authenticated;
-
--- No SELECT/INSERT/UPDATE/DELETE policies for anon/authenticated on these tables.
--- Absence of policies under RLS = deny. service_role / table owners retain access for recovery.
-
-comment on table recall_backup.user_app_data_20260806 is
-  'Pre-curriculum migration backup. Not client-accessible. RLS forced; revoke client grants.';
-comment on table recall_backup.recall_profiles_20260806 is
-  'Pre-curriculum migration backup. Not client-accessible. RLS forced; revoke client grants.';
-comment on table recall_private.curriculum_legacy_subject_aliases is
-  'Internal legacy alias map. Client roles revoked; RLS forced.';
+  if to_regnamespace('recall_private') is not null
+    and to_regclass('recall_private.curriculum_legacy_subject_aliases') is not null then
+    execute 'alter table recall_private.curriculum_legacy_subject_aliases enable row level security';
+    execute 'alter table recall_private.curriculum_legacy_subject_aliases force row level security';
+    execute 'revoke all on table recall_private.curriculum_legacy_subject_aliases from public, anon, authenticated';
+    execute $c$comment on table recall_private.curriculum_legacy_subject_aliases is
+      'Internal legacy alias map. Client roles revoked; RLS forced.'$c$;
+  end if;
+end;
+$migrate$;
 
 commit;
