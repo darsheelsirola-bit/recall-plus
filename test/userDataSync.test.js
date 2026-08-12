@@ -219,6 +219,7 @@ test('timezone initialization RPC is bound to the intended user', async (t) => {
   const { storage, supabase, sync } = await createHarness(t)
   const subject = 'account-a'
   storage.setStorageUser(subject)
+  let appDataLoads = 0
 
   t.mock.method(
     supabase.auth,
@@ -241,7 +242,16 @@ test('timezone initialization RPC is bound to the intended user', async (t) => {
         }
       }
       assert.equal(table, 'user_app_data')
-      return { data: null, error: null }
+      appDataLoads += 1
+      if (appDataLoads === 1) return { data: null, error: null }
+      return {
+        data: {
+          data: {},
+          updated_at: '2026-07-27T00:00:00Z',
+          version: 1,
+        },
+        error: null,
+      }
     }
     return builder
   })
@@ -249,6 +259,9 @@ test('timezone initialization RPC is bound to the intended user', async (t) => {
   const rpcCalls = []
   t.mock.method(supabase, 'rpc', async (name, args) => {
     rpcCalls.push({ args, name })
+    if (name === 'ensure_recall_user_bootstrap') {
+      return { data: { userId: subject }, error: null }
+    }
     if (name === 'initialize_recall_timezone') {
       return { data: 'Asia/Kolkata', error: null }
     }
@@ -276,10 +289,144 @@ test('timezone initialization RPC is bound to the intended user', async (t) => {
   assert.equal(timezoneCall.args.p_timezone, 'Asia/Kolkata')
   assert.equal(result.profile.timezone, 'Asia/Kolkata')
   assert.ok(
+    rpcCalls.some(({ name }) => name === 'ensure_recall_user_bootstrap'),
+  )
+  assert.ok(
     rpcCalls
       .filter(({ name }) => name === 'upsert_recall_app_data')
       .every(({ args }) => args.p_user_id === subject),
   )
+})
+
+test('missing profile self-heals once then hydrates empty study data', async (t) => {
+  const { storage, supabase, sync } = await createHarness(t)
+  const subject = 'account-new'
+  storage.setStorageUser(subject)
+  let profileLoads = 0
+
+  t.mock.method(
+    supabase.auth,
+    'getSession',
+    async () => sessionResult(subject),
+  )
+  t.mock.method(supabase, 'from', (table) => {
+    const builder = {}
+    builder.select = () => builder
+    builder.eq = () => builder
+    builder.update = () => ({
+      eq: async () => ({ data: null, error: null }),
+    })
+    builder.maybeSingle = async () => {
+      if (table === 'recall_profiles') {
+        profileLoads += 1
+        if (profileLoads === 1) return { data: null, error: null }
+        return {
+          data: {
+            display_name: null,
+            timezone: 'Asia/Kolkata',
+            timezone_initialized: true,
+          },
+          error: null,
+        }
+      }
+      assert.equal(table, 'user_app_data')
+      return {
+        data: {
+          data: {},
+          updated_at: '2026-08-09T00:00:00Z',
+          version: 1,
+        },
+        error: null,
+      }
+    }
+    return builder
+  })
+
+  const rpcCalls = []
+  t.mock.method(supabase, 'rpc', async (name, args) => {
+    rpcCalls.push({ args, name })
+    if (name === 'ensure_recall_user_bootstrap') {
+      return { data: { userId: subject, createdProfile: true }, error: null }
+    }
+    assert.equal(name, 'upsert_recall_app_data')
+    return {
+      data: {
+        version: 2,
+        updatedAt: '2026-08-09T00:00:01Z',
+      },
+      error: null,
+    }
+  })
+
+  const result = await sync.hydrateUserData({
+    id: subject,
+    email: 'new@example.com',
+    user_metadata: { full_name: 'New Student' },
+  })
+
+  assert.equal(result.profile.displayName, 'New Student')
+  assert.equal(result.syncWarning, undefined)
+  assert.ok(rpcCalls.some(({ name }) => name === 'ensure_recall_user_bootstrap'))
+})
+
+test('optional sync failure during hydrate does not block authentication', async (t) => {
+  const { storage, supabase, sync } = await createHarness(t)
+  const subject = 'account-a'
+  storage.setStorageUser(subject)
+  storage.saveDataForUser(
+    subject,
+    storage.STORAGE_KEYS.logs,
+    [{ id: 'local-only' }],
+  )
+
+  t.mock.method(
+    supabase.auth,
+    'getSession',
+    async () => sessionResult(subject),
+  )
+  t.mock.method(supabase, 'from', (table) => {
+    const builder = {}
+    builder.select = () => builder
+    builder.eq = () => builder
+    builder.update = () => ({
+      eq: async () => ({ data: null, error: null }),
+    })
+    builder.maybeSingle = async () => {
+      if (table === 'recall_profiles') {
+        return {
+          data: {
+            display_name: 'A',
+            timezone: 'Asia/Kolkata',
+            timezone_initialized: true,
+          },
+          error: null,
+        }
+      }
+      return {
+        data: {
+          data: {},
+          updated_at: '2026-08-09T00:00:00Z',
+          version: 1,
+        },
+        error: null,
+      }
+    }
+    return builder
+  })
+
+  t.mock.method(supabase, 'rpc', async (name) => {
+    assert.equal(name, 'upsert_recall_app_data')
+    return { data: null, error: { message: 'INVALID_STUDY_LOG_CURRICULUM' } }
+  })
+
+  const result = await sync.hydrateUserData({
+    id: subject,
+    email: 'a@example.com',
+    user_metadata: { name: 'A' },
+  })
+
+  assert.equal(result.profile.displayName, 'A')
+  assert.match(result.syncWarning || '', /Could not sync your Recall\+ data/)
 })
 
 test('display-name updates are trimmed and bound to the current session user', async (t) => {

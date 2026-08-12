@@ -126,6 +126,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setUpdatingProfileName(false)
         profileNameOperationRef.current = null
         setDataConflict(false)
+        setDataError('')
+        setDataReady(false)
+        setDataOwnerId('')
+        setProfile(null)
+        setDataLoading(Boolean(nextUserId))
       }
       setSession(nextSession)
       setAuthLoading(false)
@@ -134,6 +139,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setDataOwnerId('')
       setDataLoading(false)
       setDataReady(false)
+      setDataError('')
+      setDataConflict(false)
     }
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event, nextSession) => {
@@ -189,9 +196,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setDataOwnerId(activeHydrationUser.id)
         setDataReady(true)
         setDataConflict(false)
+        // Optional cloud sync issues must not block authenticated entry.
+        setDataError(result.syncWarning || '')
       } catch (error: unknown) {
         if (!isCurrent()) return
-        setDataError(errorMessage(error, 'Could not load your Recall+ data.'))
+        setDataError(errorMessage(error, 'Could not load your Recall+ profile.'))
         setDataConflict(error instanceof DataSyncConflictError)
         setDataReady(false)
       } finally {
