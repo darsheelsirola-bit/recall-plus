@@ -26,6 +26,7 @@
     "curriculum:sql": "node scripts/generate-curriculum-sql.ts",
     "curriculum:sql:check": "node scripts/check-frozen-curriculum-sql.ts",
     "curriculum:allowlist:sql": "node scripts/generate-allowlist-migration.ts",
+    "curriculum:xii:sql": "node scripts/generate-class-12-migration.ts",
     "curriculum:client": "node scripts/generate-client-curriculum-nodes.ts",
     "curriculum:client:check": "node scripts/generate-client-curriculum-nodes.ts --check",
     "curriculum:coverage": "node scripts/generate-curriculum-coverage-doc.ts",

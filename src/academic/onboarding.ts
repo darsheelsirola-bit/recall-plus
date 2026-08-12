@@ -1,15 +1,16 @@
 import type {
   AcademicPathway,
+  CurriculumGrade,
   CurriculumSubject,
   SubjectSelection,
 } from '../data/curriculum/types.ts'
 import {
-  CBSE_2026_27_XI_SELECTABLE_SUBJECTS,
-} from '../data/curriculum/cbse/2026-27/class-11/catalogue.ts'
-import {
-  subjectIdsForPreset,
-  validateCbse2026ClassXiCombination,
-} from '../data/curriculum/cbse/2026-27/class-11/rules.ts'
+  gradeForVersionId,
+  selectableSubjectsForGrade,
+  validateSubjectCombination,
+} from '../data/curriculum/registry.ts'
+import { subjectIdsForPreset as subjectIdsForXiPreset } from '../data/curriculum/cbse/2026-27/class-11/rules.ts'
+import { subjectIdsForXiiPreset } from '../data/curriculum/cbse/2026-27/class-12/rules.ts'
 
 export const ONBOARDING_STEP_COUNT = 6
 
@@ -30,6 +31,7 @@ export function shouldPersistOnboardingProgress(editing: boolean): boolean {
 export interface OnboardingDraft {
   step: number
   schoolName: string
+  grade: CurriculumGrade
   pathway: AcademicPathway | null
   preset: string
   subjectIds: string[]
@@ -64,21 +66,17 @@ export const PATHWAY_PRESETS: Readonly<Record<
 })
 
 const HUMANITIES_COMMON_CODES = ['027', '028', '029', '030'] as const
-const subjectsByCode = new Map(
-  CBSE_2026_27_XI_SELECTABLE_SUBJECTS.map((subject) => [
-    subject.subjectCode,
-    subject,
-  ]),
-)
 
 export function defaultOnboardingDraft(
   pathway: AcademicPathway | null = null,
   schoolName = '',
   subjectIds: readonly string[] = [],
+  grade: CurriculumGrade = 'XI',
 ): OnboardingDraft {
   return {
     step: 1,
     schoolName,
+    grade,
     pathway,
     preset: 'custom',
     subjectIds: [...new Set(subjectIds)],
@@ -88,14 +86,21 @@ export function defaultOnboardingDraft(
 export function presetSubjectIds(
   pathway: AcademicPathway,
   preset: string,
+  grade: CurriculumGrade = 'XI',
 ): readonly string[] {
+  const catalogue = selectableSubjectsForGrade(grade)
+  const subjectsByCode = new Map(
+    catalogue.map((subject) => [subject.subjectCode, subject]),
+  )
   if (pathway === 'humanities' && preset === 'socialSciences') {
     return HUMANITIES_COMMON_CODES.flatMap((code) => {
       const subject = subjectsByCode.get(code)
       return subject ? [subject.id] : []
     })
   }
-  return subjectIdsForPreset(pathway, preset)
+  return grade === 'XII'
+    ? subjectIdsForXiiPreset(pathway, preset)
+    : subjectIdsForXiPreset(pathway, preset)
 }
 
 export function subjectCategoryLabel(subject: CurriculumSubject): string {
@@ -106,8 +111,9 @@ export function subjectCategoryLabel(subject: CurriculumSubject): string {
 
 export function recommendedSubjects(
   pathway: AcademicPathway,
+  grade: CurriculumGrade = 'XI',
 ): CurriculumSubject[] {
-  return CBSE_2026_27_XI_SELECTABLE_SUBJECTS
+  return selectableSubjectsForGrade(grade)
     .filter((subject) => (
       subject.pathwayTags.includes(pathway)
       || subject.pathwayTags.includes('common')
@@ -125,6 +131,7 @@ function permutations<T>(values: readonly T[]): T[][] {
 
 export function arrangeSubjectSelections(
   subjectIds: readonly string[],
+  grade: CurriculumGrade = 'XI',
 ): SubjectSelection[] | null {
   const uniqueIds = [...new Set(subjectIds)]
   if (![5, 6].includes(uniqueIds.length)) return null
@@ -135,7 +142,7 @@ export function arrangeSubjectSelections(
       subjectPosition: index + 1,
       selectionType: index === 5 ? 'additional' as const : 'main' as const,
     }))
-    if (validateCbse2026ClassXiCombination(selections).valid) {
+    if (validateSubjectCombination(grade, selections).valid) {
       return selections
     }
   }
@@ -159,13 +166,12 @@ export function readOnboardingDraft(
     )
       ? parsed.pathway as AcademicPathway
       : null
+    const grade = parsed.grade === 'XII' ? 'XII' : 'XI'
+    const catalogue = selectableSubjectsForGrade(grade)
     const subjectIds = Array.isArray(parsed.subjectIds)
       ? parsed.subjectIds
         .filter((id): id is string => typeof id === 'string')
-        .filter((id) => (
-          CBSE_2026_27_XI_SELECTABLE_SUBJECTS
-            .some((subject) => subject.id === id)
-        ))
+        .filter((id) => catalogue.some((subject) => subject.id === id))
       : []
     return {
       step: Math.min(
@@ -175,6 +181,7 @@ export function readOnboardingDraft(
       schoolName: typeof parsed.schoolName === 'string'
         ? parsed.schoolName.slice(0, 160)
         : '',
+      grade,
       pathway,
       preset: typeof parsed.preset === 'string' ? parsed.preset : 'custom',
       subjectIds: [...new Set(subjectIds)].slice(0, 6),
@@ -190,4 +197,11 @@ export function writeOnboardingDraft(
   draft: OnboardingDraft,
 ): void {
   storage.setItem(draftStorageKey(userId), JSON.stringify(draft))
+}
+
+export function draftGradeFromProfileVersion(
+  curriculumVersionId: string | null | undefined,
+): CurriculumGrade {
+  if (!curriculumVersionId) return 'XI'
+  return gradeForVersionId(curriculumVersionId)
 }

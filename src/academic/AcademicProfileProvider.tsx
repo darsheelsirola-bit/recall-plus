@@ -11,10 +11,11 @@ import {
 } from 'react'
 import type {
   AcademicPathway,
+  CurriculumGrade,
   CurriculumNode,
   SubjectSelection,
 } from '../data/curriculum/types.ts'
-import { loadClientCurriculumNodes } from '../data/curriculum/cbse/2026-27/class-11/clientNodes.ts'
+import { loadClientCurriculumNodes } from '../data/curriculum/loadClientNodes.ts'
 import { useAuth } from '../auth/AuthProvider.tsx'
 import {
   type AcademicWorkspace,
@@ -41,6 +42,7 @@ interface AcademicProfileContextValue {
     pathway: AcademicPathway,
     schoolName: string,
     selections: readonly SubjectSelection[],
+    grade?: CurriculumGrade,
   ) => Promise<string>
 }
 
@@ -196,13 +198,14 @@ export function AcademicProfileProvider({ children }: PropsWithChildren) {
     pathway: AcademicPathway,
     schoolName: string,
     selections: readonly SubjectSelection[],
+    grade: CurriculumGrade = 'XI',
   ): Promise<string> => {
     if (!userId || ownerId !== userId) {
       return 'Your signed-in account changed. Reload Recall+ and try again.'
     }
     setSaving(true)
     try {
-      await saveAcademicProfile(userId, pathway, schoolName, selections)
+      await saveAcademicProfile(userId, pathway, schoolName, selections, grade)
       const nextWorkspace = await loadAcademicWorkspace(userId)
       setCurriculumError('')
       setCurriculumLoadingSubjectIds([])

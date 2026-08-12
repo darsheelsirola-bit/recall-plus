@@ -1,14 +1,17 @@
 import type {
   AcademicPathway,
+  CurriculumGrade,
   CurriculumNode,
   CurriculumSubject,
   SubjectSelection,
   UserAcademicProfile,
 } from '../data/curriculum/types.ts'
 import {
-  CBSE_2026_27_XI_SELECTABLE_SUBJECTS,
-  CBSE_2026_27_XI_SUBJECTS_BY_ID,
-} from '../data/curriculum/cbse/2026-27/class-11/catalogue.ts'
+  CURRICULUM_VERSION_ID_BY_GRADE,
+  gradeForVersionId,
+  selectableSubjectsForGrade,
+  subjectById,
+} from '../data/curriculum/registry.ts'
 import { supabase } from '../lib/supabase.ts'
 import { runForExpectedSessionUser } from '../utils/authSessionGuard.ts'
 
@@ -35,7 +38,7 @@ export interface AcademicWorkspace {
 interface AcademicProfileRow {
   user_id: string
   board: 'CBSE'
-  grade: 'XI'
+  grade: CurriculumGrade
   academic_year: '2026-27'
   curriculum_version_id: string
   pathway: AcademicPathway | null
@@ -76,7 +79,7 @@ function mapProfile(row: AcademicProfileRow): UserAcademicProfile {
   return {
     userId: row.user_id,
     board: row.board,
-    grade: row.grade,
+    grade: row.grade === 'XII' ? 'XII' : 'XI',
     academicYear: row.academic_year,
     curriculumVersionId: row.curriculum_version_id,
     pathway: row.pathway as AcademicPathway,
@@ -88,7 +91,7 @@ function mapProfile(row: AcademicProfileRow): UserAcademicProfile {
 }
 
 function mapSubject(row: UserSubjectRow): ActiveUserSubject | null {
-  const subject = CBSE_2026_27_XI_SUBJECTS_BY_ID.get(row.curriculum_subject_id)
+  const subject = subjectById(row.curriculum_subject_id)
   if (!subject) return null
   return {
     curriculumSubjectId: row.curriculum_subject_id,
@@ -215,6 +218,7 @@ export async function saveAcademicProfile(
   pathway: AcademicPathway,
   schoolName: string,
   selections: readonly SubjectSelection[],
+  grade: CurriculumGrade = 'XI',
 ): Promise<void> {
   const { error } = await runForExpectedSessionUser(
     supabase.auth,
@@ -223,6 +227,7 @@ export async function saveAcademicProfile(
       p_pathway: pathway,
       p_school_name: schoolName.trim() || null,
       p_selections: selections,
+      p_curriculum_version_id: CURRICULUM_VERSION_ID_BY_GRADE[grade],
     }),
   )
   if (error) {
@@ -248,4 +253,13 @@ export async function saveAcademicProfile(
   }
 }
 
-export const academicSubjectCatalogue = CBSE_2026_27_XI_SELECTABLE_SUBJECTS
+export function academicSubjectCatalogueFor(
+  grade: CurriculumGrade,
+): readonly CurriculumSubject[] {
+  return selectableSubjectsForGrade(grade)
+}
+
+/** @deprecated Prefer academicSubjectCatalogueFor(grade). Defaults to Class XI. */
+export const academicSubjectCatalogue = selectableSubjectsForGrade('XI')
+
+export { gradeForVersionId }

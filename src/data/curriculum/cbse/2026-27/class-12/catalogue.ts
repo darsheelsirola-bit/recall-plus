@@ -7,9 +7,10 @@ import type {
   SubjectGroup,
 } from '../../../types.ts'
 import {
-  CBSE_2026_27_XI_SCHEME_URL,
-  CBSE_2026_27_XI_SKILL_LIST_URL,
-  CBSE_2026_27_XI_VERSION_ID,
+  CBSE_2026_27_XII_AI_URL,
+  CBSE_2026_27_XII_SCHEME_URL,
+  CBSE_2026_27_XII_SKILL_LIST_URL,
+  CBSE_2026_27_XII_VERSION_ID,
 } from './version.ts'
 
 type PathwayTag = AcademicPathway | 'common' | 'language' | 'skill'
@@ -20,19 +21,17 @@ type SubjectTuple = readonly [
   pathwayTags?: readonly PathwayTag[],
 ]
 
-/** Authoritative Recall+ Class XI subject allowlist for this release. */
-export const RECALL_XI_ALLOWLIST_CODES = Object.freeze([
+/** Authoritative Recall+ Class XII subject allowlist for this release. */
+export const RECALL_XII_ALLOWLIST_CODES = Object.freeze([
   '027', '028', '029', '030', '034', '037', '039', '041', '042', '043', '044',
   '048', '049', '054', '055', '066', '074', '083', '118', '241', '301', '302',
   '843', '837',
 ] as const)
 
-export const RECALL_XI_LANGUAGE_CODES = Object.freeze(['301', '302', '118'] as const)
+export const RECALL_XII_LANGUAGE_CODES = Object.freeze(['301', '302', '118'] as const)
 
 const ACADEMIC_BASE =
   'https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/'
-const SKILL_BASE =
-  'https://cbseacademic.nic.in/web_material/Curriculum27/SrSec/'
 const NCERT_TEXTBOOKS = 'https://ncert.nic.in/textbook.php'
 
 const reviewedSources: Readonly<Record<string, CurriculumSource>> = Object.freeze({
@@ -147,14 +146,14 @@ const reviewedSources: Readonly<Record<string, CurriculumSource>> = Object.freez
     sha256: null,
   },
   '837': {
-    url: 'https://cbseacademic.nic.in/web_material/Curriculum26/SrSec/837-FASHION_STUDIES-XI.pdf',
-    title: 'Fashion Studies (837), Class XI, 2025-26',
+    url: 'https://cbseacademic.nic.in/web_material/Curriculum26/SrSec/837-FASHION_STUDIES-XII.pdf',
+    title: 'Fashion Studies (837), Class XII, 2025-26',
     sha256: null,
   },
   '843': {
-    url: `${SKILL_BASE}843-AI-XI.pdf`,
-    title: 'Artificial Intelligence (843), Class XI, 2026-27',
-    sha256: '3c5f083923758ceab8c5af60171bde3c95b839620a3da046cefc968eddc4a6d8',
+    url: CBSE_2026_27_XII_AI_URL,
+    title: 'Artificial Intelligence (843), Class XII, 2025-26',
+    sha256: null,
   },
 })
 
@@ -194,13 +193,13 @@ const skillSubjects: readonly SubjectTuple[] = [
 function catalogueSource(group: SubjectGroup): CurriculumSource {
   if (group === 'S') {
     return {
-      url: CBSE_2026_27_XI_SKILL_LIST_URL,
+      url: CBSE_2026_27_XII_SKILL_LIST_URL,
       title: 'CBSE Skill Subjects Offered at Senior Secondary Level',
       sha256: '4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25',
     }
   }
   return {
-    url: CBSE_2026_27_XI_SCHEME_URL,
+    url: CBSE_2026_27_XII_SCHEME_URL,
     title: 'Secondary Curriculum Part II (Classes XI-XII), 2026-27',
     sha256: '5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042',
   }
@@ -216,8 +215,8 @@ function toSubject(
   const source = reviewedSources[subjectCode] || catalogueSource(group)
   const reviewed = Boolean(reviewedSources[subjectCode])
   return Object.freeze({
-    id: `cbse-2026-27-xi-${subjectCode}`,
-    curriculumVersionId: CBSE_2026_27_XI_VERSION_ID,
+    id: `cbse-2026-27-xii-${subjectCode}`,
+    curriculumVersionId: CBSE_2026_27_XII_VERSION_ID,
     subjectCode,
     name,
     shortName,
@@ -249,7 +248,7 @@ function toSubject(
   })
 }
 
-export const CBSE_2026_27_XI_SUBJECTS: readonly CurriculumSubject[] =
+export const CBSE_2026_27_XII_SUBJECTS: readonly CurriculumSubject[] =
   Object.freeze([
     ...languageSubjects.map((subject, index) =>
       toSubject(subject, 'L', 'language', index + 1)),
@@ -259,22 +258,22 @@ export const CBSE_2026_27_XI_SUBJECTS: readonly CurriculumSubject[] =
       toSubject(subject, 'S', 'skill_elective', index + 1)),
   ])
 
-export const CBSE_2026_27_XI_SELECTABLE_SUBJECTS = CBSE_2026_27_XI_SUBJECTS
+export const CBSE_2026_27_XII_SELECTABLE_SUBJECTS = CBSE_2026_27_XII_SUBJECTS
 
-export const CBSE_2026_27_XI_SUBJECTS_BY_ID = new Map(
-  CBSE_2026_27_XI_SUBJECTS.map((subject) => [subject.id, subject]),
+export const CBSE_2026_27_XII_SUBJECTS_BY_ID = new Map(
+  CBSE_2026_27_XII_SUBJECTS.map((subject) => [subject.id, subject]),
 )
 
-export const CBSE_2026_27_XI_SUBJECTS_BY_CODE = new Map(
-  CBSE_2026_27_XI_SUBJECTS.flatMap((subject) =>
+export const CBSE_2026_27_XII_SUBJECTS_BY_CODE = new Map(
+  CBSE_2026_27_XII_SUBJECTS.flatMap((subject) =>
     subject.subjectCode ? [[subject.subjectCode, subject] as const] : []),
 )
 
-export const CBSE_2026_27_XI_GROUP_COUNTS = Object.freeze({
+export const CBSE_2026_27_XII_GROUP_COUNTS = Object.freeze({
   L: languageSubjects.length,
   A: academicSubjects.length,
   S: skillSubjects.length,
   IA: 0,
 })
 
-export const CBSE_2026_27_XI_NCRT_TEXTBOOK_INDEX = NCERT_TEXTBOOKS
+export const CBSE_2026_27_XII_NCRT_TEXTBOOK_INDEX = NCERT_TEXTBOOKS
