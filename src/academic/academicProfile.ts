@@ -133,10 +133,36 @@ export async function loadAcademicWorkspace(
   if (profileResult.error) {
     throw new Error(`Could not load your academic profile: ${profileResult.error.message}`)
   }
-  if (!profileResult.data) {
-    throw new Error(
-      'Your academic profile is missing. Sign out and back in, then retry.',
+
+  let profileRow = (profileResult.data ?? null) as AcademicProfileRow | null
+  if (!profileRow) {
+    const { error: ensureError } = await runForExpectedSessionUser(
+      supabase.auth,
+      expectedUserId,
+      () => supabase.rpc('ensure_recall_user_bootstrap'),
     )
+    if (ensureError) {
+      throw new Error(
+        'Your academic profile is missing. Sign out and back in, then retry.',
+      )
+    }
+    const retry = await runForExpectedSessionUser(
+      supabase.auth,
+      expectedUserId,
+      () => supabase
+        .from('user_academic_profiles')
+        .select(
+          'user_id, board, grade, academic_year, curriculum_version_id, pathway, timezone, school_name, onboarding_completed, onboarding_completed_at',
+        )
+        .eq('user_id', expectedUserId)
+        .maybeSingle(),
+    )
+    if (retry.error || !retry.data) {
+      throw new Error(
+        'Your academic profile is missing. Sign out and back in, then retry.',
+      )
+    }
+    profileRow = retry.data as AcademicProfileRow
   }
   if (subjectsResult.error) {
     throw new Error(`Could not load your subjects: ${subjectsResult.error.message}`)
@@ -151,7 +177,7 @@ export async function loadAcademicWorkspace(
     .map(mapSubject)
     .filter((subject): subject is ActiveUserSubject => Boolean(subject))
   return {
-    profile: mapProfile(profileResult.data as AcademicProfileRow),
+    profile: mapProfile(profileRow),
     subjects,
     curriculumNodes: [],
     migrationCandidates: ((candidatesResult.data ?? []) as MigrationCandidateRow[])

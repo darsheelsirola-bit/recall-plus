@@ -7,7 +7,7 @@ import { PGlite } from '@electric-sql/pglite'
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const migrationDirectory = path.join(projectRoot, 'supabase', 'migrations')
 const expectedCurriculumMigration = '20260730120000_curriculum_profiles_and_rls.sql'
-const expectedLatestMigration = '20260807220000_harden_backup_and_private_rls.sql'
+const expectedLatestMigration = '20260809180000_auth_bootstrap_self_heal.sql'
 
 const bootstrapSql = `
 do $roles$
