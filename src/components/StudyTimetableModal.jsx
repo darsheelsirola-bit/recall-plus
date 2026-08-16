@@ -99,7 +99,7 @@ export default function StudyTimetableModal({ open, blocks = [], onClose, onAdd,
                     <p className="font-semibold">{DAY_LABELS[view.weekday]} · {view.startTime} · {view.durationMinutes} min</p>
                     <p className="text-xs text-muted-foreground">{view.subject} · {view.label}</p>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex gap-2">
                     <Button type="button" size="icon-sm" variant="ghost" onClick={() => editing ? saveEdit() : startEdit(block)} title={editing ? 'Save' : 'Edit'}><Pencil /></Button>
                     <Button type="button" size="icon-sm" variant="ghost" onClick={() => onDelete?.(block.id)} title="Remove"><Trash2 /></Button>
                   </div>

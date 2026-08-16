@@ -72,7 +72,7 @@ function PastTestDetail({ test, archived }) {
           <div>
             <p className="text-sm text-white/60">Final score</p>
             <p className="mt-1 text-5xl font-semibold">{test.percentage}%</p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap gap-2.5">
               <Badge className="bg-white/10 text-white">{test.status || 'Result'}</Badge>
               {archived ? <Badge className="bg-white/10 text-white">Archived subject</Badge> : null}
             </div>
@@ -138,9 +138,9 @@ export default function PastTestResults() {
               <Link key={test.id} to={`/quiz/results/${test.id}`} className="block">
                 <Card className={`transition hover:-translate-y-0.5 hover:shadow-md ${isActiveRecord(test) ? '' : 'opacity-75'}`}>
                   <CardHeader>
-                    <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
                       <CardTitle className="text-lg">{test.subject} · {test.chapter}</CardTitle>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2.5">
                         {!isActiveRecord(test) ? <Badge variant="outline">Archived subject</Badge> : null}
                         <Badge variant="outline">{test.percentage}%</Badge>
                       </div>

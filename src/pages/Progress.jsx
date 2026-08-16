@@ -43,7 +43,7 @@ export default function Progress() {
         title={view === 'logs' ? 'All study logs' : view === 'quiz' ? 'Quiz history' : 'Learning progress'}
         actions={view ? <BackButton onClick={() => setView(null)} /> : null}
       />
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <ProgressCard icon={BookOpen} label="Study logs" value={logs.length} helper="sessions recorded" onClick={() => toggle('logs')} active={view === 'logs'} />
         <ProgressCard icon={BarChart3} label="Quizzes completed" value={results.length} helper="results saved" tone="mint" onClick={() => toggle('quiz')} active={view === 'quiz'} />
         <ProgressCard icon={Target} label="Average score" value={`${average}%`} helper={results.length ? 'across all quizzes' : 'take a quiz to begin'} tone="amber" />

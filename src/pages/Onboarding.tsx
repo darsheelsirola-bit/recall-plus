@@ -896,13 +896,29 @@ export default function Onboarding() {
           className="min-w-0 rounded-3xl border border-border bg-white p-5 shadow-soft sm:p-8 lg:p-10"
           onKeyDown={handleStepKeyDown}
         >
-          <span className="grid size-12 place-items-center rounded-2xl bg-secondary text-primary">
-            {draft.step === 4
-              ? <Languages className="size-5" />
-              : draft.step === 6
-                ? <CheckCircle2 className="size-5" />
-                : <Sparkles className="size-5" />}
-          </span>
+          <div className="flex items-start justify-between gap-4">
+            <span className="grid size-12 place-items-center rounded-2xl bg-secondary text-primary">
+              {draft.step === 4
+                ? <Languages className="size-5" />
+                : draft.step === 6
+                  ? <CheckCircle2 className="size-5" />
+                  : <Sparkles className="size-5" />}
+            </span>
+            {(draft.step > 1 || editing) ? (
+              <Button
+                type="button"
+                nativeButton
+                render={undefined}
+                variant="outline"
+                className="shrink-0"
+                onClick={goBack}
+                disabled={saving}
+              >
+                <ArrowLeft data-icon="inline-start" />
+                {draft.step === 1 && editing ? 'Back to settings' : 'Back'}
+              </Button>
+            ) : null}
+          </div>
           <h1
             ref={headingRef}
             tabIndex={-1}
@@ -964,18 +980,7 @@ export default function Onboarding() {
             ) : null}
           </div>
 
-          <div className="mt-8 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
-            <Button
-              type="button"
-              nativeButton
-              render={undefined}
-              variant="outline"
-              onClick={goBack}
-              disabled={saving || (draft.step === 1 && !editing)}
-            >
-              <ArrowLeft data-icon="inline-start" />
-              {draft.step === 1 && editing ? 'Back to settings' : 'Back'}
-            </Button>
+          <div className="mt-8 flex justify-end border-t border-border pt-6">
             {draft.step < ONBOARDING_STEP_COUNT ? (
               <Button
                 type="button"

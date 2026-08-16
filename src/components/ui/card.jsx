@@ -25,7 +25,7 @@ function CardHeader({
     <div
       data-slot="card-header"
       className={cn(
-        "group/card-header grid auto-rows-min items-start gap-1 rounded-t-2xl px-4 has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto] data-[size=sm]:px-3",
+        "group/card-header grid auto-rows-min items-start gap-2 rounded-t-2xl px-4 has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto] data-[size=sm]:px-3",
         className
       )}
       {...props} />
