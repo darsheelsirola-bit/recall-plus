@@ -401,7 +401,7 @@ export default function Quiz() {
         <CardContent className="flex items-center justify-between gap-5 p-5">
           <div>
             <p className="font-semibold">Start your {safeQuestionCount}-question test</p>
-            <p className="mt-1 text-sm text-muted-foreground">{ready ? 'Your saved questions are ready. We will set up the timer and begin.' : `Groq will create questions across ${selectedTopics.length} selected topic${selectedTopics.length === 1 ? '' : 's'}, then start automatically.`}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{ready ? 'Your saved questions are ready. We will set up the timer and begin.' : `We'll create questions across ${selectedTopics.length} selected topic${selectedTopics.length === 1 ? '' : 's'}, then start automatically.`}</p>
             <GenerationLimitStatus feature="quiz" className="mt-3" />
           </div>
           <Button className="shrink-0" onClick={prepareAndStart} disabled={loading || (!ready && generationBlocked)}>Start test <ArrowRight data-icon="inline-end" /></Button>

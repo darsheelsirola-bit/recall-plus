@@ -8,7 +8,7 @@ export default function QuizCard({ hasQuestions, loading, onGenerate, onStart, e
           <span className={`grid h-11 w-11 place-items-center rounded-full ${hasQuestions ? 'bg-mint text-white' : 'bg-white text-indigo'}`}>
             {hasQuestions ? <CheckCircle2 size={23} /> : <Brain size={22} />}
           </span>
-          <div><p className="font-extrabold text-ink">{hasQuestions ? '12 questions ready' : 'Create a fresh topic quiz'}</p><p className="mt-0.5 text-sm text-ink/55">{hasQuestions ? 'Saved on this device and ready anytime.' : 'Groq will create 4 easy, 4 medium, and 4 hard questions.'}</p></div>
+          <div><p className="font-extrabold text-ink">{hasQuestions ? '12 questions ready' : 'Create a fresh topic quiz'}</p><p className="mt-0.5 text-sm text-ink/55">{hasQuestions ? 'Saved on this device and ready anytime.' : 'We will create 4 easy, 4 medium, and 4 hard questions.'}</p></div>
         </div>
         <div className="flex flex-wrap gap-2">
           {hasQuestions ? <button className="btn-secondary" onClick={onGenerate} disabled={loading}>{loading ? 'Regenerating…' : 'Regenerate'}</button> : null}

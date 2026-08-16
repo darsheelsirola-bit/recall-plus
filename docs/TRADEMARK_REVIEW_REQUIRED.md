@@ -4,4 +4,4 @@
 
 A basic internet search or informal registry glance does **not** guarantee clearance.
 
-Do not imply affiliation with CBSE, NCERT, the Government of India, schools, Groq, Supabase, Vercel, Google, Apple, or GitHub.
+Do not imply affiliation with CBSE, NCERT, the Government of India, schools, NVIDIA, Supabase, Vercel, Google, Apple, or GitHub.

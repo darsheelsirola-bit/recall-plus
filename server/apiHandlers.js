@@ -20,6 +20,7 @@ import {
   authorizeQuizRequest,
   authorizeTimetableRequest,
 } from './curriculumAuthorization.js'
+import { isNvidiaConfigured } from './ai/config.js'
 
 async function authenticatedUser(request) {
   return verifySupabaseUser(request)
@@ -33,14 +34,8 @@ export function handleAiStatus(request, response) {
   if (request.method !== 'GET') return sendMethodNotAllowed(response, ['GET'])
   setPrivateNoStore(response)
   return response.status(200).json({
-    configured: Boolean(
-      process.env.GROQ_QUIZ_API_KEY
-      && process.env.GROQ_RECALL_API_KEY
-      && process.env.GROQ_INSIGHTS_API_KEY
-      && process.env.GROQ_TIMETABLE_API_KEY
-      && isSupabaseConfigured()
-    ),
-    provider: 'Groq',
+    configured: Boolean(isNvidiaConfigured() && isSupabaseConfigured()),
+    provider: 'NVIDIA',
   })
 }
 

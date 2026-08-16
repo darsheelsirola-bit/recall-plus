@@ -9,10 +9,7 @@ const PUBLIC_CONFIGURATION_NAMES = new Set([
 
 const EXPLICIT_SECRET_NAMES = new Set([
   'AI_API_KEY',
-  'GROQ_INSIGHTS_API_KEY',
-  'GROQ_QUIZ_API_KEY',
-  'GROQ_RECALL_API_KEY',
-  'GROQ_TIMETABLE_API_KEY',
+  'NVIDIA_API_KEY',
   'OPENAI_API_KEY',
   'SUPABASE_SERVICE_ROLE_KEY',
   'SUPABASE_ACCESS_TOKEN',
@@ -20,6 +17,7 @@ const EXPLICIT_SECRET_NAMES = new Set([
 ])
 
 const credentialPatterns = [
+  { name: 'NVIDIA API key', pattern: /\bnvapi-[A-Za-z0-9_-]{16,}\b/ },
   { name: 'Groq API key', pattern: /\bgsk_[A-Za-z0-9_-]{20,}\b/ },
   { name: 'OpenAI API key', pattern: /\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b/ },
   { name: 'Supabase secret key', pattern: /\bsb_secret_[A-Za-z0-9_-]{20,}\b/ },

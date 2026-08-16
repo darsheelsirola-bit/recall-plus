@@ -3,18 +3,15 @@ import {
   validateGeneratedTimetable,
 } from '../shared/timetableValidation.js'
 import { AppError, ERROR_CODES } from './errors.js'
+import { generateStructured, modelCandidates, requireNvidiaKey } from './ai/client.js'
+import { AI_FEATURES } from './ai/config.js'
 import {
-  fetchGroq,
   MAX_PROVIDER_ATTEMPTS,
   PROVIDER_TOTAL_DEADLINE_MS,
-  providerHttpError,
   providerResponseInvalid,
-  readProviderJson,
   waitBeforeProviderRetry,
 } from './upstreamFetch.js'
 
-const GROQ_CHAT_COMPLETIONS_URL = 'https://api.groq.com/openai/v1/chat/completions'
-const DEFAULT_GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']
 const TIMETABLE_OUTPUT_TOKENS = 3_000
 
 function periodHint(period) {
@@ -61,48 +58,24 @@ JSON format:
 {"blocks":[{"weekday":0,"startTime":"17:00","durationMinutes":60,"subject":"Physics","label":"Physics recall"}],"summary":"A short explanation of why this plan is optimal."}`
 }
 
-async function generateOnce({ key, model, profile, subjects, curriculumVersionId, deadlineAt }) {
-  const response = await fetchGroq(GROQ_CHAT_COMPLETIONS_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${key}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.3,
-      max_completion_tokens: TIMETABLE_OUTPUT_TOKENS,
-      response_format: { type: 'json_object' },
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an academic planning assistant. Reply with strict valid JSON only.',
-        },
-        {
-          role: 'user',
-          content: buildTimetablePrompt(profile, subjects),
-        },
-      ],
-    }),
-  }, { deadlineAt })
-
-  if (!response.ok) throw providerHttpError(response)
-
-  const payload = await readProviderJson(response)
-  const text = payload?.choices?.[0]?.message?.content
-  if (typeof text !== 'string' || !text.trim()) return null
-  let parsed
-  try {
-    parsed = JSON.parse(text)
-  } catch {
-    const match = text.match(/\{[\s\S]*\}/)
-    if (!match) return null
-    try {
-      parsed = JSON.parse(match[0])
-    } catch {
-      return null
-    }
-  }
+async function generateOnce({ model, profile, subjects, curriculumVersionId, deadlineAt }) {
+  const parsed = await generateStructured({
+    feature: AI_FEATURES.TIMETABLE,
+    model,
+    temperature: 0.2,
+    maxTokens: TIMETABLE_OUTPUT_TOKENS,
+    deadlineAt,
+    messages: [
+      {
+        role: 'system',
+        content: 'You are an academic planning assistant. Reply with strict valid JSON only.',
+      },
+      {
+        role: 'user',
+        content: buildTimetablePrompt(profile, subjects),
+      },
+    ],
+  })
   const blocks = Array.isArray(parsed?.blocks)
     ? parsed.blocks.map((block) => ({
       weekday: block?.weekday,
@@ -128,12 +101,6 @@ async function generateOnce({ key, model, profile, subjects, curriculumVersionId
   }
 }
 
-function modelCandidates() {
-  const envModel = String(process.env.GROQ_MODEL || '').trim()
-  const ordered = envModel ? [envModel, ...DEFAULT_GROQ_MODELS] : DEFAULT_GROQ_MODELS
-  return [...new Set(ordered)]
-}
-
 export async function requestTimetable(profile, subjects = [], curriculumVersionId = '') {
   const safeProfile = normalizeTimetableProfile(profile)
   if (!safeProfile) {
@@ -155,22 +122,15 @@ export async function requestTimetable(profile, subjects = [], curriculumVersion
       details: { retryable: true },
     })
   }
-  const key = process.env.GROQ_TIMETABLE_API_KEY
-  if (!key) {
-    throw new AppError('Timetable generation is temporarily unavailable.', {
-      code: ERROR_CODES.AI_PROVIDER_UNAVAILABLE,
-      statusCode: 503,
-      details: { retryable: true },
-    })
-  }
-  const models = modelCandidates()
+  requireNvidiaKey(AI_FEATURES.TIMETABLE)
+  const models = modelCandidates(AI_FEATURES.TIMETABLE)
   const deadlineAt = Date.now() + PROVIDER_TOTAL_DEADLINE_MS
   let lastError
 
   for (let attempt = 0; attempt < MAX_PROVIDER_ATTEMPTS && Date.now() < deadlineAt; attempt += 1) {
     const model = models[attempt % models.length]
     try {
-      const generated = await generateOnce({ key, model, profile: safeProfile, subjects, curriculumVersionId, deadlineAt })
+      const generated = await generateOnce({ model, profile: safeProfile, subjects, curriculumVersionId, deadlineAt })
       if (generated) return generated
       lastError = providerResponseInvalid()
     } catch (error) {

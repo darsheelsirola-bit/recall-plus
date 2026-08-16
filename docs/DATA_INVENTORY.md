@@ -21,4 +21,4 @@ Status: Engineering inventory for lawyer review — **not** a compliance certifi
 
 - No advertising SDKs currently shipped.
 - Exact date of birth is **not** collected.
-- Groq prompts should use curriculum IDs/titles and study context, not unnecessary identity fields (verify in Phase 3).
+- NVIDIA NIM prompts should use curriculum IDs/titles and study context, not unnecessary identity fields (verify in Phase 3).

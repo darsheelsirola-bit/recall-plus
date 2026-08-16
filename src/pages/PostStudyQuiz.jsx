@@ -201,7 +201,7 @@ export default function PostStudyQuiz() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle>Ten questions before you move on</CardTitle>
-              <p className="mt-1 text-sm text-muted-foreground">Groq-generated recall check</p>
+              <p className="mt-1 text-sm text-muted-foreground">AI-generated recall check</p>
               <GenerationLimitStatus feature="quiz" className="mt-2" />
             </div>
             <Button variant="outline" onClick={buildQuiz} disabled={loading || generationBlocked}>

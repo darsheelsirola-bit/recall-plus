@@ -1,12 +1,10 @@
 import { buildBasedOnLine, buildFallbackChapterInsight, buildFallbackInsights } from './insightFallbacks.js'
-import { AppError, ERROR_CODES } from './errors.js'
+import { generateStructured, modelCandidates, requireNvidiaKey } from './ai/client.js'
+import { AI_FEATURES, NVIDIA_PROVIDER } from './ai/config.js'
 import {
-  fetchGroq,
   MAX_PROVIDER_ATTEMPTS,
   PROVIDER_TOTAL_DEADLINE_MS,
-  providerHttpError,
   providerResponseInvalid,
-  readProviderJson,
   waitBeforeProviderRetry,
 } from './upstreamFetch.js'
 import {
@@ -15,32 +13,8 @@ import {
   normalizedRequiredText,
 } from './requestValidation.js'
 
-const GROQ_CHAT_COMPLETIONS_URL = 'https://api.groq.com/openai/v1/chat/completions'
-const DEFAULT_GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']
 const MAX_CHAPTERS = 3
 const INSIGHTS_OUTPUT_TOKENS = 3_500
-
-function modelCandidates() {
-  const envModel = String(process.env.GROQ_MODEL || '').trim()
-  const ordered = envModel ? [envModel, ...DEFAULT_GROQ_MODELS] : DEFAULT_GROQ_MODELS
-  return [...new Set(ordered)]
-}
-
-function parseGroqContent(payload) {
-  const content = payload?.choices?.[0]?.message?.content
-  if (typeof content !== 'string' || !content.trim()) return null
-  try {
-    return JSON.parse(content)
-  } catch {
-    const match = content.match(/\{[\s\S]*\}/)
-    if (!match) return null
-    try {
-      return JSON.parse(match[0])
-    } catch {
-      return null
-    }
-  }
-}
 
 function isString(value, max = 1200) {
   return typeof value === 'string' && value.trim().length > 0 && value.length <= max
@@ -280,7 +254,7 @@ export function normalizeInsightsPayload(parsed, chapterContexts) {
     headline: isString(parsed?.headline, 300) ? parsed.headline : buildFallbackInsights(chapterContexts).headline,
     summary: isString(parsed?.summary, 2000) ? parsed.summary : 'Personalised study guidance from your quiz scores and study logs.',
     chapters,
-    source: 'groq',
+    source: NVIDIA_PROVIDER,
   }
 }
 
@@ -321,35 +295,24 @@ JSON format:
 {"headline":"string","summary":"string","chapters":[{"subject":"Physics","chapter":"Motion in a Straight Line","insight":"...","basedOn":"...","prioritizedTopics":[{"topic":"Kinematic Equations","order":1,"reason":"..."}],"studyFrom":{"primary":"NCERT Physics Class 11 Part 1 — Ch 3","sections":["Read §3.4","Solve Ex 3.5 Q1-5"],"secondary":"HC Verma Vol 1 — Ch 3"},"action":"...","focusArea":"formulas"}]}`
 }
 
-async function generateOnce({ key, model, chapterContexts, deadlineAt }) {
-  const response = await fetchGroq(GROQ_CHAT_COMPLETIONS_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${key}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.35,
-      max_completion_tokens: INSIGHTS_OUTPUT_TOKENS,
-      response_format: { type: 'json_object' },
-      messages: [
-        {
-          role: 'system',
-          content: 'You give grounded CBSE Class 11 study advice. Reply with valid JSON only. Never invent student data or book titles.',
-        },
-        {
-          role: 'user',
-          content: buildInsightsPrompt(chapterContexts),
-        },
-      ],
-    }),
-  }, { deadlineAt })
-
-  if (!response.ok) throw providerHttpError(response)
-
-  const payload = await readProviderJson(response)
-  const parsed = parseGroqContent(payload)
+async function generateOnce({ model, chapterContexts, deadlineAt }) {
+  const parsed = await generateStructured({
+    feature: AI_FEATURES.INSIGHT,
+    model,
+    temperature: 0.3,
+    maxTokens: INSIGHTS_OUTPUT_TOKENS,
+    deadlineAt,
+    messages: [
+      {
+        role: 'system',
+        content: 'You give grounded CBSE study advice. Reply with valid JSON only. Never invent student data or book titles.',
+      },
+      {
+        role: 'user',
+        content: buildInsightsPrompt(chapterContexts),
+      },
+    ],
+  })
   return parsed ? normalizeInsightsPayload(parsed, chapterContexts) : null
 }
 
@@ -366,17 +329,10 @@ export function validateInsightsRequest(body) {
 }
 
 export async function requestInsights(chapterContexts) {
-  const key = process.env.GROQ_INSIGHTS_API_KEY
-  if (!key) {
-    throw new AppError('AI insights are temporarily unavailable.', {
-      code: ERROR_CODES.AI_PROVIDER_UNAVAILABLE,
-      statusCode: 503,
-      details: { retryable: true },
-    })
-  }
+  requireNvidiaKey(AI_FEATURES.INSIGHT)
 
   const safeContexts = chapterContexts.slice(0, MAX_CHAPTERS)
-  const models = modelCandidates()
+  const models = modelCandidates(AI_FEATURES.INSIGHT)
   const deadlineAt = Date.now() + PROVIDER_TOTAL_DEADLINE_MS
   let lastError
 
@@ -384,7 +340,6 @@ export async function requestInsights(chapterContexts) {
     const model = models[attempt % models.length]
     try {
       const insights = await generateOnce({
-        key,
         model,
         chapterContexts: safeContexts,
         deadlineAt,
@@ -404,5 +359,5 @@ export async function requestInsights(chapterContexts) {
     return { ...buildFallbackInsights(safeContexts), source: 'local-rate-limit' }
   }
 
-  return { ...buildFallbackInsights(safeContexts), source: lastError ? 'local-groq-error' : 'local-validation' }
+  return { ...buildFallbackInsights(safeContexts), source: lastError ? 'local-provider-error' : 'local-validation' }
 }
