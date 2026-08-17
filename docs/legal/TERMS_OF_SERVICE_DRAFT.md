@@ -10,7 +10,7 @@ Governing law / disputes: `[GOVERNING JURISDICTION]`
 
 ## Service
 
-Recall+ provides study logging, syllabus tracking, practice generation, timetables, and related tools for CBSE Class XI learners. The service is currently offered without paid subscriptions unless separately announced.
+Recall+ provides study logging, syllabus tracking, practice generation, timetables, and related tools for CBSE Class XI and XII learners. The service is currently offered without paid subscriptions unless separately announced.
 
 ## Account
 

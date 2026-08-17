@@ -14,4 +14,4 @@ Do not link from production footers until lawyer-reviewed.
 
 - [ ] Liability limitation language
 - [ ] Provider subprocessors list cross-link
-- [ ] Age / guardian notice interaction for Class XI users
+- [ ] Age / guardian notice interaction for Class XI and XII users

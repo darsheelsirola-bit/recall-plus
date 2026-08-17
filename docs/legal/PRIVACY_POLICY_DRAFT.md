@@ -16,7 +16,7 @@
 
 ## What Recall+ is
 
-Recall+ is an independent Class XI study planning product. It is **not** affiliated with or endorsed by CBSE or NCERT.
+Recall+ is an independent Class XI and XII study planning product. It is **not** affiliated with or endorsed by CBSE or NCERT.
 
 ## Data we process
 
@@ -35,7 +35,7 @@ Supabase (Auth/DB), Vercel (hosting), NVIDIA NIM (AI generation), optional Googl
 
 ## Children / students under 18
 
-Recall+ serves Class XI students who may be under 18. Exact date of birth is not collected. Additional guardian-consent mechanics may be required under Indian law as DPDP obligations phase in — **lawyer review required before activating legally significant consent flows**.
+Recall+ serves Class XI and XII students who may be under 18. Exact date of birth is not collected. Additional guardian-consent mechanics may be required under Indian law as DPDP obligations phase in — **lawyer review required before activating legally significant consent flows**.
 
 ## Security limitations
 

@@ -11,7 +11,7 @@ import {
   handleTimetableGeneration,
 } from './apiHandlers.js'
 import { AppError, ERROR_CODES } from './errors.js'
-import { sendApiNotFound, sendError } from './http.js'
+import { sendApiNotFound, sendError, setSecurityHeaders } from './http.js'
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -36,6 +36,10 @@ function handleJsonParserError(error, _request, response, next) {
 export function createApp({ staticRoot = path.join(projectRoot, 'dist') } = {}) {
   const app = express()
 
+  app.use((_request, response, next) => {
+    setSecurityHeaders(response)
+    next()
+  })
   app.use(express.json({ limit: '64kb', strict: true }))
   app.use(handleJsonParserError)
 

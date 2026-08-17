@@ -1,6 +1,6 @@
 # Recall+
 
-Recall+ is a Class 11 PCM revision app for Physics, Chemistry, and Mathematics. It combines study logging, syllabus tracking, spaced repetition, progress insights, and NVIDIA NIM-powered quiz and timetable generation.
+Recall+ is a CBSE Class XI and XII revision app built around each learner's selected subjects. It combines study logging, syllabus tracking, spaced repetition, progress insights, and NVIDIA NIM-powered quiz and timetable generation.
 
 The production architecture uses:
 
@@ -13,7 +13,7 @@ The production architecture uses:
 
 ## Features
 
-- NCERT-style Class 11 PCM chapter and topic tracking
+- Subject-specific CBSE Class XI and XII chapter and topic tracking
 - Daily study logs with time, confidence, and notes
 - Synced per-user app data through Supabase
 - Automatic spaced-repetition schedules at 1, 3, 7, 14, and 30 days

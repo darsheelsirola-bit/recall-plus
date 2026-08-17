@@ -735,3 +735,16 @@ test('Express mounts account deletion and applies the shared authentication boun
     assert.equal((await response.json()).code, 'AUTH_REQUIRED')
   })
 })
+
+test('Express serves browser security headers on pages and API responses', async () => {
+  await withHttpServer(async (baseUrl) => {
+    for (const path of ['/', '/api/not-a-real-route']) {
+      const response = await fetch(`${baseUrl}${path}`)
+      assert.match(response.headers.get('content-security-policy') || '', /frame-ancestors 'none'/)
+      assert.equal(response.headers.get('permissions-policy'), 'camera=(), geolocation=(), microphone=()')
+      assert.equal(response.headers.get('referrer-policy'), 'strict-origin-when-cross-origin')
+      assert.equal(response.headers.get('x-content-type-options'), 'nosniff')
+      assert.equal(response.headers.get('x-frame-options'), 'DENY')
+    }
+  })
+})

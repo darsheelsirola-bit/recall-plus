@@ -25,6 +25,12 @@ test('BackButton is a compact header control', () => {
   assert.match(source, /shrink-0/)
 })
 
+test('syllabus heading follows the authenticated academic grade', () => {
+  const source = read('src/pages/Syllabus.jsx')
+  assert.match(source, /workspace\?\.profile\.grade/)
+  assert.doesNotMatch(source, /title="Class 11 syllabus"/)
+})
+
 test('page-level back controls live in the top-right header', () => {
   const pages = {
     'src/pages/PastTestResults.jsx': /actions=\{<BackButton/,
@@ -41,8 +47,8 @@ test('page-level back controls live in the top-right header', () => {
 
   const legal = read('src/pages/Legal.tsx')
   assert.match(legal, /flex items-center justify-between gap-4/)
-  assert.match(legal, /Back to Recall\+/)
-  assert.doesNotMatch(legal, /mt-8 inline-flex[\s\S]{0,120}Back to Recall/)
+  assert.match(legal, /Back <span className="hidden sm:inline">to Recall\+<\/span>/)
+  assert.doesNotMatch(legal, /mt-8 inline-flex[\s\S]{0,120}Back <span/)
 
   const onboarding = read('src/pages/Onboarding.tsx')
   const headerStart = onboarding.indexOf('flex items-start justify-between gap-4')

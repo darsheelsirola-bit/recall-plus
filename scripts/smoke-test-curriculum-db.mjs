@@ -589,7 +589,7 @@ try {
 
   console.log(
     `Database smoke test passed: ${migrationFiles.length} migrations, `
-    + `${catalogue.total} subjects, ${nodes.count} nodes, preserved legacy snapshot, `
+    + `${catalogue.total} subjects, ${nodes.total} nodes, preserved legacy snapshot, `
     + 'owner-bound onboarding.',
   )
 } finally {
