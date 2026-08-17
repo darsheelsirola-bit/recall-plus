@@ -222,7 +222,7 @@ function ProtectedAppShell() {
     <div className="min-h-dvh bg-background text-foreground">
       <Navbar />
       <main ref={mainRef} tabIndex="-1" aria-label="Recall Plus workspace" className="min-h-dvh pb-[calc(9rem+env(safe-area-inset-bottom))] outline-none focus-visible:ring-0 focus-visible:ring-offset-0 md:pb-[calc(5rem+env(safe-area-inset-bottom))] lg:ml-28 lg:pb-0">
-        <div className="mx-auto w-full max-w-[1520px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <div className="mx-auto w-full max-w-[1520px] px-4 py-6 sm:px-6 sm:py-7 lg:px-8 lg:py-8">
           <RouteFocusManager targetRef={mainRef} />
           {dataReady && dataError ? (
             <div role="status" className="mb-4 flex flex-wrap items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">

@@ -126,6 +126,31 @@ const reviewedSources: Readonly<Record<string, CurriculumSource>> = Object.freez
     title: 'Legal Studies, Classes XI-XII, 2026-27',
     sha256: 'd1f7836c059406e66d6b092cffddb5120adb27a826be7b6413936fc330dd7348',
   },
+  '118': {
+    url: `${ACADEMIC_BASE}French_SecP2_2026-27.pdf`,
+    title: 'French, Classes XI-XII, 2026-27',
+    sha256: null,
+  },
+  '034': {
+    url: `${ACADEMIC_BASE}Hindustani_Vocal_SecP2_2026-27.pdf`,
+    title: 'Hindustani Music Vocal, Classes XI-XII, 2026-27',
+    sha256: null,
+  },
+  '049': {
+    url: `${ACADEMIC_BASE}Fine_Arts_SecP2_2026-27.pdf`,
+    title: 'Fine Arts / Painting, Classes XI-XII, 2026-27',
+    sha256: null,
+  },
+  '066': {
+    url: `${ACADEMIC_BASE}Enterprenuership_SecP2_2026-27.pdf`,
+    title: 'Entrepreneurship, Classes XI-XII, 2026-27',
+    sha256: null,
+  },
+  '837': {
+    url: 'https://cbseacademic.nic.in/web_material/Curriculum26/SrSec/837-FASHION_STUDIES-XI.pdf',
+    title: 'Fashion Studies (837), Class XI, 2025-26',
+    sha256: null,
+  },
   '843': {
     url: `${SKILL_BASE}843-AI-XI.pdf`,
     title: 'Artificial Intelligence (843), Class XI, 2026-27',
@@ -202,10 +227,10 @@ function toSubject(
     hasPractical: group === 'S'
       ? true
       : reviewed
-        ? ['037', '042', '043', '044', '048', '055', '083'].includes(subjectCode)
+        ? ['034', '037', '042', '043', '044', '048', '049', '055', '083'].includes(subjectCode)
         : null,
     hasInternalAssessment: reviewed
-      ? ['301', '302', '037', '048'].includes(subjectCode)
+      ? ['301', '302', '037', '048', '118'].includes(subjectCode)
       : null,
     pathwayTags: group === 'L'
       ? [...new Set<PathwayTag>([...pathwayTags, 'language'])]

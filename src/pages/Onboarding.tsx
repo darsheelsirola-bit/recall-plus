@@ -25,7 +25,7 @@ import Logo from '../components/Logo'
 import { useAuth } from '../auth/AuthProvider.tsx'
 import { useAcademicProfile } from '../academic/AcademicProfileProvider.tsx'
 import {
-  academicSubjectCatalogue,
+  academicSubjectCatalogueFor,
 } from '../academic/academicProfile.ts'
 import {
   arrangeSubjectSelections,
@@ -40,11 +40,10 @@ import {
   writeOnboardingDraft,
   type OnboardingDraft,
 } from '../academic/onboarding.ts'
-import {
-  CBSE_2026_27_XI_SUBJECTS_BY_ID,
-} from '../data/curriculum/cbse/2026-27/class-11/catalogue.ts'
+import { subjectById } from '../data/curriculum/registry.ts'
 import type {
   AcademicPathway,
+  CurriculumGrade,
   CurriculumSubject,
 } from '../data/curriculum/types.ts'
 import {
@@ -75,11 +74,10 @@ const pathwayOptions: Array<{
 ]
 
 const requiredLanguageCodes = new Set(['301', '302', '118'])
-const requiredLanguages = academicSubjectCatalogue.filter((subject) =>
-  requiredLanguageCodes.has(subject.subjectCode ?? ''))
 
-function subjectById(id: string): CurriculumSubject | null {
-  return CBSE_2026_27_XI_SUBJECTS_BY_ID.get(id) ?? null
+function languagesForGrade(grade: CurriculumGrade): CurriculumSubject[] {
+  return academicSubjectCatalogueFor(grade).filter((subject) =>
+    requiredLanguageCodes.has(subject.subjectCode ?? ''))
 }
 
 function SubjectCode({ subject }: { subject: CurriculumSubject }) {
@@ -147,9 +145,12 @@ function StepOne({
 }) {
   const fixedDetails = [
     ['Board', 'CBSE'],
-    ['Class', 'XI'],
     ['Academic year', '2026–27'],
     ['Timezone', 'Asia/Kolkata'],
+  ]
+  const gradeOptions: Array<{ id: CurriculumGrade; label: string }> = [
+    { id: 'XI', label: 'Class XI' },
+    { id: 'XII', label: 'Class XII' },
   ]
   return (
     <div>
@@ -170,6 +171,34 @@ function StepOne({
             <p className="mt-1 text-sm font-semibold">{value}</p>
           </div>
         ))}
+      </div>
+      <p className="mt-5 text-xs font-medium text-muted-foreground">Class</p>
+      <div className="mt-2 grid gap-3 sm:grid-cols-2">
+        {gradeOptions.map((option) => {
+          const selected = draft.grade === option.id
+          return (
+            <button
+              key={option.id}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => update({
+                grade: option.id,
+                subjectIds: [],
+                preset: 'custom',
+              })}
+              className={`rounded-2xl border p-4 text-left transition ${
+                selected
+                  ? 'border-primary bg-secondary shadow-sm'
+                  : 'border-border bg-card hover:border-primary/35'
+              }`}
+            >
+              <p className="text-sm font-semibold">{option.label}</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                CBSE senior secondary {option.id === 'XII' ? 'board year' : 'first year'}
+              </p>
+            </button>
+          )
+        })}
       </div>
       <label className="field-label mt-5" htmlFor="school-name">
         School name <span className="font-normal text-muted-foreground">(optional)</span>
@@ -246,7 +275,7 @@ function StepThree({
     <div className="grid gap-3 sm:grid-cols-2">
       {PATHWAY_PRESETS[draft.pathway].map((preset) => {
         const selected = draft.preset === preset.id
-        const subjects = presetSubjectIds(draft.pathway!, preset.id)
+        const subjects = presetSubjectIds(draft.pathway!, preset.id, draft.grade)
           .map(subjectById)
           .filter((subject): subject is CurriculumSubject => Boolean(subject))
         return (
@@ -304,7 +333,7 @@ function StepFour({
         </AlertDescription>
       </Alert>
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        {requiredLanguages.map((subject) => {
+        {languagesForGrade(draft.grade).map((subject) => {
           const checked = draft.subjectIds.includes(subject.id)
           return (
             <button
@@ -312,13 +341,13 @@ function StepFour({
               type="button"
               aria-pressed={checked}
               onClick={() => selectLanguage(subject.id)}
-              className={`flex min-h-16 items-center gap-3 rounded-2xl border p-4 text-left transition ${
+              className={`flex min-h-16 items-start gap-3 rounded-2xl border p-4 text-left transition ${
                 checked
                   ? 'border-primary bg-secondary'
                   : 'border-border bg-card hover:border-primary/35'
               }`}
             >
-              <span className={`grid size-7 shrink-0 place-items-center rounded-full border ${
+              <span className={`mt-0.5 grid size-7 shrink-0 place-items-center rounded-full border ${
                 checked
                   ? 'border-primary bg-primary text-white'
                   : 'border-input bg-white text-transparent'
@@ -326,8 +355,8 @@ function StepFour({
                 <Check className="size-4" />
               </span>
               <span className="min-w-0 flex-1">
-                <strong className="block text-sm">{subject.name}</strong>
-                <span className="mt-1 block text-xs text-muted-foreground">
+                <strong className="block text-sm leading-5">{subject.name}</strong>
+                <span className="mt-1 block text-xs leading-5 text-muted-foreground">
                   Official code {subject.subjectCode}
                 </span>
               </span>
@@ -350,13 +379,14 @@ function StepFive({
   const [query, setQuery] = useState('')
   const recommended = useMemo(
     () => draft.pathway
-      ? recommendedSubjects(draft.pathway)
+      ? recommendedSubjects(draft.pathway, draft.grade)
         .filter((subject) => subject.subjectGroup !== 'L')
       : [],
-    [draft.pathway],
+    [draft.grade, draft.pathway],
   )
+  const catalogue = academicSubjectCatalogueFor(draft.grade)
   const visibleSubjects = useMemo(() => {
-    const source = showAll ? academicSubjectCatalogue : recommended
+    const source = showAll ? catalogue : recommended
     const normalizedQuery = query.trim().toLowerCase()
     if (!normalizedQuery) return source
     return source.filter((subject) => (
@@ -364,7 +394,7 @@ function StepFive({
       || subject.shortName.toLowerCase().includes(normalizedQuery)
       || subject.subjectCode?.includes(normalizedQuery)
     ))
-  }, [query, recommended, showAll])
+  }, [catalogue, query, recommended, showAll])
 
   return (
     <div>
@@ -430,7 +460,7 @@ function StepFive({
         <ChevronDown className={`size-4 transition ${showAll ? 'rotate-180' : ''}`} />
       </Button>
       <p className="mt-3 text-xs leading-5 text-muted-foreground">
-        “More CBSE subjects” includes all {academicSubjectCatalogue.length} approved Class XI subjects in this Recall+ catalogue.
+        “More CBSE subjects” includes all {catalogue.length} approved Class {draft.grade} subjects in this Recall+ catalogue.
       </p>
     </div>
   )
@@ -458,18 +488,22 @@ function StepSix({
   )
   return (
     <div>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-border bg-muted/20 p-4">
-          <p className="text-xs text-muted-foreground">Pathway</p>
-          <p className="mt-1 capitalize font-semibold">{draft.pathway}</p>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="flex min-h-[5.5rem] flex-col justify-between rounded-2xl border border-border bg-muted/20 p-4">
+          <p className="text-xs leading-5 text-muted-foreground">Class</p>
+          <p className="mt-2 text-sm font-semibold leading-5">{draft.grade}</p>
         </div>
-        <div className="rounded-2xl border border-border bg-muted/20 p-4">
-          <p className="text-xs text-muted-foreground">Main subjects</p>
-          <p className="mt-1 font-semibold">{main.length}</p>
+        <div className="flex min-h-[5.5rem] flex-col justify-between rounded-2xl border border-border bg-muted/20 p-4">
+          <p className="text-xs leading-5 text-muted-foreground">Pathway</p>
+          <p className="mt-2 text-sm font-semibold capitalize leading-5">{draft.pathway}</p>
         </div>
-        <div className="rounded-2xl border border-border bg-muted/20 p-4">
-          <p className="text-xs text-muted-foreground">Additional subject</p>
-          <p className="mt-1 font-semibold">{additional ? '1' : 'None'}</p>
+        <div className="flex min-h-[5.5rem] flex-col justify-between rounded-2xl border border-border bg-muted/20 p-4">
+          <p className="text-xs leading-5 text-muted-foreground">Main subjects</p>
+          <p className="mt-2 text-sm font-semibold leading-5">{main.length}</p>
+        </div>
+        <div className="flex min-h-[5.5rem] flex-col justify-between rounded-2xl border border-border bg-muted/20 p-4">
+          <p className="text-xs leading-5 text-muted-foreground">Additional</p>
+          <p className="mt-2 text-sm font-semibold leading-5">{additional ? '1' : 'None'}</p>
         </div>
       </div>
 
@@ -480,18 +514,20 @@ function StepSix({
           return (
             <div
               key={selection.curriculumSubjectId}
-              className="flex min-h-16 items-center gap-3 border-b border-border p-4 last:border-b-0"
+              className="flex min-h-16 items-start gap-3 border-b border-border p-4 last:border-b-0"
             >
-              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-secondary text-xs font-bold text-primary">
+              <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-secondary text-xs font-bold text-primary">
                 {selection.subjectPosition}
               </span>
               <span className="min-w-0 flex-1">
-                <strong className="block break-words text-sm">{subject.name}</strong>
-                <span className="mt-1 block text-xs text-muted-foreground">
+                <strong className="block break-words text-sm leading-5">{subject.name}</strong>
+                <span className="mt-1 block text-xs leading-5 text-muted-foreground">
                   {selection.selectionType === 'main' ? 'Main subject' : 'Additional subject'} · {subjectCategoryLabel(subject)}
                 </span>
               </span>
-              <SubjectCode subject={subject} />
+              <span className="mt-0.5 shrink-0">
+                <SubjectCode subject={subject} />
+              </span>
             </div>
           )
         })}
@@ -548,7 +584,7 @@ function StepSix({
 const stepCopy = [
   {
     title: 'Set up your academic year',
-    description: 'Confirm the fixed CBSE Class XI curriculum details for this Recall+ release.',
+    description: 'Confirm your CBSE class and academic year details for this Recall+ release.',
   },
   {
     title: 'Choose your pathway',
@@ -596,13 +632,14 @@ export default function Onboarding() {
       workspace?.profile.pathway ?? null,
       workspace?.profile.schoolName ?? '',
       initialSubjectIds,
+      workspace?.profile.grade === 'XII' ? 'XII' : 'XI',
     )
   })
   const [error, setError] = useState('')
   const [confirmed, setConfirmed] = useState(false)
   const selections = useMemo(
-    () => arrangeSubjectSelections(draft.subjectIds),
-    [draft.subjectIds],
+    () => arrangeSubjectSelections(draft.subjectIds, draft.grade),
+    [draft.grade, draft.subjectIds],
   )
   const removedSubjects = useMemo(() => {
     if (!editing || !workspace) return []
@@ -641,7 +678,7 @@ export default function Onboarding() {
       preset,
       subjectIds: [...new Set([
         ...languageIds,
-        ...presetSubjectIds(draft.pathway, preset),
+        ...presetSubjectIds(draft.pathway, preset, draft.grade),
       ])].slice(0, 6),
     })
   }
@@ -759,6 +796,7 @@ export default function Onboarding() {
       draft.pathway,
       draft.schoolName,
       selections,
+      draft.grade,
     )
     if (saveError) {
       setError(saveError)
@@ -858,13 +896,29 @@ export default function Onboarding() {
           className="min-w-0 rounded-3xl border border-border bg-white p-5 shadow-soft sm:p-8 lg:p-10"
           onKeyDown={handleStepKeyDown}
         >
-          <span className="grid size-12 place-items-center rounded-2xl bg-secondary text-primary">
-            {draft.step === 4
-              ? <Languages className="size-5" />
-              : draft.step === 6
-                ? <CheckCircle2 className="size-5" />
-                : <Sparkles className="size-5" />}
-          </span>
+          <div className="flex items-start justify-between gap-4">
+            <span className="grid size-12 place-items-center rounded-2xl bg-secondary text-primary">
+              {draft.step === 4
+                ? <Languages className="size-5" />
+                : draft.step === 6
+                  ? <CheckCircle2 className="size-5" />
+                  : <Sparkles className="size-5" />}
+            </span>
+            {(draft.step > 1 || editing) ? (
+              <Button
+                type="button"
+                nativeButton
+                render={undefined}
+                variant="outline"
+                className="shrink-0"
+                onClick={goBack}
+                disabled={saving}
+              >
+                <ArrowLeft data-icon="inline-start" />
+                {draft.step === 1 && editing ? 'Back to settings' : 'Back'}
+              </Button>
+            ) : null}
+          </div>
           <h1
             ref={headingRef}
             tabIndex={-1}
@@ -926,18 +980,7 @@ export default function Onboarding() {
             ) : null}
           </div>
 
-          <div className="mt-8 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
-            <Button
-              type="button"
-              nativeButton
-              render={undefined}
-              variant="outline"
-              onClick={goBack}
-              disabled={saving || (draft.step === 1 && !editing)}
-            >
-              <ArrowLeft data-icon="inline-start" />
-              {draft.step === 1 && editing ? 'Back to settings' : 'Back'}
-            </Button>
+          <div className="mt-8 flex justify-end border-t border-border pt-6">
             {draft.step < ONBOARDING_STEP_COUNT ? (
               <Button
                 type="button"

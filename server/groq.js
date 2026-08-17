@@ -6,12 +6,15 @@ import {
 } from '../shared/quizValidation.js'
 import { AppError, ERROR_CODES } from './errors.js'
 import {
-  fetchGroq,
+  generateStructured,
+  modelCandidates,
+  requireNvidiaKey,
+} from './ai/client.js'
+import { AI_FEATURES } from './ai/config.js'
+import {
   MAX_PROVIDER_ATTEMPTS,
   PROVIDER_TOTAL_DEADLINE_MS,
-  providerHttpError,
   providerResponseInvalid,
-  readProviderJson,
   waitBeforeProviderRetry,
 } from './upstreamFetch.js'
 import {
@@ -19,8 +22,6 @@ import {
   normalizedRequiredText,
 } from './requestValidation.js'
 
-const GROQ_CHAT_COMPLETIONS_URL = 'https://api.groq.com/openai/v1/chat/completions'
-const DEFAULT_GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']
 const QUIZ_OUTPUT_TOKENS = 4_096
 const QUIZ_VERIFICATION_PASSES = 2
 
@@ -104,29 +105,6 @@ JSON format:
 {"verifications":[{"id":"q1","answer":"Exact option text"}]}`
 }
 
-function modelCandidates() {
-  const envModel = String(process.env.GROQ_MODEL || '').trim()
-  const ordered = envModel ? [envModel, ...DEFAULT_GROQ_MODELS] : DEFAULT_GROQ_MODELS
-  return [...new Set(ordered)]
-}
-
-function parseGroqContent(payload) {
-  const content = payload?.choices?.[0]?.message?.content
-  if (typeof content !== 'string' || !content.trim()) return null
-
-  try {
-    return JSON.parse(content)
-  } catch {
-    const match = content.match(/\{[\s\S]*\}/)
-    if (!match) return null
-    try {
-      return JSON.parse(match[0])
-    } catch {
-      return null
-    }
-  }
-}
-
 function normalizeQuizVerification(parsed, questions) {
   const verifications = Array.isArray(parsed) ? parsed : parsed?.verifications
   if (!Array.isArray(verifications) || verifications.length !== questions.length) return null
@@ -202,7 +180,7 @@ function normalizeQuizQuestions(questions, count, level) {
 }
 
 async function generateOnce({
-  key,
+  feature,
   model,
   subject,
   chapter,
@@ -212,90 +190,60 @@ async function generateOnce({
   purpose,
   deadlineAt,
 }) {
-  const response = await fetchGroq(GROQ_CHAT_COMPLETIONS_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${key}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.4,
-      max_completion_tokens: QUIZ_OUTPUT_TOKENS,
-      response_format: { type: 'json_object' },
-      messages: [
-        {
-          role: 'system',
-          content: 'You generate accurate CBSE Class 11 quizzes from the supplied official curriculum selection. Reply with valid JSON only.',
-        },
-        {
-          role: 'user',
-          content: buildQuizPrompt({ subject, chapter, topic, count, level, purpose }),
-        },
-      ],
-    }),
-  }, { deadlineAt })
-
-  if (!response.ok) throw providerHttpError(response)
-
-  const payload = await readProviderJson(response)
-  const parsed = parseGroqContent(payload)
+  const parsed = await generateStructured({
+    feature,
+    model,
+    temperature: 0.2,
+    maxTokens: QUIZ_OUTPUT_TOKENS,
+    deadlineAt,
+    messages: [
+      {
+        role: 'system',
+        content: 'You generate accurate CBSE quizzes from the supplied official curriculum selection. Reply with valid JSON only.',
+      },
+      {
+        role: 'user',
+        content: buildQuizPrompt({ subject, chapter, topic, count, level, purpose }),
+      },
+    ],
+  })
   const questions = Array.isArray(parsed) ? parsed : parsed?.questions
   return normalizeQuizQuestions(questions, count, level)
 }
 
 async function verifyOnce({
-  key,
   model,
   questions,
   deadlineAt,
 }) {
-  const response = await fetchGroq(GROQ_CHAT_COMPLETIONS_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${key}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0,
-      max_completion_tokens: QUIZ_OUTPUT_TOKENS,
-      response_format: { type: 'json_object' },
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an independent NCERT Class 11 answer-key auditor. Solve each question without seeing or guessing the generator answer. Reply with valid JSON only.',
-        },
-        {
-          role: 'user',
-          content: buildQuizVerificationPrompt(questions),
-        },
-      ],
-    }),
-  }, { deadlineAt })
-
-  if (!response.ok) throw providerHttpError(response)
-
-  const payload = await readProviderJson(response)
-  const parsed = parseGroqContent(payload)
+  const parsed = await generateStructured({
+    feature: AI_FEATURES.VERIFIER,
+    model,
+    temperature: 0,
+    maxTokens: QUIZ_OUTPUT_TOKENS,
+    deadlineAt,
+    messages: [
+      {
+        role: 'system',
+        content: 'You are an independent NCERT answer-key auditor. Solve each question without seeing or guessing the generator answer. Reply with valid JSON only.',
+      },
+      {
+        role: 'user',
+        content: buildQuizVerificationPrompt(questions),
+      },
+    ],
+  })
   return normalizeQuizVerification(parsed, questions)
 }
 
 export async function requestQuiz({ subject, chapter, topic, count, level = 'mixed', purpose = 'practice' }) {
-  const key = purpose === 'recall'
-    ? process.env.GROQ_RECALL_API_KEY
-    : process.env.GROQ_QUIZ_API_KEY
-  if (!key) {
-    throw new AppError(`${purpose === 'recall' ? 'Recall' : 'Quiz'} generation is temporarily unavailable.`, {
-      code: ERROR_CODES.AI_PROVIDER_UNAVAILABLE,
-      statusCode: 503,
-      details: { retryable: true },
-    })
-  }
+  const feature = purpose === 'recall' ? AI_FEATURES.RECALL : AI_FEATURES.QUIZ
+  requireNvidiaKey(feature)
 
   const safeCount = clampCount(count)
   const safeLevel = ['mixed', 'easy', 'medium', 'hard'].includes(level) ? level : 'mixed'
-  const models = modelCandidates()
+  const models = modelCandidates(feature)
+  const verifierModels = modelCandidates(AI_FEATURES.VERIFIER)
   const deadlineAt = Date.now() + PROVIDER_TOTAL_DEADLINE_MS
   let lastError
 
@@ -303,7 +251,7 @@ export async function requestQuiz({ subject, chapter, topic, count, level = 'mix
     const model = models[attempt % models.length]
     try {
       const questions = await generateOnce({
-        key,
+        feature,
         model,
         subject,
         chapter,
@@ -315,9 +263,8 @@ export async function requestQuiz({ subject, chapter, topic, count, level = 'mix
       })
       if (questions) {
         for (let pass = 0; pass < QUIZ_VERIFICATION_PASSES; pass += 1) {
-          const verifierModel = models[(attempt + pass + 1) % models.length]
+          const verifierModel = verifierModels[(attempt + pass) % verifierModels.length]
           const verifiedAnswers = await verifyOnce({
-            key,
             model: verifierModel,
             questions,
             deadlineAt,

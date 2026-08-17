@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { curriculumRequestSelection, useActiveCurriculum, useCurriculumSubjects } from '../academic/activeCurriculum'
 import GenerationLimitStatus from '../components/GenerationLimitStatus'
 import PageHeader from '../components/PageHeader'
+import BackButton from '../components/BackButton'
 import { useGenerationUsage } from '../contexts/GenerationUsageContext'
 import { generateQuizQuestions } from '../services/groqService'
 import { GENERATION_LIMIT_MESSAGE } from '../types/generation'
@@ -166,9 +167,9 @@ export default function PostStudyQuiz() {
     setMode('result')
   }
 
-  if (!log) return <><PageHeader title="Quick Check" description="We could not find the study session for this quiz." /><Alert variant="destructive"><X /><AlertTitle>Study log not found</AlertTitle><AlertDescription>Return to Study Logs or add a new session.</AlertDescription></Alert><div className="mt-4 flex gap-3"><Button render={<Link to="/logs" />}>Study logs</Button><Button variant="outline" render={<Link to="/add-log" />}>Add study log</Button></div></>
+  if (!log) return <><PageHeader title="Quick Check" description="We could not find the study session for this quiz." actions={<><BackButton to="/logs" label="Study logs" /><Button variant="outline" render={<Link to="/add-log" />}>Add study log</Button></>} /><Alert variant="destructive"><X /><AlertTitle>Study log not found</AlertTitle><AlertDescription>Return to Study Logs or add a new session.</AlertDescription></Alert></>
 
-  if (archivedLog) return <><PageHeader title="Quick Check unavailable" description={`${log.subject} is no longer in your active curriculum.`} /><Alert><Info /><AlertTitle>Archived study session</AlertTitle><AlertDescription>This log remains in your history, but Recall+ will not generate new quizzes or revisions for a removed subject.</AlertDescription></Alert><div className="mt-4"><Button render={<Link to="/logs" />}>Back to study history</Button></div></>
+  if (archivedLog) return <><PageHeader title="Quick Check unavailable" description={`${log.subject} is no longer in your active curriculum.`} actions={<BackButton to="/logs" label="Back to study history" />} /><Alert><Info /><AlertTitle>Archived study session</AlertTitle><AlertDescription>This log remains in your history, but Recall+ will not generate new quizzes or revisions for a removed subject.</AlertDescription></Alert></>
 
   if (loading || mode === 'loading') return <><PageHeader title="Building your Quick Check" description={`${log.subject} · ${log.chapter}`} /><Card><CardContent className="space-y-4 p-8"><Skeleton className="h-5 w-1/3" /><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /><p className="text-sm text-muted-foreground">Creating 2 easy, 4 moderate, and 4 hard questions from your real study topics.</p></CardContent></Card></>
 
@@ -201,7 +202,7 @@ export default function PostStudyQuiz() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle>Ten questions before you move on</CardTitle>
-              <p className="mt-1 text-sm text-muted-foreground">Groq-generated recall check</p>
+              <p className="mt-1 text-sm text-muted-foreground">AI-generated recall check</p>
               <GenerationLimitStatus feature="quiz" className="mt-2" />
             </div>
             <Button variant="outline" onClick={buildQuiz} disabled={loading || generationBlocked}>

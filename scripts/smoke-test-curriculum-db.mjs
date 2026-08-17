@@ -7,7 +7,7 @@ import { PGlite } from '@electric-sql/pglite'
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const migrationDirectory = path.join(projectRoot, 'supabase', 'migrations')
 const expectedCurriculumMigration = '20260730120000_curriculum_profiles_and_rls.sql'
-const expectedLatestMigration = '20260809180000_auth_bootstrap_self_heal.sql'
+const expectedLatestMigration = '20260812130000_fill_missing_allowlist_outlines.sql'
 
 const bootstrapSql = `
 do $roles$
@@ -225,10 +225,26 @@ try {
     from public.curriculum_subjects`,
   )
   assert.deepEqual(catalogue, {
-    total: 124,
-    active_selectable: 24,
-    active_languages: 3,
+    total: 148,
+    active_selectable: 48,
+    active_languages: 6,
   })
+
+  const xiiVersion = await scalar(
+    db,
+    `select count(*)::integer as count
+     from public.curriculum_versions
+     where id = 'cbse-2026-27-xii-v1' and grade = 'XII'`,
+  )
+  assert.equal(xiiVersion.count, 1)
+
+  const xiiSubjects = await scalar(
+    db,
+    `select count(*)::integer as count
+     from public.curriculum_subjects
+     where curriculum_version_id = 'cbse-2026-27-xii-v1' and active`,
+  )
+  assert.equal(xiiSubjects.count, 24)
 
   const activeBooks = await scalar(
     db,
@@ -375,6 +391,48 @@ try {
   )
   assert.equal(saved.result.onboardingCompleted, true)
   assert.equal(saved.result.subjects.length, 5)
+
+  const validXiiSelection = validScienceSelection.replaceAll(
+    'cbse-2026-27-xi-',
+    'cbse-2026-27-xii-',
+  )
+  const savedXii = await scalar(
+    db,
+    `select public.save_recall_academic_profile(
+      'science',
+      'Smoke Test School XII',
+      $1::jsonb,
+      'cbse-2026-27-xii-v1'
+    ) as result`,
+    [validXiiSelection],
+  )
+  assert.equal(savedXii.result.grade, 'XII')
+  assert.equal(savedXii.result.curriculumVersionId, 'cbse-2026-27-xii-v1')
+  assert.equal(savedXii.result.subjects.length, 5)
+
+  const profileGrade = await scalar(
+    db,
+    `select grade, curriculum_version_id
+     from public.user_academic_profiles
+     where user_id = $1`,
+    [testUserId],
+  )
+  assert.deepEqual(profileGrade, {
+    grade: 'XII',
+    curriculum_version_id: 'cbse-2026-27-xii-v1',
+  })
+
+  // Restore XI profile for subsequent study-log checks that use XI Physics nodes.
+  await scalar(
+    db,
+    `select public.save_recall_academic_profile(
+      'science',
+      'Smoke Test School',
+      $1::jsonb,
+      'cbse-2026-27-xi-v1'
+    ) as result`,
+    [validScienceSelection],
+  )
 
   const physicsNodes = await db.query(
     `with root as (

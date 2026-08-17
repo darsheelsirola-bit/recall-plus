@@ -5,7 +5,7 @@ Do not link from production footers until lawyer-reviewed.
 
 ## Intended disclosures
 
-- Quizzes, timetables, and insights are generated with third-party AI (Groq) and may be incomplete or incorrect.
+- Quizzes, timetables, and insights are generated with third-party AI (NVIDIA NIM) and may be incomplete or incorrect.
 - Recall+ is independent of CBSE and NCERT; generated content is not official board material.
 - Students should verify against their teachers, textbooks, and official circulars.
 - Generation is rate-limited; availability depends on provider uptime and configuration.

@@ -52,8 +52,8 @@ export async function generateQuizQuestions(curriculumSelection, {
   })
 }
 
-export async function checkGroqStatus() {
+export async function checkAiStatus() {
   const response = await fetch('/api/ai-status')
-  if (!response.ok) throw new Error('Could not check Groq status.')
+  if (!response.ok) throw new Error('Could not check AI status.')
   return response.json()
 }

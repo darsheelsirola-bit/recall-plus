@@ -1,8 +1,9 @@
 import { CalendarDays, Clock3, NotebookPen, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import BackButton from '../components/BackButton'
 import PageHeader from '../components/PageHeader'
 import { curriculumRequestSelection, useActiveCurriculum, useCurriculumSubjects } from '../academic/activeCurriculum'
 import { getBooks, getChapters, getTopics, selectionFromParams } from '../components/SelectionFields'
@@ -239,7 +240,7 @@ export default function AddLog() {
     <>
       <PageHeader
         title={editingLog ? 'Edit study log' : 'Study log'}
-        actions={<Button variant="outline" render={<Link to="/logs" />}>View all study logs</Button>}
+        actions={<BackButton to="/logs" label="Back to study history" />}
       />
       {curriculumLoading ? <p role="status" className="mb-4 rounded-xl border border-border bg-secondary/35 p-4 text-sm text-muted-foreground">Loading the selected subject curriculum…</p> : null}
       {curriculumError || saveError ? <p role="alert" className="mb-4 rounded-xl border border-destructive/25 bg-destructive/10 p-4 text-sm font-medium text-destructive">{curriculumError || saveError} Your form is still here so you can retry.</p> : null}
@@ -276,21 +277,21 @@ export default function AddLog() {
             {topics.length ? (
               <div className="mt-2 flex flex-wrap gap-2">
                 {topics.map((topic) => (
-                  <span key={topic} className="inline-flex min-h-11 items-center gap-1 rounded-full bg-primary py-0 pl-3 pr-0.5 text-sm font-semibold text-primary-foreground">
+                  <span key={topic} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary py-0 pl-3.5 pr-1 text-sm font-semibold text-primary-foreground">
                     {topic}
                     <button type="button" onClick={() => toggleTopic(topic)} className="grid size-11 place-items-center rounded-full bg-white/15 hover:bg-white/30" aria-label={`Remove ${topic}`}><X size={14} /></button>
                   </span>
                 ))}
               </div>
             ) : <p className="mt-2 text-sm text-muted-foreground">Tap topics below to add them.</p>}
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap gap-3">
               {chapterTopics.map((topic) => { const active = topics.includes(topic); return <button type="button" key={topic} aria-pressed={active} onClick={() => toggleTopic(topic)} className={`min-h-11 rounded-full border px-3 py-2 text-sm font-medium transition ${active ? 'border-primary bg-secondary text-primary' : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-primary'}`}>{active ? '✓ ' : '+ '}{topic}</button> })}
             </div>
           </div>
 
           <div className="mt-6 grid gap-5 sm:grid-cols-2">
             <label className="field-label">Time spent (minutes)<div className="relative"><Clock3 className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink/35" size={18} /><input className="field pl-11" type="number" min="5" max="600" value={timeSpent} onChange={(event) => setTimeSpent(event.target.value)} required /></div></label>
-            <fieldset><legend className="field-label">Confidence level</legend><div className="grid grid-cols-3 gap-2">{['Low', 'Medium', 'High'].map((level) => <button type="button" key={level} onClick={() => setConfidence(level)} className={`min-h-12 rounded-xl border px-3 py-3 text-sm font-semibold transition ${confidence === level ? 'border-primary bg-secondary text-primary' : 'border-border bg-card text-muted-foreground hover:border-primary/30'}`}>{level}</button>)}</div></fieldset>
+            <fieldset><legend className="field-label">Confidence level</legend><div className="grid grid-cols-3 gap-3">{['Low', 'Medium', 'High'].map((level) => <button type="button" key={level} onClick={() => setConfidence(level)} className={`min-h-12 rounded-xl border px-3 py-3 text-sm font-semibold transition ${confidence === level ? 'border-primary bg-secondary text-primary' : 'border-border bg-card text-muted-foreground hover:border-primary/30'}`}>{level}</button>)}</div></fieldset>
           </div>
 
           <label className="field-label mt-6">Notes &amp; reflection<textarea className="field min-h-32 resize-y" placeholder="Key ideas, mistakes, or questions to revisit…" value={notes} onChange={(event) => setNotes(event.target.value)} /></label>

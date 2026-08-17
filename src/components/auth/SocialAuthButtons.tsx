@@ -58,7 +58,7 @@ export default function SocialAuthButtons({ returnTo }: SocialAuthButtonsProps) 
 
   return (
     <div>
-      <div className="grid gap-2.5" aria-label="Social sign-in options">
+      <div className="grid gap-3" aria-label="Social sign-in options">
         {visibleProviders.map(({ id, name, Icon }) => {
           const enabled = isOAuthProviderFeatureEnabled(id)
           const isGoogle = id === 'google'

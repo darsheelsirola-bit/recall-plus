@@ -11,7 +11,7 @@ export const MAX_PROVIDER_ATTEMPTS = 3
 export const PROVIDER_TOTAL_DEADLINE_MS = 45_000
 
 function configuredTimeout() {
-  const requested = Number(process.env.GROQ_REQUEST_TIMEOUT_MS)
+  const requested = Number(process.env.NVIDIA_REQUEST_TIMEOUT_MS)
   if (!Number.isFinite(requested)) return DEFAULT_TIMEOUT_MS
   return Math.min(MAX_TIMEOUT_MS, Math.max(MIN_TIMEOUT_MS, Math.trunc(requested)))
 }
@@ -68,7 +68,7 @@ export function providerHttpError(response) {
   const rateLimited = status === 429
   const error = providerUnavailable(
     rateLimited
-      ? 'The AI service is busy right now. Please try again shortly.'
+      ? 'The AI service is temporarily busy. Please try again shortly.'
       : 'The AI service is temporarily unavailable. Please try again.',
     {
       statusCode: status >= 500 || status === 401 || status === 403 || rateLimited ? 503 : 502,
@@ -145,7 +145,7 @@ export async function waitBeforeProviderRetry(error, attemptNumber, deadlineAt) 
   if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs))
 }
 
-export async function fetchGroq(input, init, { deadlineAt = Date.now() + PROVIDER_TOTAL_DEADLINE_MS } = {}) {
+export async function fetchProvider(input, init, { deadlineAt = Date.now() + PROVIDER_TOTAL_DEADLINE_MS } = {}) {
   const remaining = deadlineAt - Date.now()
   if (remaining <= 0) {
     throw providerUnavailable('The AI service took too long to respond. Please try again.', {

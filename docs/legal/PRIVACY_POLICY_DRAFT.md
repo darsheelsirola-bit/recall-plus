@@ -24,7 +24,7 @@ See `docs/DATA_INVENTORY.md`. In summary: account identity, academic selections,
 
 ## Processors
 
-Supabase (Auth/DB), Vercel (hosting), Groq (AI generation), optional Google OAuth. See `docs/DATA_PROCESSOR_REGISTER.md`.
+Supabase (Auth/DB), Vercel (hosting), NVIDIA NIM (AI generation), optional Google OAuth. See `docs/DATA_PROCESSOR_REGISTER.md`.
 
 ## Your controls
 

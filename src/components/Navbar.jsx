@@ -252,7 +252,7 @@ export default function Navbar() {
                 {editingName ? (
                   <form onSubmit={saveName}>
                     <label id="account-name-label" className="text-xs font-medium text-muted-foreground" htmlFor="account-name-input">Name</label>
-                    <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                    <div className="mt-2 flex flex-col gap-3 sm:flex-row">
                       <input
                         id="account-name-input"
                         className="field min-w-0 flex-1"
@@ -269,7 +269,7 @@ export default function Navbar() {
                         disabled={updatingProfileName}
                         autoFocus
                       />
-                      <div className="flex gap-2">
+                      <div className="flex gap-3">
                         <button type="submit" className="btn-primary min-h-11 flex-1 justify-center px-3 sm:flex-none" disabled={updatingProfileName}>
                           {updatingProfileName ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
                           {updatingProfileName ? 'Saving…' : 'Save'}

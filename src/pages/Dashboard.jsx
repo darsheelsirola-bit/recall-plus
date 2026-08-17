@@ -95,7 +95,7 @@ function ChapterInsightCard({ chapter }) {
       <p className="mt-4 text-sm font-medium text-primary">{chapter.action}</p>
 
       {firstTopic ? (
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap gap-3">
           <Button size="sm" variant="outline" render={<Link to={topicLink(chapter.subject, chapter.chapter, firstTopic, 'practice')} />}>Practice</Button>
           <Button size="sm" variant="outline" render={<Link to={topicLink(chapter.subject, chapter.chapter, firstTopic, 'recall')} />}>Recall check</Button>
           <Button size="sm" variant="ghost" render={<Link to={`/add-log?subject=${encodeURIComponent(chapter.subject)}&chapter=${encodeURIComponent(chapter.chapter)}&topic=${encodeURIComponent(firstTopic)}`} />}>Log study</Button>
@@ -141,7 +141,7 @@ export default function Dashboard() {
       if (cached) {
         setInsights(cached)
         setNotice(cached.source?.startsWith('local')
-          ? 'Showing saved insight cards built from your scores. Tap Regenerate for a fresh Groq rewrite.'
+          ? 'Showing saved insight cards built from your scores. Tap Regenerate for a fresh rewrite.'
           : '')
         return
       }
@@ -156,7 +156,7 @@ export default function Dashboard() {
       saveCachedInsightsForUser(ownerId, fingerprint, payload)
       setInsights(payload)
       if (payload.source?.startsWith('local')) {
-        setNotice('Groq was busy or unreachable — showing insight cards from your saved scores. Tap Regenerate to retry.')
+        setNotice('The AI service was busy or unreachable — showing insight cards from your saved scores. Tap Regenerate to retry.')
       }
     } catch (fetchError) {
       if (!ownerId || getStorageUser() !== ownerId) return
@@ -166,7 +166,7 @@ export default function Dashboard() {
       )
       saveCachedInsightsForUser(ownerId, fingerprint, fallback)
       setInsights(fallback)
-      setNotice(fetchError.message || 'Could not reach Groq. Showing local insight cards instead.')
+      setNotice(fetchError.message || 'Could not reach the AI service. Showing local insight cards instead.')
     } finally {
       setLoading(false)
     }

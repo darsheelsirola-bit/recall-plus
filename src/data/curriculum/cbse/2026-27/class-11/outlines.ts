@@ -43,10 +43,11 @@ const project = (title: string, page: number): OutlineNode => ({
   title,
   page,
 })
-const assessment = (title: string, page: number): OutlineNode => ({
+const assessment = (title: string, page: number, marks?: number): OutlineNode => ({
   type: 'assessment_area',
   title,
   page,
+  marks,
 })
 
 const reviewedOutlines: Readonly<Record<string, readonly OutlineNode[]>> =
@@ -420,6 +421,83 @@ const reviewedOutlines: Readonly<Record<string, readonly OutlineNode[]>> =
       unit('AI Ethics and Values', 2),
       practical('Practical Work', 2),
       project('Capstone Project', 2),
+    ],
+    '118': [
+      assessment('Comprehension / Reading', 2, 20),
+      assessment('Writing Skills / Composition', 2, 20),
+      assessment('Applied Grammar', 3, 25),
+      assessment('Culture', 3, 15),
+      book('Cours de Langue et de Civilisation Françaises – II (G. Mauger)', 4, [
+        chapter('Lessons 1-12', 4, [
+          topic('Seen and unseen comprehension', 4),
+          topic('Creative writing and informal letter', 4),
+          topic('Prepositions, pronouns and tenses', 4),
+          topic('Culture questions from Lessons 1-12', 4),
+        ]),
+      ]),
+      assessment('Internal Assessment', 5, 20),
+      project('Project Work', 5),
+    ],
+    '034': [
+      unit('Basic Musical Concepts', 2, [
+        topic('Nada, Shruti, Swar, Saptak, Thaat, Jati, Laya, Tala', 2),
+        topic('Margi-Desi Sangeet and Raga', 2),
+      ], 6),
+      unit('Brief History of Vocal Forms', 3, [
+        topic('Dhrupad, Khayal and Tarana', 3),
+      ], 6),
+      unit('Textual and Historical Study', 3, [
+        topic('Musical elements in Natya Shastra', 3),
+        topic('Life sketch and contribution of Tansen, V.N. Bhatkhande and V.D. Paluskar', 3),
+      ], 6),
+      unit('Talas and Tanpura', 4, [
+        topic('Teentala, Ektala and Chautala with Thah, Dugun and Chaugun', 4),
+        topic('Structure of Tanpura', 4),
+      ], 6),
+      unit('Prescribed Ragas', 4, [
+        chapter('Bihag', 4),
+        chapter('Bhimpalasi', 4),
+        chapter('Bhairavi', 4),
+      ], 6),
+      practical('Practical Work', 5),
+    ],
+    '049': [
+      unit('Pre-Historic Rock Paintings and Art of Indus Valley Civilization', 2, [
+        topic('Pre-historic rock paintings and Wizard\'s Dance, Bhimbetka', 2),
+        topic('Indus / Sindhu-Saraswati Civilization sculptures and seals', 2),
+        topic('Buddhist, Jain and Hindu Art (3rd century B.C. to 8th century A.D.)', 3),
+      ], 15),
+      unit('Temple Sculptures, Bronzes and Indo-Islamic Architecture', 3, [
+        topic('Temple sculpture overview (6th to 13th century CE)', 3),
+        topic('Indian bronzes and Nataraja', 4),
+        topic('Artistic aspects of Indo-Islamic architecture', 4),
+      ], 15),
+      practical('Nature and Object Study', 5),
+      practical('Painting Composition', 5),
+      assessment('Portfolio Assessment', 5),
+    ],
+    '066': [
+      unit('Entrepreneurship: Concept and Functions', 2, [], 15),
+      unit('An Entrepreneur', 2),
+      unit('Entrepreneurial Journey', 3),
+      unit('Entrepreneurship as Innovation and Problem Solving', 3, [], 20),
+      unit('Understanding the Market', 4, [], 15),
+      unit('Business Finance and Arithmetic', 4),
+      unit('Resource Mobilization', 5, [], 20),
+      project('Project Work', 5),
+    ],
+    '837': [
+      unit('Communication Skills-III', 2),
+      unit('Self-Management Skills-III', 2),
+      unit('ICT Skills-III', 2),
+      unit('Entrepreneurial Skills-III', 2),
+      unit('Green Skills-III', 2),
+      unit('Overview of Fashion', 3),
+      unit('Introduction to Fabrics, Dyeing and Printing', 3),
+      unit('Design Fundamentals', 4),
+      unit('Materials, Tools and Processes of Product Making', 4),
+      practical('Practical Work', 5),
+      project('Project Work / Field Visit', 5),
     ],
   })
 

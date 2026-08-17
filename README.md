@@ -1,6 +1,6 @@
 # Recall+
 
-Recall+ is a Class 11 PCM revision app for Physics, Chemistry, and Mathematics. It combines study logging, syllabus tracking, spaced repetition, progress insights, and Groq-powered quiz and timetable generation.
+Recall+ is a Class 11 PCM revision app for Physics, Chemistry, and Mathematics. It combines study logging, syllabus tracking, spaced repetition, progress insights, and NVIDIA NIM-powered quiz and timetable generation.
 
 The production architecture uses:
 
@@ -9,7 +9,7 @@ The production architecture uses:
 - Google, Apple, and GitHub sign-in through Supabase Auth
 - Supabase Postgres and Row Level Security (RLS) for per-user data and generation limits
 - Vercel Functions, or the included Express server, as the trusted API boundary
-- Groq for quiz and timetable generation
+- NVIDIA NIM (`https://integrate.api.nvidia.com/v1`) for quiz, timetable, insight, and recall generation
 
 ## Features
 
@@ -26,14 +26,14 @@ The production architecture uses:
 
 ## Generation-limit architecture
 
-The browser checks the authenticated user's remaining quota before requesting a generation. The server then performs the authoritative check before it calls Groq:
+The browser checks the authenticated user's remaining quota before requesting a generation. The server then performs the authoritative check before it calls NVIDIA NIM:
 
 1. The browser sends the Supabase access token and a unique request ID.
 2. The API validates the token and derives the user ID from it.
 3. A service-role-only Supabase RPC atomically reserves one request for the requested feature and binds its ID to a canonical request hash.
-4. The API calls Groq and validates the existing quiz or timetable output contract.
+4. The API calls NVIDIA NIM and validates the existing quiz or timetable output contract.
 5. A successful response commits one use. A failed response releases the reservation and does not reduce the quota.
-6. A repeated request ID replays the stored result instead of calling Groq again.
+6. A repeated request ID replays the stored result instead of calling NVIDIA NIM again.
 
 Quiz and timetable counters are independent. Each counter resets when the next calendar day begins in the browser-detected timezone saved for the user at signup. Existing accounts can initialize a missing timezone exactly once. Only one active request per user and feature is allowed, and abandoned reservations expire after six minutes.
 
@@ -46,7 +46,7 @@ The daily quota is not stored in `localStorage`. Supabase is authoritative for a
 - Git
 - A Supabase project
 - The [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started)
-- Two Groq API keys, one for each generation feature
+- One NVIDIA NIM API key (`NVIDIA_API_KEY`) kept only in server-side environment variables
 - A GitHub account and repository for Git-based deployment
 - A Vercel account for the hosted production app
 
@@ -85,7 +85,7 @@ macOS or Linux:
 cp .env.example .env
 ```
 
-Fill in `.env` with values from the Supabase project and Groq:
+Fill in `.env` with values from the Supabase project and NVIDIA NIM:
 
 ```env
 # Public browser configuration
@@ -102,19 +102,21 @@ SUPABASE_URL=https://bqysqcsogqxfhrtuituo.supabase.co
 SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_OR_PUBLISHABLE_KEY
 SUPABASE_SERVICE_ROLE_KEY=YOUR_SUPABASE_SERVICE_ROLE_KEY
 
-# Server-only AI provider configuration
-GROQ_QUIZ_API_KEY=YOUR_QUIZ_ONLY_GROQ_KEY
-GROQ_RECALL_API_KEY=YOUR_RECALL_ONLY_GROQ_KEY
-GROQ_INSIGHTS_API_KEY=YOUR_INSIGHTS_ONLY_GROQ_KEY
-GROQ_TIMETABLE_API_KEY=YOUR_TIMETABLE_GROQ_KEY
-GROQ_MODEL=llama-3.3-70b-versatile
-GROQ_REQUEST_TIMEOUT_MS=20000
+# Server-only NVIDIA NIM configuration. Never prefix these with VITE_.
+NVIDIA_API_KEY=YOUR_NVIDIA_API_KEY
+NVIDIA_MODEL=meta/llama-3.3-70b-instruct
+NVIDIA_MODEL_QUIZ=
+NVIDIA_MODEL_TIMETABLE=
+NVIDIA_MODEL_INSIGHT=
+NVIDIA_MODEL_RECALL=
+NVIDIA_MODEL_VERIFIER=
+NVIDIA_REQUEST_TIMEOUT_MS=20000
 
 # Used by the local Express API only
 PORT=8787
 ```
 
-Never commit `.env`. It is ignored by Git. Only the Supabase URL and anon/publishable key may use the `VITE_` prefix. Never prefix the Supabase service-role key or any Groq key with `VITE_`, because Vite embeds `VITE_` variables in the browser bundle.
+Never commit `.env`. It is ignored by Git. Only the Supabase URL and anon/publishable key may use the `VITE_` prefix. Never prefix the Supabase service-role key or `NVIDIA_API_KEY` with `VITE_`, because Vite embeds `VITE_` variables in the browser bundle.
 
 ### Configure Supabase Auth
 
@@ -324,12 +326,14 @@ npm start
 | `SUPABASE_URL` | Server | Yes | Supabase project URL used by API functions |
 | `SUPABASE_ANON_KEY` | Server | Yes | Used while validating authenticated requests |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server secret | Yes | Executes protected persistence and generation-limit RPCs |
-| `GROQ_QUIZ_API_KEY` | Server secret | Yes | Calls Groq for quiz generation only |
-| `GROQ_RECALL_API_KEY` | Server secret | Yes | Calls Groq for Recall checks only |
-| `GROQ_INSIGHTS_API_KEY` | Server secret | Yes | Calls Groq for dashboard insight generation only |
-| `GROQ_TIMETABLE_API_KEY` | Server secret | Yes | Calls Groq for timetable generation only |
-| `GROQ_MODEL` | Server | No | Overrides the default Groq model |
-| `GROQ_REQUEST_TIMEOUT_MS` | Server | No | Per-attempt Groq timeout, clamped to 5–30 seconds |
+| `NVIDIA_API_KEY` | Server secret | Yes | Calls NVIDIA NIM for quiz, recall, insight, and timetable generation |
+| `NVIDIA_MODEL` | Server | Yes | NVIDIA NIM model ID, for example `meta/llama-3.3-70b-instruct` |
+| `NVIDIA_MODEL_QUIZ` | Server | No | Optional quiz-generation model override |
+| `NVIDIA_MODEL_TIMETABLE` | Server | No | Optional timetable model override |
+| `NVIDIA_MODEL_INSIGHT` | Server | No | Optional insight model override |
+| `NVIDIA_MODEL_RECALL` | Server | No | Optional recall-check model override |
+| `NVIDIA_MODEL_VERIFIER` | Server | No | Optional answer-key verifier model override |
+| `NVIDIA_REQUEST_TIMEOUT_MS` | Server | No | Per-attempt NVIDIA timeout, clamped to 5–30 seconds |
 | `PORT` | Local server | No | Express port; defaults to `8787` |
 
 Use the following environment scopes:
@@ -337,18 +341,18 @@ Use the following environment scopes:
 | Environment | File or scope | Required configuration |
 | --- | --- | --- |
 | Local development | Untracked `.env` | All required browser and server variables, plus optional `PORT`, model, and timeout |
-| Vercel Preview | Preview scope | All required browser and server variables; use preview-only Supabase and Groq credentials |
+| Vercel Preview | Preview scope | All required browser and server variables; use preview-only Supabase and NVIDIA credentials |
 | Vercel Production | Production scope | All required browser and server variables; use production-only credentials |
 
-Do not share the Supabase service-role key or Groq keys between Preview and
+Do not share the Supabase service-role key or `NVIDIA_API_KEY` between Preview and
 Production unless that risk has been explicitly reviewed. A separate Preview
 Supabase project keeps test accounts, data, quotas, and destructive migration
 testing away from production.
 
 On Vercel, the build fails before compilation when a required variable is
 missing, the browser and server Supabase URLs differ, a public setting matches
-or resembles a private credential, the anon key equals the service-role key, the
-any Groq feature keys are identical, the timeout is outside 5-30 seconds, Corepack is not
+or resembles a private credential, the anon key equals the service-role key,
+the timeout is outside 5-30 seconds, Corepack is not
 enabled, or a secret-looking variable uses the public `VITE_` prefix. The
 validator reports variable names and reasons only; it never prints values.
 
@@ -483,7 +487,7 @@ The rate-limit test coverage verifies:
 
 The tests also exercise idempotent replay and stale-reservation recovery. A deployment should not proceed unless `npm run check` succeeds.
 
-For a production smoke test, sign in with a non-privileged test account, confirm both counters begin independently, complete one generation of each type, refresh the page, and verify that both remaining counts persist. Check browser developer tools to confirm Groq keys and the Supabase service-role key are absent from network payloads and built assets.
+For a production smoke test, sign in with a non-privileged test account, confirm both counters begin independently, complete one generation of each type, refresh the page, and verify that both remaining counts persist. Check browser developer tools to confirm `NVIDIA_API_KEY` and the Supabase service-role key are absent from network payloads and built assets.
 
 ## Security notes
 
@@ -491,8 +495,8 @@ For a production smoke test, sign in with a non-privileged test account, confirm
 - RLS restricts user-facing tables to their owner.
 - Generation-limit tables and mutation RPCs are not writable by the browser role.
 - The service-role key is used only by the server and bypasses RLS; treat it as a high-impact secret.
-- Groq keys remain server-side and are split by feature.
-- The authoritative quota check occurs before the Groq call, while the usage increment occurs only after a validated successful response.
+- `NVIDIA_API_KEY` remains server-side and is never prefixed with `VITE_`.
+- The authoritative quota check occurs before the NVIDIA NIM call, while the usage increment occurs only after a validated successful response.
 - A browser-detected, validated IANA timezone is stored for the user and used by the server to calculate local-day boundaries.
 - Missing authentication, Supabase configuration, or rate-limit state fails closed; there is no production `localStorage` quota fallback.
 - Rotate any service-role or provider key immediately if it is exposed, and update all affected Vercel environments.
@@ -507,4 +511,4 @@ The browser calls:
 - `POST /api/generate-quiz` for quiz generation
 - `POST /api/generate-timetable` for timetable generation
 
-Generation requests require a valid bearer token and a unique request ID. Limit exhaustion returns HTTP `429` before Groq is called. Provider failures return an error without committing usage. Successful responses preserve the existing quiz and timetable output logic and include updated usage metadata for the UI.
+Generation requests require a valid bearer token and a unique request ID. Limit exhaustion returns HTTP `429` before NVIDIA NIM is called. Provider failures return an error without committing usage. Successful responses preserve the existing quiz and timetable output logic and include updated usage metadata for the UI.

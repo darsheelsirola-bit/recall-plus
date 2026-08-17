@@ -1,4 +1,4 @@
-import { CalendarClock, ChevronDown, ChevronUp, Loader2, X } from 'lucide-react'
+import { CalendarClock, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import GenerationLimitStatus from './GenerationLimitStatus'
@@ -231,35 +231,21 @@ export default function OptimalStudyWizard({ open, initialProfile, onClose, onAp
   return (
     <div ref={dialogRef} tabIndex="-1" className="fixed inset-0 z-50 grid place-items-center overflow-x-hidden overflow-y-auto bg-ink/45 p-3 backdrop-blur-sm outline-none sm:p-4" role="dialog" aria-modal="true" aria-label="Find optimal study timetable">
       <div className="max-h-[calc(100dvh-1.5rem)] min-w-0 w-full max-w-3xl overflow-x-hidden overflow-y-auto rounded-2xl bg-card p-4 shadow-lift sm:max-h-[calc(100dvh-2rem)] sm:p-6">
-        <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wider text-primary">Find optimal study</p>
-            <h2 className="mt-1 text-2xl font-semibold">{stepTitle}</h2>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <p className="text-sm text-muted-foreground">Step {Math.min(step + 1, 7)} of 7</p>
-              {step === 6 && result ? (
-                <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${usedFallback ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-mint/25 bg-accent text-mint'}`}>
-                  {usedFallback ? 'Fallback plan is ready' : 'AI plan is ready'}
-                </span>
-              ) : null}
-            </div>
-          </div>
-          <div className="flex w-full shrink-0 items-center justify-between gap-2 sm:w-auto sm:justify-start">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => { if (step === 0) onClose?.(); else setStep((value) => Math.max(0, value - 1)) }}
-              disabled={loading}
-            >
-              {step === 0 ? 'Back' : 'Previous step'}
-            </Button>
-            <Button type="button" data-dialog-autofocus size="icon-sm" variant="ghost" onClick={onClose} aria-label="Close wizard"><X /></Button>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary">Find optimal study</p>
+          <h2 className="mt-1 text-2xl font-semibold">{stepTitle}</h2>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <p className="text-sm text-muted-foreground">Step {Math.min(step + 1, 7)} of 7</p>
+            {step === 6 && result ? (
+              <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${usedFallback ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-mint/25 bg-accent text-mint'}`}>
+                {usedFallback ? 'Fallback plan is ready' : 'AI plan is ready'}
+              </span>
+            ) : null}
           </div>
         </div>
 
         {step === 0 ? <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <label className="field-label">Wake up time<input className="field" type="time" value={profile.wakeTime} onChange={(event) => setProfile({ ...profile, wakeTime: event.target.value })} /></label>
+          <label className="field-label">Wake up time<input className="field" type="time" data-dialog-autofocus value={profile.wakeTime} onChange={(event) => setProfile({ ...profile, wakeTime: event.target.value })} /></label>
           <label className="field-label">Sleep time<input className="field" type="time" value={profile.sleepTime} onChange={(event) => setProfile({ ...profile, sleepTime: event.target.value })} /></label>
         </div> : null}
 
@@ -366,7 +352,12 @@ export default function OptimalStudyWizard({ open, initialProfile, onClose, onAp
 
         <div className="mt-6 flex flex-wrap items-end justify-between gap-3">
             <GenerationLimitStatus feature="timetable" />
-          <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
+          <div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">
+            {step > 0 && step < 6 ? (
+              <Button type="button" variant="outline" onClick={() => setStep((value) => Math.max(0, value - 1))} disabled={loading}>
+                Previous
+              </Button>
+            ) : null}
             {step < 5 ? <Button type="button" onClick={() => setStep((value) => value + 1)}>Next</Button> : null}
             {step === 5 ? <Button type="button" onClick={generatePlan} disabled={loading || generationBlocked}>{loading ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <CalendarClock data-icon="inline-start" />}{loading ? 'Generating plan…' : 'Generate plan'}</Button> : null}
             {step === 6 ? (

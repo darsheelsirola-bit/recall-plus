@@ -5,6 +5,7 @@ import { mergeActiveRecordUpdates, useActiveCurriculum, useCurriculumSubjects } 
 import EditTimetableModal from '../components/EditTimetableModal'
 import GenerationLimitStatus from '../components/GenerationLimitStatus'
 import OptimalStudyWizard from '../components/OptimalStudyWizard'
+import PageHeader from '../components/PageHeader'
 import { subjectColor } from '../constants/subjects'
 import { useGenerationUsage } from '../contexts/GenerationUsageContext'
 import { useAppData } from '../hooks/useAppData'
@@ -552,34 +553,37 @@ export default function RecallCalendar() {
 
   return (
     <div className="-mt-4 flex h-[calc(100dvh-9.5rem)] min-h-[36rem] flex-col overflow-hidden md:h-[calc(100dvh-7rem)] lg:-mt-5 lg:h-[calc(100dvh-4rem)]">
-      <header className="mb-3 flex shrink-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <h1 className="text-[2rem] font-semibold leading-tight tracking-[-0.04em]">Recall Calendar</h1>
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start sm:gap-3">
-          <div className="flex min-w-0 flex-col items-start">
-            <Button
-              variant="outline"
-              disabled={!hasTimetable && timetableGenerationBlocked}
-              onClick={() => (hasTimetable ? setShowTimetableEditor(true) : setShowWizard(true))}
-            >
-              {hasTimetable ? 'Edit timetable' : 'Generate timetable'}
-            </Button>
-            <GenerationLimitStatus feature="timetable" compact className="mt-1 pl-1" />
-          </div>
-          <Button className="w-full sm:w-auto" onClick={() => openManualForDate()}><Plus data-icon="inline-start" /> New revision</Button>
-        </div>
-      </header>
+      <PageHeader
+        className="mt-0 mb-3 shrink-0 lg:mt-0"
+        title="Recall Calendar"
+        actions={
+          <>
+            <div className="flex min-w-0 flex-col items-end">
+              <Button
+                variant="outline"
+                disabled={!hasTimetable && timetableGenerationBlocked}
+                onClick={() => (hasTimetable ? setShowTimetableEditor(true) : setShowWizard(true))}
+              >
+                {hasTimetable ? 'Edit timetable' : 'Generate timetable'}
+              </Button>
+              <GenerationLimitStatus feature="timetable" compact className="mt-1" />
+            </div>
+            <Button className="w-full sm:w-auto" onClick={() => openManualForDate()}><Plus data-icon="inline-start" /> New revision</Button>
+          </>
+        }
+      />
 
       {notice ? <p role="status" className="mb-2 shrink-0 rounded-lg border border-border bg-secondary/35 px-3 py-2 text-sm">{notice}</p> : null}
 
-      <div className="mb-2 flex shrink-0 flex-col gap-2 rounded-xl border border-border bg-card p-2 shadow-[0_1px_2px_rgba(15,23,42,.04)] xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+      <div className="mb-3 flex shrink-0 flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-[0_1px_2px_rgba(15,23,42,.04)] xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <Button size="icon-sm" variant="ghost" aria-label={selectedDate ? 'Previous week' : 'Previous month'} onClick={() => movePeriod(-1)}><ChevronLeft /></Button>
           <Button size="icon-sm" variant="ghost" aria-label={selectedDate ? 'Next week' : 'Next month'} onClick={() => movePeriod(1)}><ChevronRight /></Button>
           <Button size="sm" variant="outline" onClick={goToday}>Today</Button>
           <span className="mx-2 h-6 w-px bg-border" />
           <h2 className="min-w-0 text-base font-semibold sm:text-lg">{monthTitle(new Date(`${visibleMonthDate}T12:00:00`))}</h2>
         </div>
-        <div className="flex max-w-full gap-1 overflow-x-auto rounded-lg bg-secondary/60 p-1">
+        <div className="flex max-w-full gap-2 overflow-x-auto rounded-lg bg-secondary/60 p-1.5">
           {filters.map((subject) => (
             <button
               type="button"

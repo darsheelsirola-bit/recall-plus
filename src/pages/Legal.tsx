@@ -130,17 +130,19 @@ export default function Legal({ document }: { document: LegalDocument }) {
     <main className="min-h-dvh bg-background px-4 py-8 text-foreground sm:px-6 lg:px-8">
       <article className="mx-auto max-w-3xl">
         <header className="border-b border-border pb-8">
-          <Link to="/" className="inline-flex rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <Logo />
-          </Link>
-          <Link
-            to="/"
-            className="mt-8 inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-semibold text-primary transition hover:bg-secondary"
-          >
-            <ArrowLeft className="size-4" aria-hidden="true" />
-            Back to Recall+
-          </Link>
-          <h1 className="mt-6 text-4xl font-semibold tracking-[-0.04em]">{content.title}</h1>
+          <div className="flex items-center justify-between gap-4">
+            <Link to="/" className="inline-flex rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <Logo />
+            </Link>
+            <Link
+              to="/"
+              className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-3 text-sm font-semibold text-primary transition hover:bg-secondary"
+            >
+              <ArrowLeft className="size-4" aria-hidden="true" />
+              Back to Recall+
+            </Link>
+          </div>
+          <h1 className="mt-8 text-4xl font-semibold tracking-[-0.04em]">{content.title}</h1>
           <p className="mt-3 text-sm text-muted-foreground">Effective {EFFECTIVE_DATE}</p>
           <p className="mt-5 text-base leading-7 text-muted-foreground">{content.introduction}</p>
         </header>

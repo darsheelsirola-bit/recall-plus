@@ -9,11 +9,18 @@ import {
   CBSE_2026_27_XI_SUBJECTS,
   CBSE_2026_27_XI_SUBJECTS_BY_CODE,
   CBSE_2026_27_XI_VERSION,
+  CBSE_2026_27_XII_NODES,
+  CBSE_2026_27_XII_SELECTABLE_SUBJECTS,
+  CBSE_2026_27_XII_SUBJECTS_BY_CODE,
+  CBSE_2026_27_XII_VERSION,
   RECALL_XI_ALLOWLIST_CODES,
   RECALL_XI_LANGUAGE_CODES,
+  RECALL_XII_ALLOWLIST_CODES,
   resolveLegacySubject,
   subjectIdsForPreset,
+  subjectIdsForXiiPreset,
   validateCbse2026ClassXiCombination,
+  validateCbse2026ClassXiiCombination,
   validateCurriculumCatalog,
 } from '../src/data/curriculum/index.ts'
 
@@ -187,6 +194,60 @@ describe('CBSE Class XI subject-combination rules', () => {
     assert.deepEqual(
       subjectIdsForPreset('science', 'pcb'),
       ['cbse-2026-27-xi-042', 'cbse-2026-27-xi-043', 'cbse-2026-27-xi-044'],
+    )
+  })
+})
+
+describe('CBSE 2026-27 Class XII curriculum catalogue', () => {
+  it('mirrors the Class XI allowlist with XII subject IDs', () => {
+    assert.equal(CBSE_2026_27_XII_VERSION.grade, 'XII')
+    assert.equal(CBSE_2026_27_XII_SELECTABLE_SUBJECTS.length, 24)
+    assert.deepEqual(
+      CBSE_2026_27_XII_SELECTABLE_SUBJECTS.map((subject) => subject.subjectCode).sort(),
+      [...RECALL_XII_ALLOWLIST_CODES].sort(),
+    )
+    assert.deepEqual(
+      [...RECALL_XII_ALLOWLIST_CODES].sort(),
+      [...RECALL_XI_ALLOWLIST_CODES].sort(),
+    )
+  })
+
+  it('models English Flamingo and Vistas as books with Class XII chapters', () => {
+    const englishNodes = CBSE_2026_27_XII_NODES.filter(
+      (node) => node.subjectId === 'cbse-2026-27-xii-301',
+    )
+    const flamingo = englishNodes.find((node) => node.title === 'Flamingo')
+    const vistas = englishNodes.find((node) => node.title === 'Vistas')
+    assert.ok(flamingo)
+    assert.ok(vistas)
+    assert.equal(flamingo.nodeType, 'book')
+    assert.equal(vistas.nodeType, 'book')
+
+    const lastLesson = englishNodes.find((node) => node.title === 'The Last Lesson')
+    assert.ok(lastLesson)
+    assert.equal(lastLesson.parentId, flamingo.id)
+
+    const thirdLevel = englishNodes.find((node) => node.title === 'The Third Level')
+    assert.ok(thirdLevel)
+    assert.equal(thirdLevel.parentId, vistas.id)
+  })
+
+  it('accepts a valid Class XII science combination', () => {
+    const codes = ['301', '042', '043', '843', '041']
+    const picks = codes.map((code, index) => {
+      const subject = CBSE_2026_27_XII_SUBJECTS_BY_CODE.get(code)
+      assert.ok(subject)
+      return {
+        curriculumSubjectId: subject.id,
+        subjectPosition: index + 1,
+        selectionType: 'main',
+      }
+    })
+    const result = validateCbse2026ClassXiiCombination(picks)
+    assert.equal(result.valid, true)
+    assert.deepEqual(
+      subjectIdsForXiiPreset('science', 'pcm'),
+      ['cbse-2026-27-xii-042', 'cbse-2026-27-xii-043', 'cbse-2026-27-xii-041'],
     )
   })
 })

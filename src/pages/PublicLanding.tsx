@@ -46,7 +46,7 @@ export default function PublicLanding() {
           >
             <Logo outlined={false} />
           </Link>
-          <nav className="flex items-center gap-2 sm:gap-3" aria-label="Public navigation">
+          <nav className="flex items-center gap-3" aria-label="Public navigation">
             <a className="hidden min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground sm:inline-flex" href="#features">
               Features
             </a>
