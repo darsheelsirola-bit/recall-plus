@@ -722,3 +722,29 @@ test('Express and Vercel unknown API routes return the same JSON 404', async () 
     assert.equal(vercelResponse.body.code, 'NOT_FOUND')
   })
 })
+
+test('Express mounts account deletion and applies the shared authentication boundary', async () => {
+  await withHttpServer(async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/delete-account`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ confirmation: 'DELETE MY ACCOUNT' }),
+    })
+
+    assert.equal(response.status, 401)
+    assert.equal((await response.json()).code, 'AUTH_REQUIRED')
+  })
+})
+
+test('Express serves browser security headers on pages and API responses', async () => {
+  await withHttpServer(async (baseUrl) => {
+    for (const path of ['/', '/api/not-a-real-route']) {
+      const response = await fetch(`${baseUrl}${path}`)
+      assert.match(response.headers.get('content-security-policy') || '', /frame-ancestors 'none'/)
+      assert.equal(response.headers.get('permissions-policy'), 'camera=(), geolocation=(), microphone=()')
+      assert.equal(response.headers.get('referrer-policy'), 'strict-origin-when-cross-origin')
+      assert.equal(response.headers.get('x-content-type-options'), 'nosniff')
+      assert.equal(response.headers.get('x-frame-options'), 'DENY')
+    }
+  })
+})

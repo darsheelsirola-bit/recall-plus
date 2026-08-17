@@ -136,10 +136,10 @@ export default function Legal({ document }: { document: LegalDocument }) {
             </Link>
             <Link
               to="/"
-              className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-3 text-sm font-semibold text-primary transition hover:bg-secondary"
+              className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-1 text-sm font-semibold text-primary transition hover:bg-secondary sm:px-3"
             >
               <ArrowLeft className="size-4" aria-hidden="true" />
-              Back to Recall+
+              Back <span className="hidden sm:inline">to Recall+</span>
             </Link>
           </div>
           <h1 className="mt-8 text-4xl font-semibold tracking-[-0.04em]">{content.title}</h1>

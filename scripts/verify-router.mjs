@@ -7,7 +7,7 @@ import * as router from 'react-router-dom'
 const packageMetadata = JSON.parse(
   await readFile(new URL('../node_modules/react-router-dom/package.json', import.meta.url), 'utf8'),
 )
-assert.equal(packageMetadata.version, '7.18.1', 'react-router-dom must stay pinned to the reviewed version')
+assert.equal(packageMetadata.version, '7.18.2', 'react-router-dom must stay pinned to the reviewed version')
 
 const requiredExports = [
   'BrowserRouter',
@@ -47,4 +47,4 @@ const markup = renderToStaticMarkup(
 )
 assert.match(markup, /router-compatible/)
 
-console.log('React Router compatibility passed: 7.18.1 exports and declarative SPA matching/rendering are available.')
+console.log('React Router compatibility passed: 7.18.2 exports and declarative SPA matching/rendering are available.')

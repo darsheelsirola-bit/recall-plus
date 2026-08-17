@@ -11,10 +11,10 @@ import GenerationLimitStatus from '../components/GenerationLimitStatus'
 import PageHeader from '../components/PageHeader'
 import BackButton from '../components/BackButton'
 import { useGenerationUsage } from '../contexts/GenerationUsageContext'
-import { generateQuizQuestions } from '../services/groqService'
+import { generateQuizQuestions, submitQuizAnswers } from '../services/groqService'
 import { GENERATION_LIMIT_MESSAGE } from '../types/generation'
 import { addDays, formatDate, getTodayDate } from '../utils/dateUtils'
-import { calculateScore, createId, getTopicStatus, validateVerifiedQuizQuestions } from '../utils/quizUtils'
+import { createId, getTopicStatus, validatePublicQuizQuestions } from '../utils/quizUtils'
 import { getPostStudyGap, upsertPostStudyRecalls } from '../utils/recallCalendar'
 import {
   getData,
@@ -25,26 +25,9 @@ import {
 } from '../utils/storage'
 import { createSubmissionGuard } from '../utils/submissionGuard'
 
-function fallbackQuestions(subject, topics) {
-  const focus = topics.join(', ')
-  const options = ['Review the core definition', 'Ignore the underlying assumptions', 'Memorise without understanding', 'Skip checking units or conditions']
-  return [
-    { id: 'fallback-easy', difficulty: 'easy', question: `Which approach is the best starting point when recalling ${focus} in ${subject}?`, options, answer: options[0], explanation: 'Start from the core definition, then rebuild relationships and applications from it.' },
-    { id: 'fallback-easy-2', difficulty: 'easy', question: `What is the fastest way to begin revising ${focus} before solving problems?`, options: ['List the key formulae/definitions first', 'Jump directly to hard questions', 'Read random notes', 'Skip revision'], answer: 'List the key formulae/definitions first', explanation: 'Starting from core definitions and formulas reduces confusion later.' },
-    { id: 'fallback-medium-1', difficulty: 'medium', question: `What should you verify first after solving a typical ${focus} problem?`, options: ['The result satisfies the given conditions', 'The handwriting style', 'The page number', 'The length of the question'], answer: 'The result satisfies the given conditions', explanation: 'A valid solution must satisfy the conditions stated in the problem.' },
-    { id: 'fallback-medium-2', difficulty: 'medium', question: `Which revision method gives the strongest evidence that you understand ${focus}?`, options: ['Explain it without notes', 'Read the same paragraph again', 'Highlight every sentence', 'Copy the answer word for word'], answer: 'Explain it without notes', explanation: 'Explaining without notes tests retrieval and reveals gaps clearly.' },
-    { id: 'fallback-medium-3', difficulty: 'medium', question: `When revising ${focus}, which step improves retention most?`, options: ['Practice spaced recall across the week', 'Read once and move on', 'Memorise examples only', 'Skip mistakes review'], answer: 'Practice spaced recall across the week', explanation: 'Spacing and retrieval are proven to strengthen memory.' },
-    { id: 'fallback-medium-4', difficulty: 'medium', question: `What should you do after identifying an error in a ${focus} question?`, options: ['Write the corrected method and retry a similar question', 'Ignore it and continue', 'Only read solution once', 'Switch subjects immediately'], answer: 'Write the corrected method and retry a similar question', explanation: 'Immediate correction plus application prevents repeated mistakes.' },
-    { id: 'fallback-hard-1', difficulty: 'hard', question: `When two ideas in ${focus} appear to conflict, what is the strongest next step?`, options: ['Compare their assumptions and domains', 'Choose the shorter statement', 'Ignore both ideas', 'Use whichever was read last'], answer: 'Compare their assumptions and domains', explanation: 'Many apparent conflicts disappear when assumptions and valid domains are compared.' },
-    { id: 'fallback-hard-2', difficulty: 'hard', question: `Which action best transfers your understanding of ${focus} to an unfamiliar question?`, options: ['Identify the governing principle before calculating', 'Search for identical wording', 'Guess from the options', 'Use every formula you remember'], answer: 'Identify the governing principle before calculating', explanation: 'Transfer begins by identifying the principle that controls the unfamiliar situation.' },
-    { id: 'fallback-hard-3', difficulty: 'hard', question: `In a mixed-topic test, what best helps you apply ${focus} correctly?`, options: ['Classify the problem type before solving', 'Use the most recent formula only', 'Solve without checking assumptions', 'Answer by elimination only'], answer: 'Classify the problem type before solving', explanation: 'Problem classification helps choose the correct concept and method.' },
-    { id: 'fallback-hard-4', difficulty: 'hard', question: `What strategy is strongest when a ${focus} question looks unfamiliar?`, options: ['Break it into known sub-concepts and constraints', 'Skip immediately', 'Copy a memorized pattern', 'Assume data is irrelevant'], answer: 'Break it into known sub-concepts and constraints', explanation: 'Decomposition converts unfamiliar problems into solvable chunks.' },
-  ]
-}
-
-function savedPostStudyQuestions(logId) {
-  const saved = getData(`post_study_questions_${logId}`, [])
-  return validateVerifiedQuizQuestions(saved, 10) ? saved : null
+function savedPostStudyQuiz(logId) {
+  const saved = getData(`post_study_questions_${logId}`, null)
+  return saved?.quizId && validatePublicQuizQuestions(saved.questions, 10) ? saved : null
 }
 
 export default function PostStudyQuiz() {
@@ -59,6 +42,7 @@ export default function PostStudyQuiz() {
     ? curriculumRequestSelection(syllabus, log.subject, [log.chapter], topics)
     : null
   const [questions, setQuestions] = useState([])
+  const [quizId, setQuizId] = useState('')
   const [answers, setAnswers] = useState({})
   const [loading, setLoading] = useState(Boolean(log))
   const [mode, setMode] = useState(log ? 'loading' : 'missing')
@@ -81,17 +65,31 @@ export default function PostStudyQuiz() {
       return
     }
     if (quizUsage.exhausted) {
-      setQuestions(savedPostStudyQuestions(log.id) || fallbackQuestions(log.subject, topics))
-      setNotice(GENERATION_LIMIT_MESSAGE)
+      const saved = savedPostStudyQuiz(log.id)
+      if (saved) {
+        setQuizId(saved.quizId)
+        setQuestions(saved.questions)
+        setNotice(GENERATION_LIMIT_MESSAGE)
+      } else {
+        setSaveError(GENERATION_LIMIT_MESSAGE)
+        setMode('unavailable')
+      }
       setLoading(false)
-      setMode('active')
+      if (saved) setMode('active')
       return
     }
     if (quizUsage.error) {
-      setQuestions(savedPostStudyQuestions(log.id) || fallbackQuestions(log.subject, topics))
-      setNotice('Generation limits could not be verified, so a safe saved or local recall check is being used instead.')
+      const saved = savedPostStudyQuiz(log.id)
+      if (saved) {
+        setQuizId(saved.quizId)
+        setQuestions(saved.questions)
+        setNotice('Generation limits could not be verified, so your saved secure recall check is being used instead.')
+      } else {
+        setSaveError('Generation limits could not be verified. Retry when the service is available.')
+        setMode('unavailable')
+      }
       setLoading(false)
-      setMode('active')
+      if (saved) setMode('active')
       return
     }
     if (quizUsage.loading || quizUsage.inProgress) return
@@ -111,17 +109,24 @@ export default function PostStudyQuiz() {
         purpose: 'recall',
       })
       if (!ownerId || getStorageUser() !== ownerId) return
-      setQuestions(generated)
+      setQuizId(generated.quizId)
+      setQuestions(generated.questions)
       saveDataForUserOrThrow(ownerId, `post_study_questions_${log.id}`, generated)
     } catch (error) {
       if (!ownerId || getStorageUser() !== ownerId) return
-      const usable = savedPostStudyQuestions(log.id) || fallbackQuestions(log.subject, topics)
-      setQuestions(usable)
-      setNotice(`The AI quiz was unavailable, so a safe ten-question recall check is being used instead. Reason: ${error.message}`)
+      const saved = savedPostStudyQuiz(log.id)
+      if (saved) {
+        setQuizId(saved.quizId)
+        setQuestions(saved.questions)
+        setNotice(`The AI quiz was unavailable, so your saved secure recall check is being used instead. Reason: ${error.message}`)
+      } else {
+        setSaveError(error.message)
+        setMode('unavailable')
+      }
     } finally {
       generationRef.current = false
       setLoading(false)
-      setMode('active')
+      setMode((current) => current === 'unavailable' ? current : 'active')
     }
   }
 
@@ -131,9 +136,22 @@ export default function PostStudyQuiz() {
     return () => window.clearTimeout(timer)
   }, [archivedLog, curriculumLoading, log?.id, mode, quizUsage.loading, quizUsage.inProgress]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function submitQuiz() {
+  async function submitQuiz() {
     if (!submissionGuardRef.current.claim()) return
-    const summary = calculateScore(questions, answers)
+    setSaveError('')
+    let scored
+    try {
+      scored = await submitQuizAnswers(quizId, answers)
+    } catch (submissionError) {
+      submissionGuardRef.current.reset()
+      setSaveError(submissionError.message)
+      return
+    }
+    const summary = {
+      score: scored.score,
+      totalQuestions: scored.totalQuestions,
+      percentage: scored.percentage,
+    }
     const quizResult = {
       id: createId(), type: 'post-study', date: getTodayDate(), completedAt: new Date().toISOString(), sourceLogId: log.id,
       subject: log.subject, curriculumVersionId: log.curriculumVersionId || curriculumVersionId, curriculumSubjectId: log.curriculumSubjectId || null, curriculumNodeIds: curriculumSelection ? [...curriculumSelection.chapterNodeIds, ...curriculumSelection.topicNodeIds] : [], chapter: log.chapter, topic: topics.join(', '), topics,
@@ -159,6 +177,7 @@ export default function PostStudyQuiz() {
       return
     }
     setResult(quizResult)
+    setQuestions(scored.questions)
     const scheduled = nextReviews.find((item) => item.quizResultId === quizResult.id)
     setDueDate(
       scheduled?.nextReviewDate
@@ -170,6 +189,8 @@ export default function PostStudyQuiz() {
   if (!log) return <><PageHeader title="Quick Check" description="We could not find the study session for this quiz." actions={<><BackButton to="/logs" label="Study logs" /><Button variant="outline" render={<Link to="/add-log" />}>Add study log</Button></>} /><Alert variant="destructive"><X /><AlertTitle>Study log not found</AlertTitle><AlertDescription>Return to Study Logs or add a new session.</AlertDescription></Alert></>
 
   if (archivedLog) return <><PageHeader title="Quick Check unavailable" description={`${log.subject} is no longer in your active curriculum.`} actions={<BackButton to="/logs" label="Back to study history" />} /><Alert><Info /><AlertTitle>Archived study session</AlertTitle><AlertDescription>This log remains in your history, but Recall+ will not generate new quizzes or revisions for a removed subject.</AlertDescription></Alert></>
+
+  if (mode === 'unavailable') return <><PageHeader title="Quick Check unavailable" description={`${log.subject} · ${log.chapter}`} actions={<BackButton to="/logs" label="Back to study history" />} /><Alert variant="destructive"><X /><AlertTitle>Could not open a secure quiz</AlertTitle><AlertDescription>{saveError} Correct answers are never sent to the browser before submission.</AlertDescription></Alert></>
 
   if (loading || mode === 'loading') return <><PageHeader title="Building your Quick Check" description={`${log.subject} · ${log.chapter}`} /><Card><CardContent className="space-y-4 p-8"><Skeleton className="h-5 w-1/3" /><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /><p className="text-sm text-muted-foreground">Creating 2 easy, 4 moderate, and 4 hard questions from your real study topics.</p></CardContent></Card></>
 

@@ -97,7 +97,7 @@ function ChapterList({
 
 export default function Syllabus() {
   const { syllabus } = useActiveCurriculum()
-  const { curriculumLoadingSubjectIds, loadedCurriculumSubjectIds } = useAcademicProfile()
+  const { curriculumLoadingSubjectIds, loadedCurriculumSubjectIds, workspace } = useAcademicProfile()
   const [activeSubject, setActiveSubject] = useState(() => syllabus[0]?.subject || '')
   const [openChapter, setOpenChapter] = useState('')
   const [openBook, setOpenBook] = useState('')
@@ -133,7 +133,7 @@ export default function Syllabus() {
 
   return (
     <>
-      <PageHeader title="Class 11 syllabus" />
+      <PageHeader title={`Class ${workspace?.profile.grade || 'XI'} syllabus`} />
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {syllabus.map((item) => {
           const topicCount = item.chapters.reduce((sum, chapter) => sum + chapter.topics.length, 0)

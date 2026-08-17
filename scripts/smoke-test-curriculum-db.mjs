@@ -7,7 +7,8 @@ import { PGlite } from '@electric-sql/pglite'
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const migrationDirectory = path.join(projectRoot, 'supabase', 'migrations')
 const expectedCurriculumMigration = '20260730120000_curriculum_profiles_and_rls.sql'
-const expectedLatestMigration = '20260812130000_fill_missing_allowlist_outlines.sql'
+const expectedOutlineMigration = '20260812130000_fill_missing_allowlist_outlines.sql'
+const expectedQuizScoringMigration = '20260817104756_add_server_scored_quiz_submissions.sql'
 
 const bootstrapSql = `
 do $roles$
@@ -127,10 +128,11 @@ const migrationFiles = (await readdir(migrationDirectory))
   .filter((name) => /^\d+_[a-z0-9_]+[.]sql$/.test(name))
   .sort()
 
-assert.equal(
-  migrationFiles.at(-1),
-  expectedLatestMigration,
-  'the study-log curriculum guard must remain the newest checked-in migration',
+assert.ok(migrationFiles.includes(expectedOutlineMigration), 'the outline migration must remain checked in')
+assert.ok(migrationFiles.includes(expectedQuizScoringMigration), 'the server-scoring migration must remain checked in')
+assert.ok(
+  migrationFiles.indexOf(expectedQuizScoringMigration) > migrationFiles.indexOf(expectedOutlineMigration),
+  'server-scored quiz submissions must be applied after generation-attempt storage exists',
 )
 
 const db = new PGlite()
@@ -554,9 +556,40 @@ try {
     ],
   )
 
+  const quizSubmissionSecurity = await scalar(
+    db,
+    `select
+      (select relrowsecurity from pg_catalog.pg_class where oid = 'public.quiz_submissions'::regclass) as rls_enabled,
+      has_table_privilege('authenticated', 'public.quiz_submissions', 'SELECT') as authenticated_can_select,
+      has_table_privilege('authenticated', 'public.quiz_submissions', 'INSERT') as authenticated_can_insert,
+      has_table_privilege('service_role', 'public.quiz_submissions', 'SELECT') as service_can_select,
+      has_table_privilege('service_role', 'public.quiz_submissions', 'INSERT') as service_can_insert`,
+  )
+  assert.deepEqual(quizSubmissionSecurity, {
+    rls_enabled: true,
+    authenticated_can_select: false,
+    authenticated_can_insert: false,
+    service_can_select: true,
+    service_can_insert: true,
+  })
+
+  await assert.rejects(
+    db.query(
+      `insert into public.quiz_submissions (
+        request_id, user_id, answers_hash, answers, score, question_count
+      ) values ($1, $2, $3, '{}'::jsonb, 6, 5)`,
+      [
+        '00000000-0000-4000-8000-000000000799',
+        legacyUserId,
+        'a'.repeat(64),
+      ],
+    ),
+    /quiz_submissions_score_check|violates check constraint/i,
+  )
+
   console.log(
     `Database smoke test passed: ${migrationFiles.length} migrations, `
-    + `${catalogue.total} subjects, ${nodes.count} nodes, preserved legacy snapshot, `
+    + `${catalogue.total} subjects, ${nodes.total} nodes, preserved legacy snapshot, `
     + 'owner-bound onboarding.',
   )
 } finally {

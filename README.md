@@ -1,6 +1,6 @@
 # Recall+
 
-Recall+ is a Class 11 PCM revision app for Physics, Chemistry, and Mathematics. It combines study logging, syllabus tracking, spaced repetition, progress insights, and NVIDIA NIM-powered quiz and timetable generation.
+Recall+ is a CBSE Class XI and XII revision app built around each learner's selected subjects. It combines study logging, syllabus tracking, spaced repetition, progress insights, and NVIDIA NIM-powered quiz and timetable generation.
 
 The production architecture uses:
 
@@ -13,7 +13,7 @@ The production architecture uses:
 
 ## Features
 
-- NCERT-style Class 11 PCM chapter and topic tracking
+- Subject-specific CBSE Class XI and XII chapter and topic tracking
 - Daily study logs with time, confidence, and notes
 - Synced per-user app data through Supabase
 - Automatic spaced-repetition schedules at 1, 3, 7, 14, and 30 days
@@ -398,8 +398,7 @@ quality gate, the `dist` output directory, SPA rewrites, and the
 generation-function duration. Vercel's Git integration creates Preview
 deployments for non-production branches and deploys the configured production
 branch, normally `main`, after successful pushes. The Vercel build also rejects
-any high- or critical-severity dependency advisory not covered by the narrow,
-guarded exception documented below.
+every high- or critical-severity dependency advisory.
 
 Vercel guarantees the Node 24 major and rolls forward security patch releases;
 local development and CI use the exact `24.16.0` pin. Vercel's supported npm
@@ -438,7 +437,7 @@ npm run audit:all
 ```
 
 `verify:router` guards the declarative SPA API while `react-router-dom` remains
-exact-pinned to `7.18.1`. The working-tree scan checks source and build output
+exact-pinned to `7.18.2`. The working-tree scan checks source and build output
 without printing credential values. The history scan checks every reachable Git
 blob when a complete checkout is available. CI checks out full history so the
 history scan cannot silently cover only a shallow clone.
@@ -454,27 +453,12 @@ The GitHub Actions workflow runs `npm ci`, the complete application quality gate
 the dependency audit policy, a clean local Supabase database, all ordered
 migrations, and `supabase test db` for pull requests and pushes to `main`.
 
-### Temporary React Router audit exception
+### Dependency audit policy
 
-Raw `npm audit` reports high-severity
-[`GHSA-qwww-vcr4-c8h2`](https://github.com/advisories/GHSA-qwww-vcr4-c8h2)
-for React Router 7.18.1. The advisory states that it affects only unstable React
-Server Components APIs. Its listed 8.3.0 patch is not currently published to
-npm, so attempting that version would make clean installs fail.
-
-`npm run audit:all` still executes a fresh npm audit and fails closed. It permits
-only that exact advisory while all of these controls remain true:
-
-- `react-router-dom` and its `react-router` dependency resolve exactly to
-  `7.18.1`.
-- No runtime source imports `react-router` directly, uses an unstable RSC
-  identifier, enables the `react-server` condition, or depends on a
-  `react-server-dom-*` package.
-- No other high- or critical-severity advisory is present.
-
-Any failed audit request, changed router version, RSC usage, or additional
-high/critical advisory fails CI and Vercel. Remove this narrow exception as soon
-as a compatible patched release is available on npm.
+`npm run audit:all` executes a fresh npm audit and fails closed when npm cannot
+produce a valid report or when any high- or critical-severity advisory is
+present. React Router is exact-pinned to the reviewed patched release 7.18.2,
+and the previous temporary RSC advisory exception has been removed.
 
 The rate-limit test coverage verifies:
 
@@ -509,6 +493,7 @@ The browser calls:
 
 - `GET /api/generation-usage` for the authenticated user's current counters
 - `POST /api/generate-quiz` for quiz generation
+- `POST /api/submit-quiz` for authenticated server-side quiz scoring
 - `POST /api/generate-timetable` for timetable generation
 
-Generation requests require a valid bearer token and a unique request ID. Limit exhaustion returns HTTP `429` before NVIDIA NIM is called. Provider failures return an error without committing usage. Successful responses preserve the existing quiz and timetable output logic and include updated usage metadata for the UI.
+Generation requests require a valid bearer token and a unique request ID. Limit exhaustion returns HTTP `429` before NVIDIA NIM is called. Provider failures return an error without committing usage. Quiz generation returns question content without answer keys; the authenticated submission endpoint scores the exact saved quiz once on the server. Successful generation responses include updated usage metadata for the UI.

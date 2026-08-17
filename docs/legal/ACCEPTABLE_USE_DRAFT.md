@@ -15,4 +15,4 @@ Do not link from production footers until lawyer-reviewed.
 
 - [ ] Enforcement process and appeal path
 - [ ] Alignment with Terms of Service draft
-- [ ] School / minor-user considerations for Class XI audience
+- [ ] School / minor-user considerations for Class XI and XII audience

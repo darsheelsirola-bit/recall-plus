@@ -53,7 +53,7 @@ export default function PublicLanding() {
             <Link className="hidden min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground md:inline-flex" to="/privacy">
               Privacy
             </Link>
-            <Link className="btn-primary min-h-11 px-4" to="/auth">
+            <Link className="btn-primary min-h-11 px-2 sm:px-4" to="/auth">
               Sign in <ArrowRight className="size-4" aria-hidden="true" />
             </Link>
           </nav>
