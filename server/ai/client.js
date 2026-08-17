@@ -42,7 +42,6 @@ export async function createChatCompletion({
   temperature,
   maxTokens,
   deadlineAt,
-  json = true,
 }) {
   const key = requireNvidiaKey(feature)
   const config = featureConfig(feature)
@@ -57,7 +56,8 @@ export async function createChatCompletion({
       model,
       temperature: temperature ?? config.temperature,
       max_tokens: maxTokens ?? config.maxTokens,
-      ...(json ? { response_format: { type: 'json_object' } } : {}),
+      reasoning_effort: config.reasoningEffort,
+      reasoning_budget: config.reasoningBudget,
       messages,
     }),
   }, { deadlineAt })
@@ -101,7 +101,6 @@ export async function generateStructured({
     temperature,
     maxTokens,
     deadlineAt,
-    json: true,
   })
   return parseStructuredContent(payload)
 }

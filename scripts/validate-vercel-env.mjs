@@ -43,7 +43,23 @@ const serverSupabaseUrl = requireValue('SUPABASE_URL')
 const serverAnonKey = requireValue('SUPABASE_ANON_KEY')
 const serviceRoleKey = requireValue('SUPABASE_SERVICE_ROLE_KEY')
 const nvidiaKey = requireValue('NVIDIA_API_KEY')
-requireValue('NVIDIA_MODEL')
+const nvidiaModel = requireValue('NVIDIA_MODEL')
+const requiredNvidiaModel = 'z-ai/glm-5.2'
+if (nvidiaModel && nvidiaModel !== requiredNvidiaModel) {
+  failures.push(`NVIDIA_MODEL must be ${requiredNvidiaModel}`)
+}
+for (const name of [
+  'NVIDIA_MODEL_QUIZ',
+  'NVIDIA_MODEL_TIMETABLE',
+  'NVIDIA_MODEL_INSIGHT',
+  'NVIDIA_MODEL_RECALL',
+  'NVIDIA_MODEL_VERIFIER',
+]) {
+  const value = String(process.env[name] || '').trim()
+  if (value && value !== requiredNvidiaModel) {
+    failures.push(`${name} must be empty or match NVIDIA_MODEL`)
+  }
+}
 
 validateHttpsUrl('VITE_SUPABASE_URL', browserSupabaseUrl)
 validateHttpsUrl('SUPABASE_URL', serverSupabaseUrl)

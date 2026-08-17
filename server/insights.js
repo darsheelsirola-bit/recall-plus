@@ -14,8 +14,6 @@ import {
 } from './requestValidation.js'
 
 const MAX_CHAPTERS = 3
-const INSIGHTS_OUTPUT_TOKENS = 3_500
-
 function isString(value, max = 1200) {
   return typeof value === 'string' && value.trim().length > 0 && value.length <= max
 }
@@ -234,6 +232,17 @@ export function normalizeInsightsPayload(parsed, chapterContexts) {
       secondary: isString(match.studyFrom?.secondary, 400) ? match.studyFrom.secondary : fallback.studyFrom.secondary,
     }
 
+    const observedData = isString(match.observedData, 2000)
+      ? match.observedData
+      : isString(match.insight, 2000)
+        ? match.insight
+        : fallback.insight
+    const recommendation = isString(match.recommendation, 800)
+      ? match.recommendation
+      : isString(match.action, 800)
+        ? match.action
+        : fallback.action
+
     return {
       curriculumVersionId: ctx.curriculumVersionId,
       curriculumSubjectId: ctx.curriculumSubjectId,
@@ -241,11 +250,13 @@ export function normalizeInsightsPayload(parsed, chapterContexts) {
       topicNodeIds: ctx.topicNodeIds,
       subject: ctx.subject,
       chapter: ctx.chapter,
-      insight: isString(match.insight, 2000) ? match.insight : fallback.insight,
+      observedData,
+      recommendation,
+      insight: observedData,
       basedOn: isString(match.basedOn, 500) ? match.basedOn : buildBasedOnLine(ctx),
       prioritizedTopics: prioritized.slice(0, 4).map((item, index) => ({ ...item, order: index + 1 })),
       studyFrom,
-      action: isString(match.action, 800) ? match.action : fallback.action,
+      action: recommendation,
       focusArea: normalizeFocusArea(match.focusArea),
     }
   })
@@ -283,16 +294,16 @@ ${JSON.stringify(compact)}
 Rules:
 - Return ONLY valid JSON with keys: headline, summary, chapters
 - chapters array must have one entry per input chapter (exact subject + chapter strings)
-- insight: 2-3 sentences explaining the gap using their actual scores, missed questions, or study logs
+- observedData: 1-2 sentences stating only supplied scores, missed questions, study logs, confidence, or explicitly saying evidence is insufficient
+- recommendation: one concrete evidence-linked next step; never present it as an observed fact
 - basedOn: one short line citing real numbers from the data
 - prioritizedTopics: use exact topic strings from syllabusTopics only; order weakest first
 - studyFrom.primary and studyFrom.secondary must use ONLY books from studySources
 - studyFrom.sections: 2-4 concrete reading/practice steps (plain text, no special symbols)
-- action: one concrete next step for today
 - focusArea: one of "problem-solving", "definitions", "formulas", "conceptual understanding"
 
 JSON format:
-{"headline":"string","summary":"string","chapters":[{"subject":"Physics","chapter":"Motion in a Straight Line","insight":"...","basedOn":"...","prioritizedTopics":[{"topic":"Kinematic Equations","order":1,"reason":"..."}],"studyFrom":{"primary":"NCERT Physics Class 11 Part 1 — Ch 3","sections":["Read §3.4","Solve Ex 3.5 Q1-5"],"secondary":"HC Verma Vol 1 — Ch 3"},"action":"...","focusArea":"formulas"}]}`
+{"headline":"string","summary":"string","chapters":[{"subject":"Physics","chapter":"Motion in a Straight Line","observedData":"OBSERVED DATA only","recommendation":"AI RECOMMENDATION only","basedOn":"...","prioritizedTopics":[{"topic":"Kinematic Equations","order":1,"reason":"..."}],"studyFrom":{"primary":"NCERT Physics Class 11 Part 1 — Ch 3","sections":["Read §3.4","Solve Ex 3.5 Q1-5"],"secondary":"HC Verma Vol 1 — Ch 3"},"focusArea":"formulas"}]}`
 }
 
 async function generateOnce({ model, chapterContexts, deadlineAt }) {
@@ -300,7 +311,6 @@ async function generateOnce({ model, chapterContexts, deadlineAt }) {
     feature: AI_FEATURES.INSIGHT,
     model,
     temperature: 0.3,
-    maxTokens: INSIGHTS_OUTPUT_TOKENS,
     deadlineAt,
     messages: [
       {
@@ -348,7 +358,7 @@ export async function requestInsights(chapterContexts) {
       lastError = providerResponseInvalid()
     } catch (error) {
       lastError = error
-      if ([400, 401, 403, 422].includes(error?.upstreamStatus)) throw error
+      if ([400, 401, 403, 404, 422].includes(error?.upstreamStatus)) throw error
     }
     if (attempt + 1 < MAX_PROVIDER_ATTEMPTS && lastError?.upstreamStatus !== 404) {
       await waitBeforeProviderRetry(lastError, attempt + 1, deadlineAt)

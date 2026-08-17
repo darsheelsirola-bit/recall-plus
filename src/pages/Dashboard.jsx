@@ -55,7 +55,10 @@ function ChapterInsightCard({ chapter }) {
         <Badge className="rounded-full bg-rose-50 text-coral">{chapter.focusArea}</Badge>
       </div>
 
-      <p className="mt-4 text-sm leading-7 text-foreground">{chapter.insight}</p>
+      <div className="mt-4 rounded-lg bg-secondary/25 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Observed data</p>
+        <p className="mt-2 text-sm leading-7 text-foreground">{chapter.observedData || chapter.insight}</p>
+      </div>
 
       {prioritizedTopics.length ? (
         <div className="mt-4">
@@ -92,7 +95,10 @@ function ChapterInsightCard({ chapter }) {
         </div>
       ) : null}
 
-      <p className="mt-4 text-sm font-medium text-primary">{chapter.action}</p>
+      <div className="mt-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">AI recommendation</p>
+        <p className="mt-2 text-sm font-medium text-primary">{chapter.recommendation || chapter.action}</p>
+      </div>
 
       {firstTopic ? (
         <div className="mt-4 flex flex-wrap gap-3">

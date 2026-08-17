@@ -4,7 +4,7 @@ import { createApp } from '../server/app.js'
 import {
   handleQuizGeneration,
 } from '../server/apiHandlers.js'
-import { requestQuiz } from '../server/groq.js'
+import { requestQuiz } from '../server/quizGeneration.js'
 import { normalizeInsightsRequest, requestInsights } from '../server/insights.js'
 import {
   assertJsonValueWithinLimits,
@@ -125,7 +125,16 @@ function mixedPhysicsQuiz() {
       answer: '5 m/s²',
       explanation: 'Newton’s second law gives a = F/m = 10/2 = 5 m/s².',
     },
-  ]
+  ].map((question) => ({
+    questionType: ['q2', 'q5'].includes(question.id) ? 'numerical' : 'theory',
+    sourceReference: 'test-topic',
+    calculation: question.id === 'q2'
+      ? { operation: 'divide', operands: [20, 4], unit: 'm/s', decimals: 0 }
+      : question.id === 'q5'
+        ? { operation: 'divide', operands: [10, 2], unit: 'm/s²', decimals: 0 }
+        : null,
+    ...question,
+  }))
 }
 
 async function withHttpServer(callback) {
@@ -424,10 +433,12 @@ test('quiz generation is accepted only after two answer-blind verification passe
   const questions = mixedPhysicsQuiz()
   let providerCalls = 0
   const providerUrls = []
+  const providerBodies = []
   process.env.NVIDIA_API_KEY = 'test-only-key'
-  globalThis.fetch = async (input) => {
+  globalThis.fetch = async (input, init) => {
     providerCalls += 1
     providerUrls.push(String(input))
+    providerBodies.push(JSON.parse(init.body))
     if (providerCalls === 1) return providerQuizResponse({ questions })
     return providerQuizResponse({
       verifications: verificationEntries(questions),
@@ -444,6 +455,11 @@ test('quiz generation is accepted only after two answer-blind verification passe
     })
     assert.equal(providerCalls, 3)
     assert.equal(providerUrls.every((url) => url === 'https://integrate.api.nvidia.com/v1/chat/completions'), true)
+    assert.equal(providerBodies.every((body) => body.model === 'z-ai/glm-5.2'), true)
+    assert.equal(providerBodies[0].reasoning_effort, 'medium')
+    assert.equal(providerBodies[1].reasoning_effort, 'high')
+    assert.equal(providerBodies[2].reasoning_effort, 'high')
+    assert.equal(providerBodies.every((body) => body.response_format === undefined), true)
     assert.equal(validateVerifiedQuizQuestions(verified, 5), true)
     assert.equal(
       verified.every((question) => question.verification === QUIZ_VERIFICATION_VERSION),
@@ -520,18 +536,24 @@ test('answer verification rejects the two incorrect physics keys reported by the
   questions[0] = {
     id: 'q1',
     difficulty: 'easy',
+    questionType: 'theory',
     question: 'A particle is projected at 20 m/s at 60 degrees. What is its vertical velocity component?',
     options: ['10 m/s', '10√3 m/s', '20 m/s', '5√3 m/s'],
     answer: '10 m/s',
     explanation: 'The vertical component is v sin θ.',
+    sourceReference: 'test-topic',
+    calculation: null,
   }
   questions[2] = {
     id: 'q3',
     difficulty: 'medium',
+    questionType: 'theory',
     question: 'A stone is thrown upward at 25 m/s. What is its velocity after 2 s if g = 10 m/s²?',
     options: ['5 m/s', '15 m/s', '20 m/s', '45 m/s'],
     answer: '15 m/s',
     explanation: 'Use v = u - gt.',
+    sourceReference: 'test-topic',
+    calculation: null,
   }
   let providerCalls = 0
   process.env.NVIDIA_API_KEY = 'test-only-key'
@@ -611,7 +633,7 @@ test('provider response bodies and arbitrary status-bearing errors never leak', 
   }
 })
 
-test('provider retries are capped at three total calls across model candidates', async () => {
+test('an invalid NVIDIA model is not retried', async () => {
   const originalFetch = globalThis.fetch
   const originalKey = process.env.NVIDIA_API_KEY
   let providerCalls = 0
@@ -619,6 +641,32 @@ test('provider retries are capped at three total calls across model candidates',
   globalThis.fetch = async () => {
     providerCalls += 1
     return new Response('{}', { status: 404 })
+  }
+
+  try {
+    await assert.rejects(requestQuiz({
+      subject: 'Physics',
+      chapter: 'Motion',
+      topic: 'Velocity',
+      count: 5,
+      level: 'mixed',
+    }))
+    assert.equal(providerCalls, 1)
+  } finally {
+    globalThis.fetch = originalFetch
+    if (originalKey === undefined) delete process.env.NVIDIA_API_KEY
+    else process.env.NVIDIA_API_KEY = originalKey
+  }
+})
+
+test('transient NVIDIA failures are capped at three attempts on the same model', async () => {
+  const originalFetch = globalThis.fetch
+  const originalKey = process.env.NVIDIA_API_KEY
+  let providerCalls = 0
+  process.env.NVIDIA_API_KEY = 'test-only-key'
+  globalThis.fetch = async () => {
+    providerCalls += 1
+    return new Response('{}', { status: 500 })
   }
 
   try {
@@ -655,7 +703,11 @@ test('provider deadline remains active while the response body is streaming', as
     })
     await assert.rejects(
       readProviderJson(response),
-      (error) => error.code === 'AI_PROVIDER_UNAVAILABLE' && error.statusCode === 504,
+      (error) => (
+        error.code === 'AI_PROVIDER_UNAVAILABLE'
+        && error.statusCode === 504
+        && error.providerCategory === 'nvidia_timeout'
+      ),
     )
   } finally {
     globalThis.fetch = originalFetch

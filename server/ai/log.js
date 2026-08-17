@@ -1,15 +1,16 @@
 import { NVIDIA_PROVIDER } from './config.js'
 
 function errorCategory(error) {
+  if (typeof error?.providerCategory === 'string') return error.providerCategory
   const status = Number(error?.upstreamStatus)
-  if (status === 401 || status === 403) return 'authentication_error'
-  if (status === 429) return 'provider_rate_limit'
-  if (error?.statusCode === 504) return 'provider_timeout'
-  if (status === 404 || status === 422) return 'invalid_model'
-  if (error?.code === 'AI_PROVIDER_RESPONSE_INVALID') return 'structured_output_error'
+  if (status === 401 || status === 403) return 'nvidia_authentication_error'
+  if (status === 429) return 'nvidia_rate_limit'
+  if (error?.statusCode === 504) return 'nvidia_timeout'
+  if (status === 404 || status === 422) return 'invalid_nvidia_model'
+  if (error?.code === 'AI_PROVIDER_RESPONSE_INVALID') return 'structured_output_failure'
   if (error?.code === 'DAILY_GENERATION_LIMIT') return 'quota_exceeded'
   if (error?.code === 'INVALID_REQUEST') return 'validation_error'
-  if (error?.code === 'AI_PROVIDER_UNAVAILABLE') return 'provider_timeout'
+  if (error?.code === 'AI_PROVIDER_UNAVAILABLE') return 'nvidia_unavailable'
   return 'internal_error'
 }
 
