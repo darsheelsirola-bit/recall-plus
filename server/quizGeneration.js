@@ -11,6 +11,7 @@ import {
   requireNvidiaKey,
 } from './ai/client.js'
 import { AI_FEATURES } from './ai/config.js'
+import { deterministicNumericalAnswer } from './ai/numericalVerification.js'
 import {
   MAX_PROVIDER_ATTEMPTS,
   PROVIDER_TOTAL_DEADLINE_MS,
@@ -22,7 +23,6 @@ import {
   normalizedRequiredText,
 } from './requestValidation.js'
 
-const QUIZ_OUTPUT_TOKENS = 4_096
 const QUIZ_VERIFICATION_PASSES = 2
 
 function clampCount(value) {
@@ -53,17 +53,26 @@ function hasExpectedDifficultyMix(questions, count, level) {
   return true
 }
 
-export function buildQuizPrompt({ subject, chapter, topic, count, level, purpose = 'practice' }) {
-  return `Generate exactly ${count} NCERT Class 11 quiz questions for:
+export function buildQuizPrompt({ curriculumVersionId, curriculumSubjectId, chapterNodeIds, topicNodeIds, subject, chapter, topic, count, level, purpose = 'practice' }) {
+  const grade = curriculumVersionId.includes('-xii-') ? '12' : '11'
+  return `Generate exactly ${count} NCERT Class ${grade} quiz questions for:
 Subject: ${subject}
 Chapter or chapters: ${chapter}
 Topic or topics: ${topic}
+Curriculum subject ID: ${curriculumSubjectId}
+Chapter node IDs: ${chapterNodeIds.join(', ')}
+Topic node IDs: ${topicNodeIds.join(', ')}
 Purpose: ${purpose === 'recall' ? 'active-recall check after studying or on a scheduled revision' : 'general practice test'}
 
 Rules:
 - Return only a valid JSON object with a single key "questions" containing exactly ${count} questions
 - ${difficultyRule(count, level)}
-- Each question must have: id, difficulty, question, options, answer, explanation
+- Each question must have: id, difficulty, questionType, question, options, answer, explanation, sourceReference, calculation
+- questionType must be "theory" or "numerical"
+- sourceReference must cite one supplied chapter or topic node ID
+- For theory questions, calculation must be null
+- Numerical questions are limited to one controlled two-operand operation: add, subtract, multiply, or divide
+- For numerical questions, calculation must contain only: operation, operands (exactly two finite numbers), unit, decimals (0-6)
 - difficulty must be one of "easy", "medium", or "hard"
 - options must contain exactly 4 unique strings
 - answer must exactly match one option
@@ -75,16 +84,17 @@ Rules:
 - Do not include a question when you are uncertain which option is correct
 
 JSON format:
-{"questions":[{"id":"q1","difficulty":"${level === 'mixed' ? 'easy' : level}","question":"Question text","options":["A","B","C","D"],"answer":"Correct option text","explanation":"Short explanation"}]}`
+{"questions":[{"id":"q1","difficulty":"${level === 'mixed' ? 'easy' : level}","questionType":"theory","question":"Question text","options":["A","B","C","D"],"answer":"Correct option text","explanation":"Short explanation","sourceReference":"topic-node-id","calculation":null}]}`
 }
 
 export function buildQuizVerificationPrompt(questions) {
+  const grade = questions.some((question) => question.sourceReference.includes('-xii-')) ? '12' : '11'
   const answerBlindQuestions = questions.map(({ id, question, options }) => ({
     id,
     question,
     options,
   }))
-  return `Independently solve every NCERT Class 11 multiple-choice question below.
+  return `Independently solve every NCERT Class ${grade} multiple-choice question below.
 
 Rules:
 - The generator's answer key is intentionally hidden from you
@@ -147,33 +157,47 @@ function stampVerifiedQuestions(questions) {
   }))
 }
 
-function normalizeQuizQuestions(questions, count, level) {
+function normalizeQuizQuestions(questions, count, level, allowedSourceRefs) {
   if (!Array.isArray(questions) || questions.length !== count) return null
   const normalized = questions.map((question) => {
     if (!hasOnlyKeys(question, [
       'id',
       'difficulty',
+      'questionType',
       'question',
       'options',
       'answer',
       'explanation',
+      'sourceReference',
+      'calculation',
     ])) return null
     const id = normalizedRequiredText(question.id, 80)
     const prompt = normalizedRequiredText(question.question, 1_200)
     const answer = normalizedRequiredText(question.answer, 500)
     const explanation = normalizedRequiredText(question.explanation, 1_500)
-    if (!id || !prompt || !answer || !explanation) return null
+    const sourceReference = normalizedRequiredText(question.sourceReference, 200)
+    if (!id || !prompt || !answer || !explanation || !sourceReference) return null
+    if (!allowedSourceRefs.has(sourceReference)) return null
+    if (!['theory', 'numerical'].includes(question.questionType)) return null
+    if (question.questionType === 'theory' && question.calculation !== null) return null
     if (!Array.isArray(question.options) || question.options.length !== 4) return null
     const options = question.options.map((option) => normalizedRequiredText(option, 500))
     if (options.some((option) => !option)) return null
-    return {
+    const normalizedQuestion = {
       id,
       difficulty: question.difficulty,
+      questionType: question.questionType,
       question: prompt,
       options,
       answer,
       explanation,
+      sourceReference,
+      calculation: question.calculation,
     }
+    const deterministicAnswer = deterministicNumericalAnswer(normalizedQuestion)
+    if (normalizedQuestion.questionType === 'numerical' && !deterministicAnswer) return null
+    if (deterministicAnswer) normalizedQuestion.answer = deterministicAnswer
+    return normalizedQuestion
   })
   if (normalized.some((question) => !question)) return null
   return hasExpectedDifficultyMix(normalized, count, level) ? normalized : null
@@ -182,6 +206,10 @@ function normalizeQuizQuestions(questions, count, level) {
 async function generateOnce({
   feature,
   model,
+  curriculumVersionId,
+  curriculumSubjectId,
+  chapterNodeIds,
+  topicNodeIds,
   subject,
   chapter,
   topic,
@@ -194,7 +222,6 @@ async function generateOnce({
     feature,
     model,
     temperature: 0.2,
-    maxTokens: QUIZ_OUTPUT_TOKENS,
     deadlineAt,
     messages: [
       {
@@ -203,12 +230,17 @@ async function generateOnce({
       },
       {
         role: 'user',
-        content: buildQuizPrompt({ subject, chapter, topic, count, level, purpose }),
+        content: buildQuizPrompt({ curriculumVersionId, curriculumSubjectId, chapterNodeIds, topicNodeIds, subject, chapter, topic, count, level, purpose }),
       },
     ],
   })
   const questions = Array.isArray(parsed) ? parsed : parsed?.questions
-  return normalizeQuizQuestions(questions, count, level)
+  return normalizeQuizQuestions(
+    questions,
+    count,
+    level,
+    new Set([...chapterNodeIds, ...topicNodeIds]),
+  )
 }
 
 async function verifyOnce({
@@ -220,7 +252,6 @@ async function verifyOnce({
     feature: AI_FEATURES.VERIFIER,
     model,
     temperature: 0,
-    maxTokens: QUIZ_OUTPUT_TOKENS,
     deadlineAt,
     messages: [
       {
@@ -236,7 +267,7 @@ async function verifyOnce({
   return normalizeQuizVerification(parsed, questions)
 }
 
-export async function requestQuiz({ subject, chapter, topic, count, level = 'mixed', purpose = 'practice' }) {
+export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', curriculumSubjectId = 'test-subject', chapterNodeIds = ['test-chapter'], topicNodeIds = ['test-topic'], subject, chapter, topic, count, level = 'mixed', purpose = 'practice' }) {
   const feature = purpose === 'recall' ? AI_FEATURES.RECALL : AI_FEATURES.QUIZ
   requireNvidiaKey(feature)
 
@@ -253,6 +284,10 @@ export async function requestQuiz({ subject, chapter, topic, count, level = 'mix
       const questions = await generateOnce({
         feature,
         model,
+        curriculumVersionId,
+        curriculumSubjectId,
+        chapterNodeIds,
+        topicNodeIds,
         subject,
         chapter,
         topic,
@@ -278,7 +313,7 @@ export async function requestQuiz({ subject, chapter, topic, count, level = 'mix
       lastError = providerResponseInvalid()
     } catch (error) {
       lastError = error
-      if ([400, 401, 403, 422].includes(error?.upstreamStatus)) throw error
+      if ([400, 401, 403, 404, 422].includes(error?.upstreamStatus)) throw error
       if (error?.quizVerificationFailed) throw error
     }
     if (attempt + 1 < MAX_PROVIDER_ATTEMPTS && lastError?.upstreamStatus !== 404) {

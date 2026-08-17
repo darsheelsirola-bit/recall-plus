@@ -104,7 +104,7 @@ SUPABASE_SERVICE_ROLE_KEY=YOUR_SUPABASE_SERVICE_ROLE_KEY
 
 # Server-only NVIDIA NIM configuration. Never prefix these with VITE_.
 NVIDIA_API_KEY=YOUR_NVIDIA_API_KEY
-NVIDIA_MODEL=meta/llama-3.3-70b-instruct
+NVIDIA_MODEL=z-ai/glm-5.2
 NVIDIA_MODEL_QUIZ=
 NVIDIA_MODEL_TIMETABLE=
 NVIDIA_MODEL_INSIGHT=
@@ -327,7 +327,7 @@ npm start
 | `SUPABASE_ANON_KEY` | Server | Yes | Used while validating authenticated requests |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server secret | Yes | Executes protected persistence and generation-limit RPCs |
 | `NVIDIA_API_KEY` | Server secret | Yes | Calls NVIDIA NIM for quiz, recall, insight, and timetable generation |
-| `NVIDIA_MODEL` | Server | Yes | NVIDIA NIM model ID, for example `meta/llama-3.3-70b-instruct` |
+| `NVIDIA_MODEL` | Server | Yes | NVIDIA NIM model ID: `z-ai/glm-5.2` |
 | `NVIDIA_MODEL_QUIZ` | Server | No | Optional quiz-generation model override |
 | `NVIDIA_MODEL_TIMETABLE` | Server | No | Optional timetable model override |
 | `NVIDIA_MODEL_INSIGHT` | Server | No | Optional insight model override |

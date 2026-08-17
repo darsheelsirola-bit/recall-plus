@@ -1,4 +1,4 @@
-import { normalizeQuizRequest, requestQuiz } from './groq.js'
+import { normalizeQuizRequest, requestQuiz } from './quizGeneration.js'
 import { normalizeInsightsRequest, requestInsights } from './insights.js'
 import { requestTimetable } from './timetable.js'
 import { normalizeTimetableProfile } from '../shared/timetableValidation.js'

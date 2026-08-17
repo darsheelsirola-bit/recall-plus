@@ -12,8 +12,6 @@ import {
   waitBeforeProviderRetry,
 } from './upstreamFetch.js'
 
-const TIMETABLE_OUTPUT_TOKENS = 3_000
-
 function periodHint(period) {
   if (period === 'morning') return '06:00-11:00'
   if (period === 'afternoon') return '12:00-16:00'
@@ -63,7 +61,6 @@ async function generateOnce({ model, profile, subjects, curriculumVersionId, dea
     feature: AI_FEATURES.TIMETABLE,
     model,
     temperature: 0.2,
-    maxTokens: TIMETABLE_OUTPUT_TOKENS,
     deadlineAt,
     messages: [
       {
@@ -135,7 +132,7 @@ export async function requestTimetable(profile, subjects = [], curriculumVersion
       lastError = providerResponseInvalid()
     } catch (error) {
       lastError = error
-      if ([400, 401, 403, 422].includes(error?.upstreamStatus)) throw error
+      if ([400, 401, 403, 404, 422].includes(error?.upstreamStatus)) throw error
     }
     if (attempt + 1 < MAX_PROVIDER_ATTEMPTS && lastError?.upstreamStatus !== 404) {
       await waitBeforeProviderRetry(lastError, attempt + 1, deadlineAt)
