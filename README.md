@@ -438,7 +438,7 @@ npm run audit:all
 ```
 
 `verify:router` guards the declarative SPA API while `react-router-dom` remains
-exact-pinned to `7.18.1`. The working-tree scan checks source and build output
+exact-pinned to `7.18.2`. The working-tree scan checks source and build output
 without printing credential values. The history scan checks every reachable Git
 blob when a complete checkout is available. CI checks out full history so the
 history scan cannot silently cover only a shallow clone.
@@ -454,27 +454,12 @@ The GitHub Actions workflow runs `npm ci`, the complete application quality gate
 the dependency audit policy, a clean local Supabase database, all ordered
 migrations, and `supabase test db` for pull requests and pushes to `main`.
 
-### Temporary React Router audit exception
+### Dependency audit policy
 
-Raw `npm audit` reports high-severity
-[`GHSA-qwww-vcr4-c8h2`](https://github.com/advisories/GHSA-qwww-vcr4-c8h2)
-for React Router 7.18.1. The advisory states that it affects only unstable React
-Server Components APIs. Its listed 8.3.0 patch is not currently published to
-npm, so attempting that version would make clean installs fail.
-
-`npm run audit:all` still executes a fresh npm audit and fails closed. It permits
-only that exact advisory while all of these controls remain true:
-
-- `react-router-dom` and its `react-router` dependency resolve exactly to
-  `7.18.1`.
-- No runtime source imports `react-router` directly, uses an unstable RSC
-  identifier, enables the `react-server` condition, or depends on a
-  `react-server-dom-*` package.
-- No other high- or critical-severity advisory is present.
-
-Any failed audit request, changed router version, RSC usage, or additional
-high/critical advisory fails CI and Vercel. Remove this narrow exception as soon
-as a compatible patched release is available on npm.
+`npm run audit:all` executes a fresh npm audit and fails closed when npm cannot
+produce a valid report or when any high- or critical-severity advisory is
+present. React Router is exact-pinned to the reviewed patched release 7.18.2,
+and the previous temporary RSC advisory exception has been removed.
 
 The rate-limit test coverage verifies:
 

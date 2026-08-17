@@ -51,7 +51,7 @@ Local machine also held temporary operator tokens (must be rotated after audit):
 | `npm run build` | pass |
 | `npm run scan:secrets` | pass (no patterned credentials in tracked files) |
 | Frontend `dist` bundle secret-pattern scan | clean |
-| `npm audit` | 2 high — `react-router` / `react-router-dom` GHSA-qwww-vcr4-c8h2 (already policy-excepted; RSC CSRF path; app uses SPA not RSC) |
+| `npm audit` | 0 vulnerabilities after upgrading React Router to 7.18.2 and Nano ID to 3.3.18 |
 | Gitleaks via `npx` | not available in this environment (`could not determine executable`) — use repo `scan:secrets` + `scan:history` |
 
 ## Baseline issue register
@@ -63,7 +63,7 @@ Local machine also held temporary operator tokens (must be rotated after audit):
 | SEC-003 | Medium | Staging incomplete; prod blocked | Staging recorded `curriculum_allowlist_and_books` but data not fully applied (still 124 active subjects, no `book` node type). **Do not apply to production until staging repair is approved and verified (expect 24 active subjects + book nodes).** Combination-rules migration is on staging. |
 | SEC-004 | Medium | Fixed in main | Account deletion API + Settings UI shipped via #1. |
 | SEC-005 | Medium | Drafts only | Privacy/ToS + cookie/AUP/AI disclaimer drafts under `docs/legal/` — not linked as production policies. |
-| SEC-006 | Low | Accepted risk (documented) | `react-router` GHSA-qwww-vcr4-c8h2 — no unstable RSC usage; pinned 7.18.1 with audit policy exception. |
+| SEC-006 | Low | Fixed in audit branch | `react-router` GHSA-qwww-vcr4-c8h2 resolved by upgrading to 7.18.2; the temporary audit exception was removed. |
 | SEC-007 | Low | Open | Generation tables use RLS with zero policies (deny-by-default for clients) — intentional; document. |
 | SEC-008 | Informational | Open | No analytics/ad SDKs found in initial scan — cookie banner not required if only necessary storage. |
 | SEC-009 | Informational | Fixed in main | CBSE/NCERT independence disclaimer on landing (audit PR). |

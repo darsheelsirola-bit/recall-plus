@@ -3,9 +3,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { extname, join, relative } from 'node:path'
 
 const projectRoot = process.cwd()
-const allowedAdvisoryId = 'GHSA-qwww-vcr4-c8h2'
-const expectedRouterVersion = '7.18.1'
-const allowedAffectedPackages = new Set(['react-router', 'react-router-dom'])
+const expectedRouterVersion = '7.18.2'
 const runtimeExtensions = new Set(['.js', '.jsx', '.mjs', '.ts', '.tsx'])
 const acceptedArguments = new Set(['--omit=dev'])
 
@@ -147,37 +145,6 @@ function runNpmAudit() {
   return report
 }
 
-function collectAdvisories(vulnerabilities, packageName, visited = new Set()) {
-  if (visited.has(packageName)) return []
-  visited.add(packageName)
-
-  const vulnerability = vulnerabilities[packageName]
-  if (!vulnerability) return [{ unresolvedDependency: packageName }]
-
-  const advisories = []
-  for (const via of vulnerability.via ?? []) {
-    if (typeof via === 'string') {
-      advisories.push(...collectAdvisories(vulnerabilities, via, visited))
-    } else {
-      advisories.push(via)
-    }
-  }
-  return advisories
-}
-
-function isAllowedRouterAdvisory(packageName, vulnerability, advisories) {
-  if (!allowedAffectedPackages.has(packageName) || vulnerability.severity !== 'high') return false
-  if (advisories.length === 0) return false
-
-  return advisories.every((advisory) => {
-    if (advisory.unresolvedDependency) return false
-    const advisoryPackage = advisory.name || advisory.dependency
-    return advisoryPackage === 'react-router'
-      && advisory.severity === 'high'
-      && String(advisory.url || '').includes(allowedAdvisoryId)
-  })
-}
-
 assertRouterVersions()
 assertNoRscUsage()
 
@@ -188,23 +155,10 @@ try {
   failures.push(`npm audit failed closed: ${error.message}`)
 }
 
-const allowedFindings = []
 if (report) {
   for (const [packageName, vulnerability] of Object.entries(report.vulnerabilities)) {
     if (vulnerability.severity !== 'high' && vulnerability.severity !== 'critical') continue
-
-    const advisories = collectAdvisories(report.vulnerabilities, packageName)
-    if (isAllowedRouterAdvisory(packageName, vulnerability, advisories)) {
-      allowedFindings.push(packageName)
-    } else {
-      const identifiers = advisories
-        .map((advisory) => advisory.url || advisory.unresolvedDependency || advisory.source)
-        .filter(Boolean)
-      failures.push(
-        `${packageName} has an unapproved ${vulnerability.severity} advisory`
-        + (identifiers.length > 0 ? ` (${identifiers.join(', ')})` : ''),
-      )
-    }
+    failures.push(`${packageName} has an unapproved ${vulnerability.severity} advisory`)
   }
 }
 
@@ -215,13 +169,6 @@ if (failures.length > 0) {
 }
 
 const counts = report.metadata.vulnerabilities
-const allowedPackages = [...new Set(allowedFindings)].sort().join(', ')
 console.log(
   `Dependency audit policy passed: ${counts.critical ?? 0} critical and ${counts.high ?? 0} high vulnerable package(s) reported.`,
 )
-if (allowedPackages) {
-  console.log(
-    `Temporary exception ${allowedAdvisoryId} applies only to ${allowedPackages};`
-    + ` React Router ${expectedRouterVersion} is exact-pinned and deployed runtime source has no unstable RSC usage.`,
-  )
-}
