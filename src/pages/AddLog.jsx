@@ -279,7 +279,7 @@ export default function AddLog() {
                 {topics.map((topic) => (
                   <span key={topic} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary py-0 pl-3.5 pr-1 text-sm font-semibold text-primary-foreground">
                     {topic}
-                    <button type="button" onClick={() => toggleTopic(topic)} className="grid size-11 place-items-center rounded-full bg-white/15 hover:bg-white/30" aria-label={`Remove ${topic}`}><X size={14} /></button>
+                    <button type="button" onClick={() => toggleTopic(topic)} className="grid size-8 shrink-0 place-items-center rounded-full bg-white/15 hover:bg-white/30" aria-label={`Remove ${topic}`}><X size={12} strokeWidth={2} /></button>
                   </span>
                 ))}
               </div>
