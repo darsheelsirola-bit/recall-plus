@@ -12,11 +12,11 @@ import GenerationLimitStatus from '../components/GenerationLimitStatus'
 import { curriculumRequestSelection, useActiveCurriculum, useCurriculumSubjects } from '../academic/activeCurriculum'
 import { getChapters, getTopics, selectionFromParams } from '../components/SelectionFields'
 import { useGenerationUsage } from '../contexts/GenerationUsageContext'
-import { generateQuizQuestions } from '../services/groqService'
+import { generateQuizQuestions, submitQuizAnswers } from '../services/groqService'
 import { GENERATION_LIMIT_MESSAGE } from '../types/generation'
 import { getTodayDate } from '../utils/dateUtils'
 import { formatStudyMinutes } from '../utils/logUtils'
-import { calculateScore, createId, createQuestionStorageKey, formatClock, getTopicStatus, validateVerifiedQuizQuestions } from '../utils/quizUtils'
+import { createId, createQuestionStorageKey, formatClock, getTopicStatus, validatePublicQuizQuestions } from '../utils/quizUtils'
 import {
   getData,
   getStorageUser,
@@ -59,9 +59,11 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, Number(value) || min))
 }
 
-function loadCachedQuestions(key, expectedCount) {
-  const cached = getData(key, [])
-  return validateVerifiedQuizQuestions(cached, expectedCount) ? cached : []
+function loadCachedQuiz(key, expectedCount) {
+  const cached = getData(key, null)
+  return cached?.quizId && validatePublicQuizQuestions(cached.questions, expectedCount)
+    ? cached
+    : { quizId: '', questions: [] }
 }
 
 export default function Quiz() {
@@ -74,7 +76,9 @@ export default function Quiz() {
   const [difficulty, setDifficulty] = useState('medium')
   const [duration, setDuration] = useState(30)
   const [questionCount, setQuestionCount] = useState(10)
-  const [questions, setQuestions] = useState(() => loadCachedQuestions(configStorageKey(initialSelection.subject, [initialSelection.chapter], [initialSelection.topic], 'medium', 30, 10), 10))
+  const initialQuiz = loadCachedQuiz(configStorageKey(initialSelection.subject, [initialSelection.chapter], [initialSelection.topic], 'medium', 30, 10), 10)
+  const [questions, setQuestions] = useState(initialQuiz.questions)
+  const [quizId, setQuizId] = useState(initialQuiz.quizId)
   const [mode, setMode] = useState('setup')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -96,7 +100,7 @@ export default function Quiz() {
   const topicLabel = selectedTopics.join(', ')
   const curriculumSelection = curriculumRequestSelection(syllabus, subject, selectedChapters, selectedTopics)
   const storageKey = configStorageKey(subject, selectedChapters, selectedTopics, difficulty, safeDuration, safeQuestionCount)
-  const ready = validateVerifiedQuizQuestions(questions, safeQuestionCount)
+  const ready = Boolean(quizId) && validatePublicQuizQuestions(questions, safeQuestionCount)
   const generationBlocked = quizUsage.loading || quizUsage.inProgress || quizUsage.exhausted || Boolean(quizUsage.error)
   const displayError = curriculumError || error
   const pastResultsAction = <Button variant="outline" render={<Link to="/quiz/results" />}><History data-icon="inline-start" /> View past test results</Button>
@@ -119,7 +123,9 @@ export default function Quiz() {
 
   function resetForConfig(nextSubject, nextChapters, nextTopics, nextDifficulty, nextDuration, nextCount) {
     const key = configStorageKey(nextSubject, nextChapters, nextTopics, nextDifficulty, nextDuration, nextCount)
-    setQuestions(loadCachedQuestions(key, nextCount))
+    const cached = loadCachedQuiz(key, nextCount)
+    setQuizId(cached.quizId)
+    setQuestions(cached.questions)
     submissionGuardRef.current.reset()
     setMode('setup')
     setAnswers({})
@@ -206,7 +212,8 @@ export default function Quiz() {
         const generated = await generateQuizQuestions(curriculumSelection, { count: safeQuestionCount, level: difficulty })
         if (!ownerId || getStorageUser() !== ownerId) return
         saveDataForUserOrThrow(ownerId, storageKey, generated)
-        setQuestions(generated)
+        setQuizId(generated.quizId)
+        setQuestions(generated.questions)
       } else {
         await new Promise((resolve) => window.setTimeout(resolve, 900))
       }
@@ -225,21 +232,34 @@ export default function Quiz() {
     }
   }
 
-  function submit() {
+  async function submit() {
     if (!submissionGuardRef.current.claim()) return
-    const summary = calculateScore(questions, answers)
-    const questionReview = questions.map((question) => {
-      const chosen = answers[question.id] ?? null
-      return {
-        id: question.id,
-        difficulty: question.difficulty,
-        question: question.question,
-        chosen,
-        answer: question.answer,
-        correct: chosen === question.answer,
-        explanation: question.explanation,
-      }
-    })
+    setError('')
+    const submittedAnswers = Object.fromEntries(
+      questions.map((question) => [question.id, answers[question.id] ?? null]),
+    )
+    let scored
+    try {
+      scored = await submitQuizAnswers(quizId, submittedAnswers)
+    } catch (submissionError) {
+      submissionGuardRef.current.reset()
+      setError(submissionError.message)
+      return
+    }
+    const summary = {
+      score: scored.score,
+      totalQuestions: scored.totalQuestions,
+      percentage: scored.percentage,
+    }
+    const questionReview = scored.questions.map((question) => ({
+      id: question.id,
+      difficulty: question.difficulty,
+      question: question.question,
+      chosen: question.selectedAnswer,
+      answer: question.answer,
+      correct: question.correct,
+      explanation: question.explanation,
+    }))
     const quizResult = {
       id: createId(),
       type: 'practice',
@@ -269,6 +289,7 @@ export default function Quiz() {
       return
     }
     setResult(quizResult)
+    setQuestions(scored.questions)
     setMode('result')
   }
 

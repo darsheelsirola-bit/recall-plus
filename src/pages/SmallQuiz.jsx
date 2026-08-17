@@ -8,10 +8,10 @@ import PageHeader from '../components/PageHeader'
 import { curriculumRequestSelection, useActiveCurriculum, useCurriculumSubjects } from '../academic/activeCurriculum'
 import SelectionFields, { selectionFromParams } from '../components/SelectionFields'
 import { useGenerationUsage } from '../contexts/GenerationUsageContext'
-import { generateQuizQuestions } from '../services/groqService'
+import { generateQuizQuestions, submitQuizAnswers } from '../services/groqService'
 import { GENERATION_LIMIT_MESSAGE } from '../types/generation'
 import { formatDate, getTodayDate } from '../utils/dateUtils'
-import { SMALL_QUIZ_COUNT, calculateScore, createId, createQuestionStorageKey, getTopicStatus, validateVerifiedQuizQuestions } from '../utils/quizUtils'
+import { SMALL_QUIZ_COUNT, createId, createQuestionStorageKey, getTopicStatus, validatePublicQuizQuestions } from '../utils/quizUtils'
 import { createOrUpdateReviewData } from '../utils/spacedRepetition'
 import {
   getData,
@@ -40,6 +40,7 @@ export default function SmallQuiz() {
   const [searchParams] = useSearchParams()
   const [selection, setSelection] = useState(() => selectionFromParams(searchParams, syllabus))
   const [questions, setQuestions] = useState([])
+  const [quizId, setQuizId] = useState('')
   const [mode, setMode] = useState('setup')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -63,6 +64,7 @@ export default function SmallQuiz() {
   function changeSelection(nextSelection) {
     setSelection(nextSelection)
     setQuestions([])
+    setQuizId('')
     setMode('setup')
     setAnswers({})
     setResult(null)
@@ -82,9 +84,10 @@ export default function SmallQuiz() {
       setError('Choose a subject with a verified official curriculum outline.')
       return
     }
-    const cached = getData(storageKey, [])
-    if (validateVerifiedQuizQuestions(cached, SMALL_QUIZ_COUNT)) {
-      setQuestions(cached)
+    const cached = getData(storageKey, null)
+    if (cached?.quizId && validatePublicQuizQuestions(cached.questions, SMALL_QUIZ_COUNT)) {
+      setQuizId(cached.quizId)
+      setQuestions(cached.questions)
       setAnswers({})
       submissionGuardRef.current.reset()
       setMode('active')
@@ -109,7 +112,8 @@ export default function SmallQuiz() {
       })
       if (!ownerId || getStorageUser() !== ownerId) return
       saveDataForUserOrThrow(ownerId, storageKey, generated)
-      setQuestions(generated)
+      setQuizId(generated.quizId)
+      setQuestions(generated.questions)
       setAnswers({})
       submissionGuardRef.current.reset()
       setMode('active')
@@ -121,9 +125,22 @@ export default function SmallQuiz() {
     }
   }
 
-  function submit() {
+  async function submit() {
     if (!submissionGuardRef.current.claim()) return
-    const summary = calculateScore(questions, answers)
+    setError('')
+    let scored
+    try {
+      scored = await submitQuizAnswers(quizId, answers)
+    } catch (submissionError) {
+      submissionGuardRef.current.reset()
+      setError(submissionError.message)
+      return
+    }
+    const summary = {
+      score: scored.score,
+      totalQuestions: scored.totalQuestions,
+      percentage: scored.percentage,
+    }
     const quizResult = { id: createId(), type: 'diagnostic', date: getTodayDate(), completedAt: new Date().toISOString(), ...selection, curriculumVersionId, curriculumSubjectId: syllabus.find((item) => item.subject === selection.subject)?.subjectId || '', curriculumNodeIds: curriculumSelection ? [...curriculumSelection.chapterNodeIds, ...curriculumSelection.topicNodeIds] : [], ...summary, status: getTopicStatus(summary.percentage) }
     const statuses = getData(STORAGE_KEYS.topicStatuses, {})
     statuses[`${selection.subject}|${selection.chapter}|${selection.topic}`] = summary.percentage >= 80 ? 'Mastered' : 'Needs Revision'
@@ -151,6 +168,7 @@ export default function SmallQuiz() {
       return
     }
     setResult(quizResult)
+    setQuestions(scored.questions)
     setReview(reviewUpdate.review)
     setMode('result')
   }

@@ -398,8 +398,7 @@ quality gate, the `dist` output directory, SPA rewrites, and the
 generation-function duration. Vercel's Git integration creates Preview
 deployments for non-production branches and deploys the configured production
 branch, normally `main`, after successful pushes. The Vercel build also rejects
-any high- or critical-severity dependency advisory not covered by the narrow,
-guarded exception documented below.
+every high- or critical-severity dependency advisory.
 
 Vercel guarantees the Node 24 major and rolls forward security patch releases;
 local development and CI use the exact `24.16.0` pin. Vercel's supported npm
@@ -494,6 +493,7 @@ The browser calls:
 
 - `GET /api/generation-usage` for the authenticated user's current counters
 - `POST /api/generate-quiz` for quiz generation
+- `POST /api/submit-quiz` for authenticated server-side quiz scoring
 - `POST /api/generate-timetable` for timetable generation
 
-Generation requests require a valid bearer token and a unique request ID. Limit exhaustion returns HTTP `429` before NVIDIA NIM is called. Provider failures return an error without committing usage. Successful responses preserve the existing quiz and timetable output logic and include updated usage metadata for the UI.
+Generation requests require a valid bearer token and a unique request ID. Limit exhaustion returns HTTP `429` before NVIDIA NIM is called. Provider failures return an error without committing usage. Quiz generation returns question content without answer keys; the authenticated submission endpoint scores the exact saved quiz once on the server. Successful generation responses include updated usage metadata for the UI.

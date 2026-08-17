@@ -40,7 +40,14 @@ test('account deletion rejects missing confirmation phrase', async () => {
     response,
     {
       authenticatedUser: async () => ({ id: 'user-1', accessToken: 'token' }),
-      getSupabaseAdminClient: () => ({ auth: { admin: { deleteUser: async () => ({ error: null }) } } }),
+      getSupabaseAdminClient: () => ({
+        auth: {
+          admin: {
+            signOut: async () => ({ error: null }),
+            deleteUser: async () => ({ error: null }),
+          },
+        },
+      }),
     },
   )
   assert.equal(response.statusCode, 400)
@@ -49,6 +56,7 @@ test('account deletion rejects missing confirmation phrase', async () => {
 
 test('account deletion deletes only the verified user id', async () => {
   const deleted = []
+  const revoked = []
   const response = mockResponse()
   await handleAccountDeletion(
     jsonRequest({ confirmation: 'DELETE MY ACCOUNT' }),
@@ -58,6 +66,10 @@ test('account deletion deletes only the verified user id', async () => {
       getSupabaseAdminClient: () => ({
         auth: {
           admin: {
+            signOut: async (accessToken, scope) => {
+              revoked.push([accessToken, scope])
+              return { error: null }
+            },
             deleteUser: async (id) => {
               deleted.push(id)
               return { error: null }
@@ -68,6 +80,34 @@ test('account deletion deletes only the verified user id', async () => {
     },
   )
   assert.equal(response.statusCode, 200)
+  assert.deepEqual(revoked, [['token', 'global']])
   assert.deepEqual(deleted, ['user-42'])
   assert.equal(response.body.deleted, true)
+})
+
+test('account deletion stops before deleting the user when session revocation fails', async () => {
+  let deleteCalls = 0
+  const response = mockResponse()
+  await handleAccountDeletion(
+    jsonRequest({ confirmation: 'DELETE MY ACCOUNT' }),
+    response,
+    {
+      authenticatedUser: async () => ({ id: 'user-42', accessToken: 'token' }),
+      getSupabaseAdminClient: () => ({
+        auth: {
+          admin: {
+            signOut: async () => ({ error: new Error('temporary auth failure') }),
+            deleteUser: async () => {
+              deleteCalls += 1
+              return { error: null }
+            },
+          },
+        },
+      }),
+    },
+  )
+
+  assert.equal(response.statusCode, 503)
+  assert.equal(response.body.code, ERROR_CODES.ACCOUNT_DELETE_FAILED)
+  assert.equal(deleteCalls, 0)
 })

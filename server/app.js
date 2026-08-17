@@ -2,10 +2,12 @@ import express from 'express'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
+  handleAccountDeletion,
   handleAiStatus,
   handleGenerationStatus,
   handleInsightGeneration,
   handleQuizGeneration,
+  handleQuizSubmission,
   handleTimetableGeneration,
 } from './apiHandlers.js'
 import { AppError, ERROR_CODES } from './errors.js'
@@ -38,8 +40,10 @@ export function createApp({ staticRoot = path.join(projectRoot, 'dist') } = {}) 
   app.use(handleJsonParserError)
 
   app.all('/api/ai-status', handleAiStatus)
+  app.all('/api/delete-account', handleAccountDeletion)
   app.all('/api/generation-usage', handleGenerationStatus)
   app.all('/api/generate-quiz', handleQuizGeneration)
+  app.all('/api/submit-quiz', handleQuizSubmission)
   app.all('/api/generate-insights', handleInsightGeneration)
   app.all('/api/generate-timetable', handleTimetableGeneration)
   app.use('/api', (_request, response) => sendApiNotFound(response))

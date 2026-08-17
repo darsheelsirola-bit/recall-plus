@@ -722,3 +722,16 @@ test('Express and Vercel unknown API routes return the same JSON 404', async () 
     assert.equal(vercelResponse.body.code, 'NOT_FOUND')
   })
 })
+
+test('Express mounts account deletion and applies the shared authentication boundary', async () => {
+  await withHttpServer(async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/delete-account`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ confirmation: 'DELETE MY ACCOUNT' }),
+    })
+
+    assert.equal(response.status, 401)
+    assert.equal((await response.json()).code, 'AUTH_REQUIRED')
+  })
+})
