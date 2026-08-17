@@ -143,6 +143,14 @@ test('subject arranger rejects incomplete and conflicting combinations', () => {
   )
 })
 
+test('onboarding draft can store Class XII for academic-year setup', () => {
+  const storage = memoryStorage()
+  const draft = defaultOnboardingDraft(null, '', [], 'XII')
+  assert.equal(draft.grade, 'XII')
+  writeOnboardingDraft(storage, 'owner-a', draft)
+  assert.equal(readOnboardingDraft(storage, 'owner-a')?.grade, 'XII')
+})
+
 test('onboarding progress is owner-scoped and discards corrupted drafts', () => {
   const storage = memoryStorage()
   const pcm = defaultOnboardingDraft(

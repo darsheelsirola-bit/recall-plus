@@ -30,6 +30,10 @@ import {
   SYNC_RETRY_LIMIT,
 } from '../utils/syncUtils'
 import { friendlyPasswordAuthError } from './passwordErrors'
+import {
+  passwordSignInAfterSignUpResult,
+  shouldAttemptPasswordSignInAfterSignUp,
+} from './passwordSignUp'
 
 interface AuthResult {
   error: string
@@ -323,8 +327,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
       return { error: 'Supabase is not configured for this Recall+ installation.' }
     }
     const displayName = name.trim()
+    const trimmedEmail = email.trim()
     const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
+      email: trimmedEmail,
       password,
       options: {
         data: {
@@ -336,10 +341,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
         },
       },
     })
-    return {
-      error: friendlyPasswordAuthError(error, 'signup'),
-      needsEmailConfirmation: Boolean(data.user && !data.session),
+    if (data.session) return { error: '' }
+    if (!shouldAttemptPasswordSignInAfterSignUp({ session: data.session, error })) {
+      return { error: friendlyPasswordAuthError(error, 'signup') }
     }
+
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email: trimmedEmail,
+      password,
+    })
+    return passwordSignInAfterSignUpResult({
+      session: signInData.session,
+      error: signInError,
+    })
   }, [])
 
   const requestPasswordReset = useCallback(async (email: string): Promise<AuthResult> => {

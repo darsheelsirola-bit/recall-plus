@@ -199,6 +199,7 @@ export async function saveAcademicOnboardingProgress(
   expectedUserId: string,
   pathway: AcademicPathway | null,
   schoolName: string,
+  grade: CurriculumGrade = 'XI',
 ): Promise<void> {
   const { error } = await runForExpectedSessionUser(
     supabase.auth,
@@ -206,6 +207,7 @@ export async function saveAcademicOnboardingProgress(
     () => supabase.rpc('save_recall_onboarding_progress', {
       p_pathway: pathway,
       p_school_name: schoolName.trim() || null,
+      p_curriculum_version_id: CURRICULUM_VERSION_ID_BY_GRADE[grade],
     }),
   )
   if (error) {

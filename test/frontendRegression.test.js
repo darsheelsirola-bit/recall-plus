@@ -7,6 +7,11 @@ import {
   passwordAuthErrorTitle,
 } from '../src/auth/passwordErrors.ts'
 import {
+  isExistingAccountAuthMessage,
+  passwordSignInAfterSignUpResult,
+  shouldAttemptPasswordSignInAfterSignUp,
+} from '../src/auth/passwordSignUp.ts'
+import {
   AUTH_SESSION_CHANGED_CODE,
   assertExpectedSessionUser,
   runForExpectedSessionUser,
@@ -693,6 +698,45 @@ test('auth validation covers email, signup strength, and recovery matching', () 
   assert.equal(validateAuthForm({ mode: 'signup', name: 'Aarav', email: 'student@example.com', password: 'Strong1!' }), '')
   assert.equal(validateAuthForm({ mode: 'recovery', password: 'Strong1!', confirmPassword: 'Different1!' }), 'The passwords do not match.')
   assert.equal(validateAuthForm({ mode: 'recovery', password: 'Strong1!', confirmPassword: 'Strong1!' }), '')
+})
+
+test('repeated signup without a session tries password sign-in instead of a fake login', () => {
+  assert.equal(shouldAttemptPasswordSignInAfterSignUp({ session: { access_token: 't' }, error: null }), false)
+  assert.equal(shouldAttemptPasswordSignInAfterSignUp({ session: null, error: null }), true)
+  assert.equal(
+    shouldAttemptPasswordSignInAfterSignUp({
+      session: null,
+      error: { code: 'user_already_exists', message: 'User already registered' },
+    }),
+    true,
+  )
+  assert.equal(
+    shouldAttemptPasswordSignInAfterSignUp({
+      session: null,
+      error: { code: 'weak_password', message: 'Password is too weak' },
+    }),
+    false,
+  )
+
+  assert.deepEqual(
+    passwordSignInAfterSignUpResult({ session: { access_token: 't' }, error: null }),
+    { error: '' },
+  )
+  assert.deepEqual(
+    passwordSignInAfterSignUpResult({
+      session: null,
+      error: { code: 'email_not_confirmed', message: 'Email not confirmed' },
+    }),
+    { error: '', needsEmailConfirmation: true },
+  )
+
+  const existing = passwordSignInAfterSignUpResult({
+    session: null,
+    error: { code: 'invalid_credentials', message: 'Invalid login credentials' },
+  })
+  assert.equal(existing.needsEmailConfirmation, undefined)
+  assert.equal(isExistingAccountAuthMessage(existing.error), true)
+  assert.equal(completedAuthDestination('signup', true), null)
 })
 
 test('password authentication errors are specific, actionable, and sanitized', () => {

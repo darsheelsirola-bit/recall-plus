@@ -30,6 +30,7 @@ import {
   friendlyPasswordAuthError,
   passwordAuthErrorTitle,
 } from '../auth/passwordErrors'
+import { isExistingAccountAuthMessage } from '../auth/passwordSignUp'
 import {
   INDIA_TIMEZONE_DETAIL,
   INDIA_TIMEZONE_NAME,
@@ -141,15 +142,18 @@ export default function Auth() {
 
       if (result.error) {
         setError(result.error)
+        if (activeMode === 'signup' && isExistingAccountAuthMessage(result.error)) {
+          setMode('signin')
+        }
       } else if (activeMode === 'forgot') {
         setNotice('Check your email for a secure password-reset link.')
       } else if (result.needsEmailConfirmation) {
-        setNotice('Check your email to confirm your Recall+ account, then sign in here.')
+        setNotice('Check your email to confirm your Recall+ account, then sign in here. If you already have an account, use Sign in instead.')
         setMode('signin')
         setPassword('')
         setShowPassword(false)
       } else {
-        const destination = completedAuthDestination(activeMode)
+        const destination = completedAuthDestination(activeMode, result.needsEmailConfirmation)
         if (destination) navigate(destination, { replace: true })
       }
     } catch (submitError) {

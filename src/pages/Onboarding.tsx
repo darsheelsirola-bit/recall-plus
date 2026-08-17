@@ -50,6 +50,10 @@ import {
   countSubjectHistory,
   totalSubjectHistory,
 } from '../utils/subjectHistory.js'
+import {
+  PROFILE_NAME_MAX_LENGTH,
+  validateProfileName,
+} from '../utils/profile.js'
 
 const pathwayOptions: Array<{
   id: AcademicPathway
@@ -134,71 +138,75 @@ function SelectionCard({
 
 function StepOne({
   draft,
+  displayName,
   email,
-  name,
+  onDisplayNameChange,
   update,
 }: {
   draft: OnboardingDraft
+  displayName: string
   email: string
-  name: string
+  onDisplayNameChange: (value: string) => void
   update: (patch: Partial<OnboardingDraft>) => void
 }) {
-  const fixedDetails = [
-    ['Board', 'CBSE'],
-    ['Academic year', '2026–27'],
-    ['Timezone', 'Asia/Kolkata'],
-  ]
-  const gradeOptions: Array<{ id: CurriculumGrade; label: string }> = [
-    { id: 'XI', label: 'Class XI' },
-    { id: 'XII', label: 'Class XII' },
-  ]
   return (
     <div>
-      <div className="grid min-w-0 gap-3 sm:grid-cols-2">
-        <div className="min-w-0 rounded-2xl border border-border bg-muted/20 p-4">
-          <p className="text-xs font-medium text-muted-foreground">Student</p>
-          <p className="mt-1 truncate text-sm font-semibold">{name}</p>
-        </div>
-        <div className="min-w-0 rounded-2xl border border-border bg-muted/20 p-4">
-          <p className="text-xs font-medium text-muted-foreground">Account email</p>
-          <p className="mt-1 truncate text-sm font-semibold">{email}</p>
-        </div>
-      </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        {fixedDetails.map(([label, value]) => (
-          <div key={label} className="rounded-2xl border border-border bg-card p-4">
-            <p className="text-xs font-medium text-muted-foreground">{label}</p>
-            <p className="mt-1 text-sm font-semibold">{value}</p>
-          </div>
-        ))}
-      </div>
-      <p className="mt-5 text-xs font-medium text-muted-foreground">Class</p>
-      <div className="mt-2 grid gap-3 sm:grid-cols-2">
-        {gradeOptions.map((option) => {
-          const selected = draft.grade === option.id
-          return (
-            <button
-              key={option.id}
-              type="button"
-              aria-pressed={selected}
-              onClick={() => update({
-                grade: option.id,
-                subjectIds: [],
-                preset: 'custom',
-              })}
-              className={`rounded-2xl border p-4 text-left transition ${
-                selected
-                  ? 'border-primary bg-secondary shadow-sm'
-                  : 'border-border bg-card hover:border-primary/35'
-              }`}
-            >
-              <p className="text-sm font-semibold">{option.label}</p>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                CBSE senior secondary {option.id === 'XII' ? 'board year' : 'first year'}
-              </p>
-            </button>
-          )
-        })}
+      <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+        <label className="field-label" htmlFor="student-name">
+          Student
+          <input
+            id="student-name"
+            className="field"
+            autoComplete="name"
+            maxLength={PROFILE_NAME_MAX_LENGTH}
+            value={displayName}
+            onChange={(event) => onDisplayNameChange(event.target.value)}
+          />
+        </label>
+        <label className="field-label" htmlFor="account-email">
+          Account email
+          <input
+            id="account-email"
+            className="field bg-muted/40 text-muted-foreground"
+            value={email}
+            readOnly
+            disabled
+          />
+        </label>
+        <label className="field-label" htmlFor="board">
+          Board
+          <select id="board" className="field" value="CBSE" disabled>
+            <option value="CBSE">CBSE</option>
+          </select>
+        </label>
+        <label className="field-label" htmlFor="grade">
+          Class
+          <select
+            id="grade"
+            className="field"
+            value={draft.grade}
+            onChange={(event) => update({
+              grade: event.target.value === 'XII' ? 'XII' : 'XI',
+              subjectIds: [],
+              preset: 'custom',
+            })}
+          >
+            <option value="XI">Class XI</option>
+            <option value="XII">Class XII</option>
+          </select>
+        </label>
+        <label className="field-label" htmlFor="academic-year">
+          Academic year
+          <select id="academic-year" className="field" value="2026-27" disabled>
+            <option value="2026-27">2026–27</option>
+          </select>
+        </label>
+        <label className="field-label" htmlFor="timezone">
+          Timezone
+          <select id="timezone" className="field" value="Asia/Kolkata" disabled>
+            <option value="Asia/Kolkata">Asia/Kolkata</option>
+          </select>
+        </label>
       </div>
       <label className="field-label mt-5" htmlFor="school-name">
         School name <span className="font-normal text-muted-foreground">(optional)</span>
@@ -212,7 +220,7 @@ function StepOne({
         onChange={(event) => update({ schoolName: event.target.value })}
       />
       <p className="mt-2 text-xs leading-5 text-muted-foreground">
-        Recall+ uses India Standard Time for daily study limits and reminders.
+        Choose Class XI or XII. Board, academic year, and timezone stay on the CBSE 2026–27 India workspace that Recall+ currently supports. Email is your sign-in and cannot change here.
       </p>
     </div>
   )
@@ -584,7 +592,7 @@ function StepSix({
 const stepCopy = [
   {
     title: 'Set up your academic year',
-    description: 'Confirm your CBSE class and academic year details for this Recall+ release.',
+    description: 'Choose your class and confirm the academic details Recall+ will save to your profile.',
   },
   {
     title: 'Choose your pathway',
@@ -612,7 +620,7 @@ export default function Onboarding() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const editing = searchParams.get('mode') === 'edit'
-  const { profile: accountProfile, signOut, user } = useAuth()
+  const { profile: accountProfile, signOut, updateProfileName, user } = useAuth()
   const {
     completeProfile,
     saveProgress,
@@ -637,6 +645,9 @@ export default function Onboarding() {
   })
   const [error, setError] = useState('')
   const [confirmed, setConfirmed] = useState(false)
+  const [displayName, setDisplayName] = useState(
+    () => accountProfile?.displayName || '',
+  )
   const selections = useMemo(
     () => arrangeSubjectSelections(draft.subjectIds, draft.grade),
     [draft.grade, draft.subjectIds],
@@ -706,11 +717,14 @@ export default function Onboarding() {
   }
 
   function validationForStep(): string {
-    if (
-      draft.step === 1
-      && draft.schoolName.trim()
-      && draft.schoolName.trim().length < 2
-    ) return 'Enter at least 2 characters for the school name, or leave it blank.'
+    if (draft.step === 1) {
+      const nameError = validateProfileName(displayName)
+      if (nameError) return nameError
+      if (
+        draft.schoolName.trim()
+        && draft.schoolName.trim().length < 2
+      ) return 'Enter at least 2 characters for the school name, or leave it blank.'
+    }
     if (draft.step === 2 && !draft.pathway) return 'Choose a pathway to continue.'
     if (
       draft.step === 3
@@ -742,8 +756,16 @@ export default function Onboarding() {
     }
     if (draft.step >= ONBOARDING_STEP_COUNT) return
 
+    if (draft.step === 1 && displayName.trim() !== (accountProfile?.displayName || '').trim()) {
+      const { error: nameSaveError } = await updateProfileName(displayName)
+      if (nameSaveError) {
+        setError(nameSaveError)
+        return
+      }
+    }
+
     if (shouldPersistOnboardingProgress(editing)) {
-      const saveError = await saveProgress(draft.pathway, draft.schoolName)
+      const saveError = await saveProgress(draft.pathway, draft.schoolName, draft.grade)
       if (saveError) {
         setError(saveError)
         return
@@ -846,7 +868,7 @@ export default function Onboarding() {
             </span>
             <div>
               <p className="text-sm font-semibold">Academic setup</p>
-              <p className="mt-0.5 text-xs text-white/60">CBSE · XI · 2026–27</p>
+              <p className="mt-0.5 text-xs text-white/60">CBSE · {draft.grade} · 2026–27</p>
             </div>
           </div>
           <ol className="mt-6 grid grid-cols-6 gap-1 lg:grid-cols-1 lg:gap-2" aria-label="Onboarding progress">
@@ -954,8 +976,9 @@ export default function Onboarding() {
             {draft.step === 1 ? (
               <StepOne
                 draft={draft}
-                name={accountProfile?.displayName || 'Recall+ student'}
+                displayName={displayName}
                 email={accountProfile?.email || user?.email || ''}
+                onDisplayNameChange={setDisplayName}
                 update={update}
               />
             ) : null}
