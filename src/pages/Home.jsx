@@ -81,18 +81,18 @@ export default function Home() {
 
   return (
     <>
-      <section className="mb-2 flex flex-wrap items-center justify-between gap-3">
+      <section className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <p className="min-w-0 text-2xl font-semibold tracking-[-0.035em] text-primary sm:text-3xl">{greeting}, {displayName}</p>
         <p className="shrink-0 text-sm font-semibold text-muted-foreground sm:text-base">{formatDate(getTodayDate(), { weekday: 'long', day: 'numeric', month: 'short' })}</p>
       </section>
 
-      <section className="mb-4">
+      <section className="mb-6">
         <h1 className="text-[clamp(2.25rem,10vw,4.5rem)] font-semibold leading-[0.95] tracking-[-0.06em] text-ink">
           Remember more. <span className="bg-gradient-to-r from-primary via-blue-500 to-mint bg-clip-text text-transparent">Stress less.</span>
         </h1>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.15fr_.85fr]">
+      <section className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
         <Card className="border-0 bg-ink text-white shadow-lift">
           <CardHeader className="gap-2 px-5 pt-5 sm:px-6 sm:pt-6">
             <Badge className="rounded-full bg-white/10 text-white hover:bg-white/10">Today’s primary focus</Badge>
@@ -131,7 +131,7 @@ export default function Home() {
         </Card>
       </section>
 
-      <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(300px,.65fr)]">
+      <section className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(300px,.65fr)]">
         <Card>
           <CardHeader><CardTitle>Weekly momentum</CardTitle><CardDescription>Study time by subject, Monday through Sunday.</CardDescription></CardHeader>
           <CardContent><StudyTimeChart logs={logs} subjects={subjectNames} /></CardContent>
@@ -139,7 +139,7 @@ export default function Home() {
 
         <Card>
           <CardHeader><CardTitle>Next up</CardTitle><CardDescription>Your three most useful next moves.</CardDescription></CardHeader>
-          <CardContent className="flex flex-col gap-2">
+          <CardContent className="flex flex-col gap-3">
             {focus.length ? focus.map((item) => (
               <Link key={`${item.label}-${item.topic}`} to={item.to} className="group flex min-h-16 items-center gap-3 rounded-xl border border-border p-3 transition hover:border-primary/25 hover:bg-secondary/40">
                 <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-secondary text-primary"><Brain className="size-4" /></span>
@@ -153,9 +153,9 @@ export default function Home() {
         </Card>
       </section>
 
-      <section className="mt-4">
+      <section className="mt-5">
         <h2 className="section-title">Quick actions</h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {quickActions.map(({ label, copy, icon: Icon, to, tone }) => (
             <Link key={label} to={to} className="group flex min-h-24 items-center gap-4 rounded-2xl border border-border bg-card p-4 transition hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-soft">
               <span className={`grid size-11 shrink-0 place-items-center rounded-xl ${tone}`}><Icon className="size-5" /></span>
@@ -165,7 +165,7 @@ export default function Home() {
         </div>
       </section>
 
-      {logs.length ? <section className="mt-4"><Card><CardHeader><CardTitle>Most recent session</CardTitle><CardAction><Button variant="link" size="sm" render={<Link to="/logs" />}>View all</Button></CardAction></CardHeader><CardContent><div className="flex flex-col gap-2 rounded-xl bg-background p-4 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{getLogTopicsLabel(logs[0])}</p><p className="mt-1 text-xs text-muted-foreground">{logs[0].subject} · {formatStudyMinutes(logs[0].timeSpent)}</p></div><Badge variant="outline" className="rounded-full">{logs[0].confidence} confidence</Badge></div></CardContent></Card></section> : null}
+      {logs.length ? <section className="mt-5"><Card><CardHeader><CardTitle>Most recent session</CardTitle><CardAction><Button variant="link" size="sm" render={<Link to="/logs" />}>View all</Button></CardAction></CardHeader><CardContent><div className="flex flex-col gap-3 rounded-xl bg-background p-4 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{getLogTopicsLabel(logs[0])}</p><p className="mt-1 text-xs text-muted-foreground">{logs[0].subject} · {formatStudyMinutes(logs[0].timeSpent)}</p></div><Badge variant="outline" className="rounded-full">{logs[0].confidence} confidence</Badge></div></CardContent></Card></section> : null}
     </>
   )
 }

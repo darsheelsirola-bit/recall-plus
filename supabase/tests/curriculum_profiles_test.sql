@@ -44,37 +44,35 @@ select ok(
 );
 
 select ok(
-  (select count(*) from public.curriculum_subjects where subject_group = 'L') = 39
-  and (select count(*) from public.curriculum_subjects where subject_group = 'A') = 39
-  and (select count(*) from public.curriculum_subjects where subject_group = 'S') = 43
-  and (select count(*) from public.curriculum_subjects where subject_group = 'IA') = 3,
-  'the database contains every official subject-code group and internal area'
+  (select count(*) from public.curriculum_subjects where curriculum_version_id = 'cbse-2026-27-xi-v1') = 124
+  and (select count(*) from public.curriculum_subjects where curriculum_version_id = 'cbse-2026-27-xii-v1') = 24,
+  'the database contains the complete Class XI catalogue and Class XII allowlist'
 );
 
 select is(
   (
     select count(*)::integer
     from public.curriculum_subjects
-    where subject_group <> 'IA'
+    where active and subject_group <> 'IA'
   ),
-  121,
-  'the database has 121 selectable official subject codes'
+  48,
+  'the database has 24 active selectable subjects for each supported grade'
 );
 
 select is(
-  (select count(*)::integer from public.curriculum_nodes),
-  295,
-  'the reviewed outlines seed 295 deterministic curriculum nodes'
+  (select count(*)::integer from public.curriculum_nodes where active),
+  734,
+  'the reviewed Class XI and XII outlines seed 734 active curriculum nodes'
 );
 
 select ok(
   not exists (
     select 1
     from public.curriculum_subjects as subjects
-    where subjects.content_status = 'verified_outline'
+    where subjects.active
+      and subjects.source_hash is not null
       and (
-        subjects.source_hash is null
-        or subjects.source_hash !~ '^[a-f0-9]{64}$'
+        subjects.source_hash !~ '^[a-f0-9]{64}$'
         or not exists (
           select 1
           from public.curriculum_nodes as nodes
@@ -83,7 +81,7 @@ select ok(
         )
       )
   ),
-  'every verified subject has a source hash and source-linked nodes'
+  'every source-hashed active subject has a valid hash and source-linked nodes'
 );
 
 select ok(
@@ -146,7 +144,7 @@ select ok(
   and not has_table_privilege('authenticated', 'public.user_subjects', 'INSERT')
   and has_function_privilege(
     'authenticated',
-    'public.save_recall_academic_profile(text,text,jsonb)',
+    'public.save_recall_academic_profile(text,text,jsonb,text)',
     'EXECUTE'
   )
   and has_function_privilege(
@@ -162,7 +160,7 @@ select ok(
   and not has_table_privilege('anon', 'public.user_subjects', 'SELECT')
   and not has_function_privilege(
     'anon',
-    'public.save_recall_academic_profile(text,text,jsonb)',
+    'public.save_recall_academic_profile(text,text,jsonb,text)',
     'EXECUTE'
   ),
   'anonymous users cannot read curriculum/user data or call academic RPCs'
@@ -205,7 +203,7 @@ select ok(
   and not (
     select prosecdef
     from pg_catalog.pg_proc
-    where oid = 'public.save_recall_academic_profile(text,text,jsonb)'::regprocedure
+    where oid = 'public.save_recall_academic_profile(text,text,jsonb,text)'::regprocedure
   )
   and (
     select prosecdef
@@ -461,15 +459,15 @@ select ok(
 select ok(
   public.validate_recall_subject_combination(
     pg_temp.curriculum_selections(array['301', '042', '083', '065', '041'])
-  ) -> 'errors' @> '[{"code":"COMPUTER_CONFLICT"}]'::jsonb,
-  'the database rejects multiple computer-subject options'
+  ) -> 'errors' @> '[{"code":"UNKNOWN_SUBJECT"}]'::jsonb,
+  'the database rejects unavailable computer-subject options'
 );
 
 select ok(
   public.validate_recall_subject_combination(
     pg_temp.curriculum_selections(array['301', '054', '833', '030', '041'])
-  ) -> 'errors' @> '[{"code":"BUSINESS_CONFLICT"}]'::jsonb,
-  'the database rejects Business Studies with Business Administration'
+  ) -> 'errors' @> '[{"code":"UNKNOWN_SUBJECT"}]'::jsonb,
+  'the database rejects unavailable business-subject options'
 );
 
 select ok(
@@ -569,7 +567,8 @@ select throws_ok(
     select public.save_recall_academic_profile(
       'science',
       'Example School',
-      pg_temp.curriculum_selections(array['301', '042', '043', '041', '241'])
+      pg_temp.curriculum_selections(array['301', '042', '043', '041', '241']),
+      'cbse-2026-27-xi-v1'
     )
   $statement$,
   '22023',
@@ -581,7 +580,8 @@ select ok(
   public.save_recall_academic_profile(
     'science',
     'Example School',
-    pg_temp.curriculum_selections(array['301', '042', '043', '843', '041'])
+    pg_temp.curriculum_selections(array['301', '042', '043', '843', '041']),
+    'cbse-2026-27-xi-v1'
   ) @> '{"onboardingCompleted":true}'::jsonb,
   'a valid confirmed combination is persisted atomically'
 );
@@ -619,7 +619,8 @@ select ok(
 select public.save_recall_academic_profile(
   'science',
   'Example School',
-  pg_temp.curriculum_selections(array['301', '042', '043', '044', '037'])
+  pg_temp.curriculum_selections(array['301', '042', '043', '044', '037']),
+  'cbse-2026-27-xi-v1'
 );
 
 select ok(

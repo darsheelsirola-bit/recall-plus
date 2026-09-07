@@ -18,6 +18,11 @@ const unit = (
   children: readonly OutlineNode[] = [],
   marks?: number,
 ): OutlineNode => ({ type: 'unit', title, page, children, marks })
+const book = (
+  title: string,
+  page: number,
+  children: readonly OutlineNode[] = [],
+): OutlineNode => ({ type: 'book', title, page, children })
 const chapter = (
   title: string,
   page: number,
@@ -38,48 +43,78 @@ const project = (title: string, page: number): OutlineNode => ({
   title,
   page,
 })
-const assessment = (title: string, page: number): OutlineNode => ({
+const assessment = (title: string, page: number, marks?: number): OutlineNode => ({
   type: 'assessment_area',
   title,
   page,
+  marks,
 })
 
 const reviewedOutlines: Readonly<Record<string, readonly OutlineNode[]>> =
   Object.freeze({
-    '001': [
-      assessment('Reading comprehension', 2),
-      assessment('Creative writing', 2),
-      unit('Literature', 3, [
-        topic('Kaleidoscope - Short Stories', 3),
-        topic('Kaleidoscope - Poetry', 3),
-        topic('Kaleidoscope - Non-fiction', 3),
-        topic('Drama', 3),
-        topic('Fiction', 4),
-      ]),
-      project('Seminar', 4),
-    ],
     '301': [
       assessment('Reading Skills', 8),
       assessment('Grammar and Creative Writing Skills', 8),
-      unit('Literature Text Book and Supplementary Reading Text', 9, [
-        topic('Hornbill', 9),
-        topic('Snapshots', 9),
+      book('Hornbill', 9, [
+        chapter('The Portrait of a Lady', 9, [
+          topic('Character sketch and relationships', 9),
+          topic('Themes of loss, companionship, and change', 9),
+        ]),
+        chapter("We're Not Afraid to Die... if We Can All Be Together", 9, [
+          topic('Narrative of survival at sea', 9),
+          topic('Courage, teamwork, and optimism', 9),
+        ]),
+        chapter('Discovering Tut: the Saga Continues', 9, [
+          topic('Archaeology and scientific investigation', 9),
+          topic('History, mystery, and heritage', 9),
+        ]),
+        chapter('The Adventure', 9, [
+          topic('Alternate history and scientific imagination', 9),
+        ]),
+        chapter('Silk Road', 9, [
+          topic('Travel writing and cultural encounter', 9),
+        ]),
+        chapter('A Photograph', 9, [
+          topic('Memory, time, and loss in poetry', 9),
+        ]),
+        chapter('The Laburnum Top', 9, [
+          topic('Imagery of stillness and movement', 9),
+        ]),
+        chapter('The Voice of the Rain', 9, [
+          topic('Personification and the water cycle as metaphor', 9),
+        ]),
+        chapter('Childhood', 9, [
+          topic('Innocence, adulthood, and self-awareness', 9),
+        ]),
+        chapter('Father to Son', 9, [
+          topic('Generational gap and communication', 9),
+        ]),
+      ]),
+      book('Snapshots', 9, [
+        chapter('The Summer of the Beautiful White Horse', 9, [
+          topic('Honesty, adventure, and cultural setting', 9),
+        ]),
+        chapter('The Address', 9, [
+          topic('War, memory, and belonging', 9),
+        ]),
+        chapter("Mother's Day", 9, [
+          topic('Family roles and assertiveness', 9),
+        ]),
+        chapter('Birth', 9, [
+          topic('Medical ethics, duty, and crisis', 9),
+        ]),
+        chapter('The Tale of Melon City', 9, [
+          topic('Satire on justice and governance', 9),
+        ]),
       ]),
       assessment('Assessment of Listening and Speaking Skills', 15),
       project('Project Work', 16),
     ],
-    '002': [
-      assessment('अपठित बोध', 7),
-      assessment('अभिव्यक्ति और माध्यम', 7),
-      unit('अंतरा भाग-1', 8),
-      unit('अंतराल भाग-1', 8),
-      project('परियोजना कार्य', 6),
-    ],
     '302': [
       assessment('अपठित बोध', 7),
       assessment('अभिव्यक्ति और माध्यम', 7),
-      unit('आरोह भाग-1', 8),
-      unit('वितान भाग-1', 8),
+      book('आरोह भाग-1', 8),
+      book('वितान भाग-1', 8),
       assessment('श्रवण तथा वाचन', 4),
       project('परियोजना कार्य', 5),
     ],
@@ -122,7 +157,7 @@ const reviewedOutlines: Readonly<Record<string, readonly OutlineNode[]>> =
       project('Project Work', 18),
     ],
     '029': [
-      unit('Fundamentals of Physical Geography', 3, [
+      book('Fundamentals of Physical Geography', 3, [
         chapter('Geography as a Discipline', 5),
         chapter('The Origin and Evolution of the Earth', 5),
         chapter('Interior of the Earth', 5),
@@ -138,7 +173,7 @@ const reviewedOutlines: Readonly<Record<string, readonly OutlineNode[]>> =
         chapter('Movements of Ocean Water', 6),
         chapter('Biodiversity and Conservation', 6),
       ]),
-      unit('India - Physical Environment', 4, [
+      book('India - Physical Environment', 4, [
         chapter('India - Location', 6),
         chapter('Structure and Physiography', 6),
         chapter('Drainage System', 7),
@@ -146,7 +181,9 @@ const reviewedOutlines: Readonly<Record<string, readonly OutlineNode[]>> =
         chapter('Natural Vegetation', 7),
         chapter('Natural Hazards and Disasters', 7),
       ]),
-      practical('Geography Practical Part I', 7),
+      book('Practical Work in Geography Part I', 7, [
+        practical('Geography Practical Part I', 7),
+      ]),
       assessment('Map Work', 8),
     ],
     '030': [
@@ -359,36 +396,6 @@ const reviewedOutlines: Readonly<Record<string, readonly OutlineNode[]>> =
       ], 24),
       project('Project Work', 6),
     ],
-    '064': [
-      unit('Introduction to Home Science', 4),
-      unit('Understanding Oneself: Adolescence', 4, [
-        chapter('Understanding the Self', 5),
-        chapter('Food, Nutrition, Health and Fitness', 6),
-        chapter('Management of Resources', 6),
-        chapter('Fabric Around Us', 6),
-        chapter('Media Communication Technology', 7),
-      ]),
-      unit('Understanding Family, Community and Society', 8, [
-        chapter('Concerns and Needs in Diverse Contexts', 8),
-      ]),
-      unit('Childhood', 4, [
-        chapter('Nutrition, Health and Well-being', 9),
-        chapter('Our Apparel', 9),
-      ]),
-      unit('Adulthood', 4, [
-        chapter('Financial Management and Planning', 10),
-        chapter('Care and Maintenance of Fabrics', 11),
-      ]),
-      practical('Practical Work', 12),
-    ],
-    '065': [
-      unit('Introduction to Computer System', 1),
-      unit('Introduction to Python', 2),
-      unit('Database Concepts and the Structured Query Language', 2),
-      unit('Introduction to the Emerging Trends', 2),
-      practical('Practical Work', 4),
-      project('Project Work', 4),
-    ],
     '083': [
       unit('Computer Systems and Organisation', 1),
       unit('Computational Thinking and Programming - I', 2),
@@ -403,15 +410,6 @@ const reviewedOutlines: Readonly<Record<string, readonly OutlineNode[]>> =
       unit('Family Justice System', 5),
       project('Project Work', 5),
     ],
-    '802': [
-      unit('Computer Organization', 3),
-      unit('Networking and Internet', 3),
-      unit('Office Automation Tools', 3),
-      unit('RDBMS', 3),
-      unit('Fundamentals of Java', 3),
-      practical('Office Automation Tools, Java and MySQL Practical Work', 3),
-      project('Project Work', 3),
-    ],
     '843': [
       unit('Introduction: Artificial Intelligence for Everyone', 2),
       unit('Unlocking Your Future in AI', 2),
@@ -423,6 +421,83 @@ const reviewedOutlines: Readonly<Record<string, readonly OutlineNode[]>> =
       unit('AI Ethics and Values', 2),
       practical('Practical Work', 2),
       project('Capstone Project', 2),
+    ],
+    '118': [
+      assessment('Comprehension / Reading', 2, 20),
+      assessment('Writing Skills / Composition', 2, 20),
+      assessment('Applied Grammar', 3, 25),
+      assessment('Culture', 3, 15),
+      book('Cours de Langue et de Civilisation Françaises – II (G. Mauger)', 4, [
+        chapter('Lessons 1-12', 4, [
+          topic('Seen and unseen comprehension', 4),
+          topic('Creative writing and informal letter', 4),
+          topic('Prepositions, pronouns and tenses', 4),
+          topic('Culture questions from Lessons 1-12', 4),
+        ]),
+      ]),
+      assessment('Internal Assessment', 5, 20),
+      project('Project Work', 5),
+    ],
+    '034': [
+      unit('Basic Musical Concepts', 2, [
+        topic('Nada, Shruti, Swar, Saptak, Thaat, Jati, Laya, Tala', 2),
+        topic('Margi-Desi Sangeet and Raga', 2),
+      ], 6),
+      unit('Brief History of Vocal Forms', 3, [
+        topic('Dhrupad, Khayal and Tarana', 3),
+      ], 6),
+      unit('Textual and Historical Study', 3, [
+        topic('Musical elements in Natya Shastra', 3),
+        topic('Life sketch and contribution of Tansen, V.N. Bhatkhande and V.D. Paluskar', 3),
+      ], 6),
+      unit('Talas and Tanpura', 4, [
+        topic('Teentala, Ektala and Chautala with Thah, Dugun and Chaugun', 4),
+        topic('Structure of Tanpura', 4),
+      ], 6),
+      unit('Prescribed Ragas', 4, [
+        chapter('Bihag', 4),
+        chapter('Bhimpalasi', 4),
+        chapter('Bhairavi', 4),
+      ], 6),
+      practical('Practical Work', 5),
+    ],
+    '049': [
+      unit('Pre-Historic Rock Paintings and Art of Indus Valley Civilization', 2, [
+        topic('Pre-historic rock paintings and Wizard\'s Dance, Bhimbetka', 2),
+        topic('Indus / Sindhu-Saraswati Civilization sculptures and seals', 2),
+        topic('Buddhist, Jain and Hindu Art (3rd century B.C. to 8th century A.D.)', 3),
+      ], 15),
+      unit('Temple Sculptures, Bronzes and Indo-Islamic Architecture', 3, [
+        topic('Temple sculpture overview (6th to 13th century CE)', 3),
+        topic('Indian bronzes and Nataraja', 4),
+        topic('Artistic aspects of Indo-Islamic architecture', 4),
+      ], 15),
+      practical('Nature and Object Study', 5),
+      practical('Painting Composition', 5),
+      assessment('Portfolio Assessment', 5),
+    ],
+    '066': [
+      unit('Entrepreneurship: Concept and Functions', 2, [], 15),
+      unit('An Entrepreneur', 2),
+      unit('Entrepreneurial Journey', 3),
+      unit('Entrepreneurship as Innovation and Problem Solving', 3, [], 20),
+      unit('Understanding the Market', 4, [], 15),
+      unit('Business Finance and Arithmetic', 4),
+      unit('Resource Mobilization', 5, [], 20),
+      project('Project Work', 5),
+    ],
+    '837': [
+      unit('Communication Skills-III', 2),
+      unit('Self-Management Skills-III', 2),
+      unit('ICT Skills-III', 2),
+      unit('Entrepreneurial Skills-III', 2),
+      unit('Green Skills-III', 2),
+      unit('Overview of Fashion', 3),
+      unit('Introduction to Fabrics, Dyeing and Printing', 3),
+      unit('Design Fundamentals', 4),
+      unit('Materials, Tools and Processes of Product Making', 4),
+      practical('Practical Work', 5),
+      project('Project Work / Field Visit', 5),
     ],
   })
 

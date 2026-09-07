@@ -472,7 +472,7 @@ export async function runLimitedGeneration({
 /**
  * Insights have no successful-generation daily quota. They still use the
  * durable per-user attempt throttle, one-active-request lease, and a
- * content-hash replay cache so repeated dashboard loads do not call Groq.
+ * content-hash replay cache so repeated dashboard loads do not call the AI provider.
  *
  * @template T
  * @param {{

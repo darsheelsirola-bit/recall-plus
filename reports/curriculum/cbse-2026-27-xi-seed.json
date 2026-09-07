@@ -16,30 +16,6 @@
   },
   "subjects": [
     {
-      "id": "cbse-2026-27-xi-001",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "001",
-      "name": "English Elective",
-      "shortName": "English Elective",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": true,
-      "hasPractical": false,
-      "hasInternalAssessment": true,
-      "pathwayTags": [
-        "common",
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_elective_SecP2_2026-27.pdf",
-        "title": "English Elective, Classes XI-XII, 2026-27",
-        "sha256": "624caad4033a7fd99760c96ec5fa23763739d243b12c52446c9ab6d581fbecb2"
-      },
-      "contentStatus": "verified_outline",
-      "officialOrder": 1,
-      "active": true
-    },
-    {
       "id": "cbse-2026-27-xi-301",
       "curriculumVersionId": "cbse-2026-27-xi-v1",
       "subjectCode": "301",
@@ -56,35 +32,11 @@
       ],
       "source": {
         "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
-        "title": "English Core, Classes XI-XII, 2026-27",
+        "title": "English Core, Classes XI-XII, 2026-27; textbooks indexed via https://ncert.nic.in/textbook.php",
         "sha256": "d2af35ab80de3dc6f1f62f3cd2b58f9cc95a39ca1d47abc45412a1034459092c"
       },
       "contentStatus": "verified_outline",
-      "officialOrder": 2,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-002",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "002",
-      "name": "Hindi Elective",
-      "shortName": "Hindi Elective",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": true,
-      "hasPractical": false,
-      "hasInternalAssessment": true,
-      "pathwayTags": [
-        "common",
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Hindi_Elective_SecP2_2026-27.pdf",
-        "title": "Hindi Elective, Classes XI-XII, 2026-27",
-        "sha256": "6f288e1cc34cdb341348d176ad6a748a6760966675dc93e6644e5fe971dbbccb"
-      },
-      "contentStatus": "verified_outline",
-      "officialOrder": 3,
+      "officialOrder": 1,
       "active": true
     },
     {
@@ -104,448 +56,11 @@
       ],
       "source": {
         "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Hindi_Core_SecP2_2026-27.pdf",
-        "title": "Hindi Core, Classes XI-XII, 2026-27",
+        "title": "Hindi Core, Classes XI-XII, 2026-27; textbooks indexed via https://ncert.nic.in/textbook.php",
         "sha256": "5edab54393581154c2cf8b78802af528c2c1daeb7acfc377c461851b00f55d51"
       },
       "contentStatus": "verified_outline",
-      "officialOrder": 4,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-003",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "003",
-      "name": "Urdu Elective",
-      "shortName": "Urdu Elective",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 5,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-303",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "303",
-      "name": "Urdu Core",
-      "shortName": "Urdu Core",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 6,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-022",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "022",
-      "name": "Sanskrit Elective",
-      "shortName": "Sanskrit Elective",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 7,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-322",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "322",
-      "name": "Sanskrit Core",
-      "shortName": "Sanskrit Core",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 8,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-104",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "104",
-      "name": "Punjabi",
-      "shortName": "Punjabi",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 9,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-105",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "105",
-      "name": "Bengali",
-      "shortName": "Bengali",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 10,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-106",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "106",
-      "name": "Tamil",
-      "shortName": "Tamil",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 11,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-107",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "107",
-      "name": "Telugu (AP)",
-      "shortName": "Telugu AP",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 12,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-189",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "189",
-      "name": "Telugu (Telangana)",
-      "shortName": "Telugu Telangana",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 13,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-108",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "108",
-      "name": "Sindhi",
-      "shortName": "Sindhi",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 14,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-109",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "109",
-      "name": "Marathi",
-      "shortName": "Marathi",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 15,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-110",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "110",
-      "name": "Gujarati",
-      "shortName": "Gujarati",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 16,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-111",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "111",
-      "name": "Manipuri",
-      "shortName": "Manipuri",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 17,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-112",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "112",
-      "name": "Malayalam",
-      "shortName": "Malayalam",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 18,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-113",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "113",
-      "name": "Odia",
-      "shortName": "Odia",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 19,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-114",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "114",
-      "name": "Assamese",
-      "shortName": "Assamese",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 20,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-115",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "115",
-      "name": "Kannada",
-      "shortName": "Kannada",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 21,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-116",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "116",
-      "name": "Arabic",
-      "shortName": "Arabic",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 22,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-117",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "117",
-      "name": "Tibetan",
-      "shortName": "Tibetan",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 23,
+      "officialOrder": 2,
       "active": true
     },
     {
@@ -560,6 +75,7 @@
       "hasPractical": null,
       "hasInternalAssessment": null,
       "pathwayTags": [
+        "common",
         "language"
       ],
       "source": {
@@ -568,352 +84,7 @@
         "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
       },
       "contentStatus": "pending_verification",
-      "officialOrder": 24,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-120",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "120",
-      "name": "German",
-      "shortName": "German",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 25,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-121",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "121",
-      "name": "Russian",
-      "shortName": "Russian",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 26,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-123",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "123",
-      "name": "Persian",
-      "shortName": "Persian",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 27,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-124",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "124",
-      "name": "Nepali",
-      "shortName": "Nepali",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 28,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-125",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "125",
-      "name": "Limboo",
-      "shortName": "Limboo",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 29,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-126",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "126",
-      "name": "Lepcha",
-      "shortName": "Lepcha",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 30,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-188",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "188",
-      "name": "Bhoti",
-      "shortName": "Bhoti",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 31,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-191",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "191",
-      "name": "Kokborok",
-      "shortName": "Kokborok",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 32,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-192",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "192",
-      "name": "Bodo",
-      "shortName": "Bodo",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 33,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-193",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "193",
-      "name": "Tangkhul",
-      "shortName": "Tangkhul",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 34,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-194",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "194",
-      "name": "Japanese",
-      "shortName": "Japanese",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 35,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-195",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "195",
-      "name": "Bhutia",
-      "shortName": "Bhutia",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 36,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-196",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "196",
-      "name": "Spanish",
-      "shortName": "Spanish",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 37,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-197",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "197",
-      "name": "Kashmiri",
-      "shortName": "Kashmiri",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 38,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-198",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "198",
-      "name": "Mizo",
-      "shortName": "Mizo",
-      "subjectGroup": "L",
-      "category": "language",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "language"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 39,
+      "officialOrder": 3,
       "active": true
     },
     {
@@ -1010,17 +181,19 @@
       "active": true
     },
     {
-      "id": "cbse-2026-27-xi-031",
+      "id": "cbse-2026-27-xi-034",
       "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "031",
-      "name": "Carnatic Music (Vocal)",
-      "shortName": "Carnatic Music (Vocal)",
+      "subjectCode": "034",
+      "name": "Hindustani Music Vocal",
+      "shortName": "Hindustani Music Vocal",
       "subjectGroup": "A",
       "category": "academic_elective",
       "hasTheory": null,
       "hasPractical": null,
       "hasInternalAssessment": null,
-      "pathwayTags": [],
+      "pathwayTags": [
+        "humanities"
+      ],
       "source": {
         "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
         "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
@@ -1028,111 +201,6 @@
       },
       "contentStatus": "pending_verification",
       "officialOrder": 5,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-032",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "032",
-      "name": "Carnatic Music (Melodic Instruments)",
-      "shortName": "Carnatic Music (Melodic Instruments)",
-      "subjectGroup": "A",
-      "category": "academic_elective",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 6,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-033",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "033",
-      "name": "Carnatic Music (Percussion Instruments - Mridangam)",
-      "shortName": "Carnatic Music (Percussion Instruments - Mridangam)",
-      "subjectGroup": "A",
-      "category": "academic_elective",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 7,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-034",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "034",
-      "name": "Hindustani Music (Vocal)",
-      "shortName": "Hindustani Music (Vocal)",
-      "subjectGroup": "A",
-      "category": "academic_elective",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 8,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-035",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "035",
-      "name": "Hindustani Music (Melodic Instruments)",
-      "shortName": "Hindustani Music (Melodic Instruments)",
-      "subjectGroup": "A",
-      "category": "academic_elective",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 9,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-036",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "036",
-      "name": "Hindustani Music (Percussion Instruments)",
-      "shortName": "Hindustani Music (Percussion Instruments)",
-      "subjectGroup": "A",
-      "category": "academic_elective",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 10,
       "active": true
     },
     {
@@ -1147,6 +215,7 @@
       "hasPractical": true,
       "hasInternalAssessment": true,
       "pathwayTags": [
+        "science",
         "humanities"
       ],
       "source": {
@@ -1155,7 +224,7 @@
         "sha256": "98f63864c0e161fc5d31347764e1edf591de7ae2028a9351c5519fb3429d216a"
       },
       "contentStatus": "verified_outline",
-      "officialOrder": 11,
+      "officialOrder": 6,
       "active": true
     },
     {
@@ -1178,7 +247,7 @@
         "sha256": "8b6ba4e2bd232445be46fb01a64030a6d1b7af3d0cd066fefca73a0850a10684"
       },
       "contentStatus": "verified_outline",
-      "officialOrder": 12,
+      "officialOrder": 7,
       "active": true
     },
     {
@@ -1203,7 +272,7 @@
         "sha256": "5bf4105d4076189fe00b879fd6d41ffadec87a894a078a7fb912b2f219769572"
       },
       "contentStatus": "verified_outline",
-      "officialOrder": 13,
+      "officialOrder": 8,
       "active": true
     },
     {
@@ -1227,7 +296,7 @@
         "sha256": "3125b1b6b00d8081bff34a1276d5f5203daa719af961d943380b4b0cb9d35a70"
       },
       "contentStatus": "verified_outline",
-      "officialOrder": 14,
+      "officialOrder": 9,
       "active": true
     },
     {
@@ -1250,7 +319,7 @@
         "sha256": "9e32271cf5a86caa605cffe2a4b5e19710abc3d3a8715ef725ba78cd94caf1f7"
       },
       "contentStatus": "verified_outline",
-      "officialOrder": 15,
+      "officialOrder": 10,
       "active": true
     },
     {
@@ -1273,7 +342,7 @@
         "sha256": "5610f09d357d3ccc9a7b39fc29cb7b1f4530847753783b16c72fff691acd2418"
       },
       "contentStatus": "verified_outline",
-      "officialOrder": 16,
+      "officialOrder": 11,
       "active": true
     },
     {
@@ -1296,53 +365,7 @@
         "sha256": "3a5767515b41b12b9356151e759beba48bb15a1b711b96c321fa273a7fa7a6ee"
       },
       "contentStatus": "verified_outline",
-      "officialOrder": 17,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-045",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "045",
-      "name": "Biotechnology",
-      "shortName": "Biotechnology",
-      "subjectGroup": "A",
-      "category": "academic_elective",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "science"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 18,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-046",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "046",
-      "name": "Engineering Graphics",
-      "shortName": "Engineering Graphics",
-      "subjectGroup": "A",
-      "category": "academic_elective",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "science"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 19,
+      "officialOrder": 12,
       "active": true
     },
     {
@@ -1365,7 +388,7 @@
         "sha256": "5a063f5bdc3a92d60a4a86e83c985ffafc7d716359ab511cb2f09a0275c02c7a"
       },
       "contentStatus": "verified_outline",
-      "officialOrder": 20,
+      "officialOrder": 13,
       "active": true
     },
     {
@@ -1379,77 +402,16 @@
       "hasTheory": null,
       "hasPractical": null,
       "hasInternalAssessment": null,
-      "pathwayTags": [],
+      "pathwayTags": [
+        "humanities"
+      ],
       "source": {
         "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
         "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
         "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
       },
       "contentStatus": "pending_verification",
-      "officialOrder": 21,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-050",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "050",
-      "name": "Graphics",
-      "shortName": "Graphics",
-      "subjectGroup": "A",
-      "category": "academic_elective",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 22,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-051",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "051",
-      "name": "Sculpture",
-      "shortName": "Sculpture",
-      "subjectGroup": "A",
-      "category": "academic_elective",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 23,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-052",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "052",
-      "name": "Applied/Commercial Art",
-      "shortName": "Applied/Commercial Art",
-      "subjectGroup": "A",
-      "category": "academic_elective",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 24,
+      "officialOrder": 14,
       "active": true
     },
     {
@@ -1472,7 +434,7 @@
         "sha256": "94230c4d0627fc919ca96dd02dd1df1f21a065dd1f04455df364df7350fa8cb2"
       },
       "contentStatus": "verified_outline",
-      "officialOrder": 25,
+      "officialOrder": 15,
       "active": true
     },
     {
@@ -1495,181 +457,55 @@
         "sha256": "4a87dbd15758e42c2aa454d83708299a04b6fc12896392b13d12b9ae857ecc27"
       },
       "contentStatus": "verified_outline",
-      "officialOrder": 26,
+      "officialOrder": 16,
       "active": true
     },
     {
-      "id": "cbse-2026-27-xi-056",
+      "id": "cbse-2026-27-xi-066",
       "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "056",
-      "name": "Kathak Dance",
-      "shortName": "Kathak Dance",
+      "subjectCode": "066",
+      "name": "Entrepreneurship",
+      "shortName": "Entrepreneurship",
       "subjectGroup": "A",
       "category": "academic_elective",
       "hasTheory": null,
       "hasPractical": null,
       "hasInternalAssessment": null,
-      "pathwayTags": [],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 27,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-057",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "057",
-      "name": "Bharatanatyam Dance",
-      "shortName": "Bharatanatyam Dance",
-      "subjectGroup": "A",
-      "category": "academic_elective",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 28,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-058",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "058",
-      "name": "Kuchipudi Dance",
-      "shortName": "Kuchipudi Dance",
-      "subjectGroup": "A",
-      "category": "academic_elective",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 29,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-059",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "059",
-      "name": "Odissi Dance",
-      "shortName": "Odissi Dance",
-      "subjectGroup": "A",
-      "category": "academic_elective",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 30,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-060",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "060",
-      "name": "Manipuri Dance",
-      "shortName": "Manipuri Dance",
-      "subjectGroup": "A",
-      "category": "academic_elective",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 31,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-061",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "061",
-      "name": "Kathakali Dance",
-      "shortName": "Kathakali Dance",
-      "subjectGroup": "A",
-      "category": "academic_elective",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 32,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-064",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "064",
-      "name": "Home Science",
-      "shortName": "Home Science",
-      "subjectGroup": "A",
-      "category": "academic_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": false,
       "pathwayTags": [
-        "humanities"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Home_Science_SecP2_2026-27.pdf",
-        "title": "Home Science, Classes XI-XII, 2026-27",
-        "sha256": "a8bb5904a25b50a3a4b145cca47f74fa9a6f9e4cf66d39a5fec09e50e1358fdb"
-      },
-      "contentStatus": "verified_outline",
-      "officialOrder": 33,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-065",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "065",
-      "name": "Informatics Practices",
-      "shortName": "Informatics Practices",
-      "subjectGroup": "A",
-      "category": "academic_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": false,
-      "pathwayTags": [
-        "science",
         "commerce",
         "humanities"
       ],
       "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Informatics_Practices_SecP2_2026-27.pdf",
-        "title": "Informatics Practices, Classes XI-XII, 2026-27",
-        "sha256": "05747d6271e50d1221f312c710a3175e967f6d2d0f29a0f2cbc992f8267f8d34"
+        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
+        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
+        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
+      },
+      "contentStatus": "pending_verification",
+      "officialOrder": 17,
+      "active": true
+    },
+    {
+      "id": "cbse-2026-27-xi-074",
+      "curriculumVersionId": "cbse-2026-27-xi-v1",
+      "subjectCode": "074",
+      "name": "Legal Studies",
+      "shortName": "Legal Studies",
+      "subjectGroup": "A",
+      "category": "academic_elective",
+      "hasTheory": true,
+      "hasPractical": false,
+      "hasInternalAssessment": false,
+      "pathwayTags": [
+        "commerce",
+        "humanities"
+      ],
+      "source": {
+        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/LegalStudies_SecP2_2026-27.pdf",
+        "title": "Legal Studies, Classes XI-XII, 2026-27",
+        "sha256": "d1f7836c059406e66d6b092cffddb5120adb27a826be7b6413936fc330dd7348"
       },
       "contentStatus": "verified_outline",
-      "officialOrder": 34,
+      "officialOrder": 18,
       "active": true
     },
     {
@@ -1694,949 +530,7 @@
         "sha256": "a46821a87292e5feb296a1ffdb5163f413258d1cb378b871c745539e34f96e82"
       },
       "contentStatus": "verified_outline",
-      "officialOrder": 35,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-066",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "066",
-      "name": "Entrepreneurship",
-      "shortName": "Entrepreneurship",
-      "subjectGroup": "A",
-      "category": "academic_elective",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "commerce"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 36,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-073",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "073",
-      "name": "Knowledge Tradition and Practices of India",
-      "shortName": "Knowledge Traditions",
-      "subjectGroup": "A",
-      "category": "academic_elective",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 37,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-074",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "074",
-      "name": "Legal Studies",
-      "shortName": "Legal Studies",
-      "subjectGroup": "A",
-      "category": "academic_elective",
-      "hasTheory": true,
-      "hasPractical": false,
-      "hasInternalAssessment": false,
-      "pathwayTags": [
-        "commerce",
-        "humanities"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/LegalStudies_SecP2_2026-27.pdf",
-        "title": "Legal Studies, Classes XI-XII, 2026-27",
-        "sha256": "d1f7836c059406e66d6b092cffddb5120adb27a826be7b6413936fc330dd7348"
-      },
-      "contentStatus": "verified_outline",
-      "officialOrder": 38,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-076",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "076",
-      "name": "NCC",
-      "shortName": "NCC",
-      "subjectGroup": "A",
-      "category": "academic_elective",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": null,
-      "pathwayTags": [],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 39,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-801",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "801",
-      "name": "Retail",
-      "shortName": "Retail",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 1,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-802",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "802",
-      "name": "Information Technology",
-      "shortName": "Information Technology",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": false,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum27/SrSec/802-IT.pdf",
-        "title": "Information Technology (802), Classes XI-XII, 2026-27",
-        "sha256": "c85720f1a12459593ed5096fed7d7f2b36cfed88f89cd897806b66cc993364c7"
-      },
-      "contentStatus": "verified_outline",
-      "officialOrder": 2,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-803",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "803",
-      "name": "Web Application",
-      "shortName": "Web Application",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 3,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-804",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "804",
-      "name": "Automotive",
-      "shortName": "Automotive",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 4,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-805",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "805",
-      "name": "Financial Markets Management",
-      "shortName": "Financial Markets Management",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 5,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-806",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "806",
-      "name": "Tourism",
-      "shortName": "Tourism",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 6,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-807",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "807",
-      "name": "Beauty and Wellness",
-      "shortName": "Beauty and Wellness",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 7,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-808",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "808",
-      "name": "Agriculture",
-      "shortName": "Agriculture",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 8,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-809",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "809",
-      "name": "Food Production",
-      "shortName": "Food Production",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 9,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-810",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "810",
-      "name": "Front Office Operations",
-      "shortName": "Front Office Operations",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 10,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-811",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "811",
-      "name": "Banking",
-      "shortName": "Banking",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 11,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-812",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "812",
-      "name": "Marketing",
-      "shortName": "Marketing",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 12,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-813",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "813",
-      "name": "Health Care",
-      "shortName": "Health Care",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 13,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-814",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "814",
-      "name": "Insurance",
-      "shortName": "Insurance",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 14,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-816",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "816",
-      "name": "Horticulture",
-      "shortName": "Horticulture",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 15,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-817",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "817",
-      "name": "Typography and Computer Application",
-      "shortName": "Typography and Computer Application",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 16,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-818",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "818",
-      "name": "Geospatial Technology",
-      "shortName": "Geospatial Technology",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 17,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-819",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "819",
-      "name": "Electrical Technology",
-      "shortName": "Electrical Technology",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 18,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-820",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "820",
-      "name": "Electronic Technology",
-      "shortName": "Electronic Technology",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
       "officialOrder": 19,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-821",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "821",
-      "name": "Multi-Media",
-      "shortName": "Multi-Media",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 20,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-822",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "822",
-      "name": "Taxation",
-      "shortName": "Taxation",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 21,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-823",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "823",
-      "name": "Cost Accounting",
-      "shortName": "Cost Accounting",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 22,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-824",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "824",
-      "name": "Office Procedures and Practices",
-      "shortName": "Office Procedures and Practices",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 23,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-825",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "825",
-      "name": "Shorthand (English)",
-      "shortName": "Shorthand (English)",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 24,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-826",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "826",
-      "name": "Shorthand (Hindi)",
-      "shortName": "Shorthand (Hindi)",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 25,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-827",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "827",
-      "name": "Air-Conditioning and Refrigeration",
-      "shortName": "Air-Conditioning and Refrigeration",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 26,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-828",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "828",
-      "name": "Medical Diagnostics",
-      "shortName": "Medical Diagnostics",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 27,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-829",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "829",
-      "name": "Textile Design",
-      "shortName": "Textile Design",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 28,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-830",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "830",
-      "name": "Design",
-      "shortName": "Design",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 29,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-831",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "831",
-      "name": "Salesmanship",
-      "shortName": "Salesmanship",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 30,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-833",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "833",
-      "name": "Business Administration",
-      "shortName": "Business Administration",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "commerce",
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 31,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-834",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "834",
-      "name": "Food Nutrition and Dietetics",
-      "shortName": "Food Nutrition and Dietetics",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 32,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-835",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "835",
-      "name": "Mass Media Studies",
-      "shortName": "Mass Media Studies",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "humanities",
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 33,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-836",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "836",
-      "name": "Library and Information Science",
-      "shortName": "Library and Information Science",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 34,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-837",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "837",
-      "name": "Fashion Studies",
-      "shortName": "Fashion Studies",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 35,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-841",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "841",
-      "name": "Yoga",
-      "shortName": "Yoga",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 36,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-842",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "842",
-      "name": "Early Childhood Care and Education",
-      "shortName": "Early Childhood Care and Education",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 37,
       "active": true
     },
     {
@@ -2662,193 +556,31 @@
         "sha256": "3c5f083923758ceab8c5af60171bde3c95b839620a3da046cefc968eddc4a6d8"
       },
       "contentStatus": "verified_outline",
-      "officialOrder": 38,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-844",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "844",
-      "name": "Data Science",
-      "shortName": "Data Science",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "science",
-        "commerce",
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 39,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-845",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "845",
-      "name": "Physical Activity Trainer",
-      "shortName": "Physical Activity Trainer",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 40,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-846",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "846",
-      "name": "Land Transportation Associate",
-      "shortName": "Land Transportation Associate",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 41,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-847",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "847",
-      "name": "Electronics and Hardware",
-      "shortName": "Electronics and Hardware",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 42,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-848",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": "848",
-      "name": "Design Thinking and Innovation",
-      "shortName": "Design Thinking and Innovation",
-      "subjectGroup": "S",
-      "category": "skill_elective",
-      "hasTheory": true,
-      "hasPractical": true,
-      "hasInternalAssessment": null,
-      "pathwayTags": [
-        "skill"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
-        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
-        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 43,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-ia-hpe",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": null,
-      "name": "Health and Physical Education",
-      "shortName": "Health and Physical Education",
-      "subjectGroup": "IA",
-      "category": "internal_assessment",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": true,
-      "pathwayTags": [
-        "common"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
       "officialOrder": 1,
       "active": true
     },
     {
-      "id": "cbse-2026-27-xi-ia-work-experience",
+      "id": "cbse-2026-27-xi-837",
       "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": null,
-      "name": "Work Experience",
-      "shortName": "Work Experience",
-      "subjectGroup": "IA",
-      "category": "internal_assessment",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": true,
+      "subjectCode": "837",
+      "name": "Fashion Studies",
+      "shortName": "Fashion Studies",
+      "subjectGroup": "S",
+      "category": "skill_elective",
+      "hasTheory": true,
+      "hasPractical": true,
+      "hasInternalAssessment": null,
       "pathwayTags": [
-        "common"
+        "humanities",
+        "skill"
       ],
       "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
+        "url": "https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf",
+        "title": "CBSE Skill Subjects Offered at Senior Secondary Level",
+        "sha256": "4c04f1382b3c209465ddc8237e18641a2f94a442d91a8846ba2e40fbf766dc25"
       },
       "contentStatus": "pending_verification",
       "officialOrder": 2,
-      "active": true
-    },
-    {
-      "id": "cbse-2026-27-xi-ia-general-studies",
-      "curriculumVersionId": "cbse-2026-27-xi-v1",
-      "subjectCode": null,
-      "name": "General Studies",
-      "shortName": "General Studies",
-      "subjectGroup": "IA",
-      "category": "internal_assessment",
-      "hasTheory": null,
-      "hasPractical": null,
-      "hasInternalAssessment": true,
-      "pathwayTags": [
-        "common"
-      ],
-      "source": {
-        "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Curriculum_SecP2_2026-27.pdf",
-        "title": "Secondary Curriculum Part II (Classes XI-XII), 2026-27",
-        "sha256": "5f43a711751963bfbae8abdf92b66cd125042f6dcb38f36ebde6432e2c674042"
-      },
-      "contentStatus": "pending_verification",
-      "officialOrder": 3,
       "active": true
     }
   ],
@@ -2994,73 +726,521 @@
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-301:unit:03:literature-text-book-and-supplementary-reading-text",
+      "id": "node-cbse-2026-27-xi-301:book:03:hornbill",
       "subjectId": "cbse-2026-27-xi-301",
       "parentId": null,
-      "nodeType": "unit",
-      "title": "Literature Text Book and Supplementary Reading Text",
+      "nodeType": "book",
+      "title": "Hornbill",
       "description": null,
       "officialOrder": 3,
       "marksWeightage": null,
       "sourcePage": 9,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-301:unit:03:literature-text-book-and-supplementary-reading-text",
+      "externalKey": "cbse-2026-27-xi-301:book:03:hornbill",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:unit:03:literature-text-book-and-supplementary-reading-text:topic:01:hornbill",
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:01:the-portrait-of-a-lady",
       "subjectId": "cbse-2026-27-xi-301",
-      "parentId": "node-cbse-2026-27-xi-301:unit:03:literature-text-book-and-supplementary-reading-text",
-      "nodeType": "topic",
-      "title": "Hornbill",
+      "parentId": "node-cbse-2026-27-xi-301:book:03:hornbill",
+      "nodeType": "chapter",
+      "title": "The Portrait of a Lady",
       "description": null,
       "officialOrder": 1,
       "marksWeightage": null,
       "sourcePage": 9,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:unit:03:literature-text-book-and-supplementary-reading-text:topic:01:hornbill",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:01:the-portrait-of-a-lady",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:unit:03:literature-text-book-and-supplementary-reading-text:topic:02:snapshots",
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:01:the-portrait-of-a-lady:topic:01:character-sketch-and-relationships",
       "subjectId": "cbse-2026-27-xi-301",
-      "parentId": "node-cbse-2026-27-xi-301:unit:03:literature-text-book-and-supplementary-reading-text",
+      "parentId": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:01:the-portrait-of-a-lady",
       "nodeType": "topic",
-      "title": "Snapshots",
+      "title": "Character sketch and relationships",
+      "description": null,
+      "officialOrder": 1,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:01:the-portrait-of-a-lady:topic:01:character-sketch-and-relationships",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:01:the-portrait-of-a-lady:topic:02:themes-of-loss-companionship-and-change",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:01:the-portrait-of-a-lady",
+      "nodeType": "topic",
+      "title": "Themes of loss, companionship, and change",
       "description": null,
       "officialOrder": 2,
       "marksWeightage": null,
       "sourcePage": 9,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:unit:03:literature-text-book-and-supplementary-reading-text:topic:02:snapshots",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:01:the-portrait-of-a-lady:topic:02:themes-of-loss-companionship-and-change",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-301:assessment_area:04:assessment-of-listening-and-speaking-skills",
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:02:we-re-not-afraid-to-die-if-we-can-all-be-together",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:book:03:hornbill",
+      "nodeType": "chapter",
+      "title": "We're Not Afraid to Die... if We Can All Be Together",
+      "description": null,
+      "officialOrder": 2,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:02:we-re-not-afraid-to-die-if-we-can-all-be-together",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:02:we-re-not-afraid-to-die-if-we-can-all-be-together:topic:01:narrative-of-survival-at-sea",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:02:we-re-not-afraid-to-die-if-we-can-all-be-together",
+      "nodeType": "topic",
+      "title": "Narrative of survival at sea",
+      "description": null,
+      "officialOrder": 1,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:02:we-re-not-afraid-to-die-if-we-can-all-be-together:topic:01:narrative-of-survival-at-sea",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:02:we-re-not-afraid-to-die-if-we-can-all-be-together:topic:02:courage-teamwork-and-optimism",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:02:we-re-not-afraid-to-die-if-we-can-all-be-together",
+      "nodeType": "topic",
+      "title": "Courage, teamwork, and optimism",
+      "description": null,
+      "officialOrder": 2,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:02:we-re-not-afraid-to-die-if-we-can-all-be-together:topic:02:courage-teamwork-and-optimism",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:03:discovering-tut-the-saga-continues",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:book:03:hornbill",
+      "nodeType": "chapter",
+      "title": "Discovering Tut: the Saga Continues",
+      "description": null,
+      "officialOrder": 3,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:03:discovering-tut-the-saga-continues",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:03:discovering-tut-the-saga-continues:topic:01:archaeology-and-scientific-investigation",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:03:discovering-tut-the-saga-continues",
+      "nodeType": "topic",
+      "title": "Archaeology and scientific investigation",
+      "description": null,
+      "officialOrder": 1,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:03:discovering-tut-the-saga-continues:topic:01:archaeology-and-scientific-investigation",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:03:discovering-tut-the-saga-continues:topic:02:history-mystery-and-heritage",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:03:discovering-tut-the-saga-continues",
+      "nodeType": "topic",
+      "title": "History, mystery, and heritage",
+      "description": null,
+      "officialOrder": 2,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:03:discovering-tut-the-saga-continues:topic:02:history-mystery-and-heritage",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:04:the-adventure",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:book:03:hornbill",
+      "nodeType": "chapter",
+      "title": "The Adventure",
+      "description": null,
+      "officialOrder": 4,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:04:the-adventure",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:04:the-adventure:topic:01:alternate-history-and-scientific-imagination",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:04:the-adventure",
+      "nodeType": "topic",
+      "title": "Alternate history and scientific imagination",
+      "description": null,
+      "officialOrder": 1,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:04:the-adventure:topic:01:alternate-history-and-scientific-imagination",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:05:silk-road",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:book:03:hornbill",
+      "nodeType": "chapter",
+      "title": "Silk Road",
+      "description": null,
+      "officialOrder": 5,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:05:silk-road",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:05:silk-road:topic:01:travel-writing-and-cultural-encounter",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:05:silk-road",
+      "nodeType": "topic",
+      "title": "Travel writing and cultural encounter",
+      "description": null,
+      "officialOrder": 1,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:05:silk-road:topic:01:travel-writing-and-cultural-encounter",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:06:a-photograph",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:book:03:hornbill",
+      "nodeType": "chapter",
+      "title": "A Photograph",
+      "description": null,
+      "officialOrder": 6,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:06:a-photograph",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:06:a-photograph:topic:01:memory-time-and-loss-in-poetry",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:06:a-photograph",
+      "nodeType": "topic",
+      "title": "Memory, time, and loss in poetry",
+      "description": null,
+      "officialOrder": 1,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:06:a-photograph:topic:01:memory-time-and-loss-in-poetry",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:07:the-laburnum-top",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:book:03:hornbill",
+      "nodeType": "chapter",
+      "title": "The Laburnum Top",
+      "description": null,
+      "officialOrder": 7,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:07:the-laburnum-top",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:07:the-laburnum-top:topic:01:imagery-of-stillness-and-movement",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:07:the-laburnum-top",
+      "nodeType": "topic",
+      "title": "Imagery of stillness and movement",
+      "description": null,
+      "officialOrder": 1,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:07:the-laburnum-top:topic:01:imagery-of-stillness-and-movement",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:08:the-voice-of-the-rain",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:book:03:hornbill",
+      "nodeType": "chapter",
+      "title": "The Voice of the Rain",
+      "description": null,
+      "officialOrder": 8,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:08:the-voice-of-the-rain",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:08:the-voice-of-the-rain:topic:01:personification-and-the-water-cycle-as-metaphor",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:08:the-voice-of-the-rain",
+      "nodeType": "topic",
+      "title": "Personification and the water cycle as metaphor",
+      "description": null,
+      "officialOrder": 1,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:08:the-voice-of-the-rain:topic:01:personification-and-the-water-cycle-as-metaphor",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:09:childhood",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:book:03:hornbill",
+      "nodeType": "chapter",
+      "title": "Childhood",
+      "description": null,
+      "officialOrder": 9,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:09:childhood",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:09:childhood:topic:01:innocence-adulthood-and-self-awareness",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:09:childhood",
+      "nodeType": "topic",
+      "title": "Innocence, adulthood, and self-awareness",
+      "description": null,
+      "officialOrder": 1,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:09:childhood:topic:01:innocence-adulthood-and-self-awareness",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:10:father-to-son",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:book:03:hornbill",
+      "nodeType": "chapter",
+      "title": "Father to Son",
+      "description": null,
+      "officialOrder": 10,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:10:father-to-son",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:10:father-to-son:topic:01:generational-gap-and-communication",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:10:father-to-son",
+      "nodeType": "topic",
+      "title": "Generational gap and communication",
+      "description": null,
+      "officialOrder": 1,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:03:hornbill:chapter:10:father-to-son:topic:01:generational-gap-and-communication",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:book:04:snapshots",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": null,
+      "nodeType": "book",
+      "title": "Snapshots",
+      "description": null,
+      "officialOrder": 4,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:book:04:snapshots",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:01:the-summer-of-the-beautiful-white-horse",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:book:04:snapshots",
+      "nodeType": "chapter",
+      "title": "The Summer of the Beautiful White Horse",
+      "description": null,
+      "officialOrder": 1,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:01:the-summer-of-the-beautiful-white-horse",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:01:the-summer-of-the-beautiful-white-horse:topic:01:honesty-adventure-and-cultural-setting",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:01:the-summer-of-the-beautiful-white-horse",
+      "nodeType": "topic",
+      "title": "Honesty, adventure, and cultural setting",
+      "description": null,
+      "officialOrder": 1,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:01:the-summer-of-the-beautiful-white-horse:topic:01:honesty-adventure-and-cultural-setting",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:02:the-address",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:book:04:snapshots",
+      "nodeType": "chapter",
+      "title": "The Address",
+      "description": null,
+      "officialOrder": 2,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:02:the-address",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:02:the-address:topic:01:war-memory-and-belonging",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:02:the-address",
+      "nodeType": "topic",
+      "title": "War, memory, and belonging",
+      "description": null,
+      "officialOrder": 1,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:02:the-address:topic:01:war-memory-and-belonging",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:03:mother-s-day",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:book:04:snapshots",
+      "nodeType": "chapter",
+      "title": "Mother's Day",
+      "description": null,
+      "officialOrder": 3,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:03:mother-s-day",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:03:mother-s-day:topic:01:family-roles-and-assertiveness",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:03:mother-s-day",
+      "nodeType": "topic",
+      "title": "Family roles and assertiveness",
+      "description": null,
+      "officialOrder": 1,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:03:mother-s-day:topic:01:family-roles-and-assertiveness",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:04:birth",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:book:04:snapshots",
+      "nodeType": "chapter",
+      "title": "Birth",
+      "description": null,
+      "officialOrder": 4,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:04:birth",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:04:birth:topic:01:medical-ethics-duty-and-crisis",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:04:birth",
+      "nodeType": "topic",
+      "title": "Medical ethics, duty, and crisis",
+      "description": null,
+      "officialOrder": 1,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:04:birth:topic:01:medical-ethics-duty-and-crisis",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:05:the-tale-of-melon-city",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:book:04:snapshots",
+      "nodeType": "chapter",
+      "title": "The Tale of Melon City",
+      "description": null,
+      "officialOrder": 5,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:05:the-tale-of-melon-city",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:05:the-tale-of-melon-city:topic:01:satire-on-justice-and-governance",
+      "subjectId": "cbse-2026-27-xi-301",
+      "parentId": "node-cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:05:the-tale-of-melon-city",
+      "nodeType": "topic",
+      "title": "Satire on justice and governance",
+      "description": null,
+      "officialOrder": 1,
+      "marksWeightage": null,
+      "sourcePage": 9,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-301:cbse-2026-27-xi-301:cbse-2026-27-xi-301:book:04:snapshots:chapter:05:the-tale-of-melon-city:topic:01:satire-on-justice-and-governance",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-301:assessment_area:05:assessment-of-listening-and-speaking-skills",
       "subjectId": "cbse-2026-27-xi-301",
       "parentId": null,
       "nodeType": "assessment_area",
       "title": "Assessment of Listening and Speaking Skills",
       "description": null,
-      "officialOrder": 4,
+      "officialOrder": 5,
       "marksWeightage": null,
       "sourcePage": 15,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-301:assessment_area:04:assessment-of-listening-and-speaking-skills",
+      "externalKey": "cbse-2026-27-xi-301:assessment_area:05:assessment-of-listening-and-speaking-skills",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-301:project:05:project-work",
+      "id": "node-cbse-2026-27-xi-301:project:06:project-work",
       "subjectId": "cbse-2026-27-xi-301",
       "parentId": null,
       "nodeType": "project",
       "title": "Project Work",
       "description": null,
-      "officialOrder": 5,
+      "officialOrder": 6,
       "marksWeightage": null,
       "sourcePage": 16,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_core_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-301:project:05:project-work",
+      "externalKey": "cbse-2026-27-xi-301:project:06:project-work",
       "active": true
     },
     {
@@ -3092,31 +1272,31 @@
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-302:unit:03:आर-ह-भ-ग-1",
+      "id": "node-cbse-2026-27-xi-302:book:03:आर-ह-भ-ग-1",
       "subjectId": "cbse-2026-27-xi-302",
       "parentId": null,
-      "nodeType": "unit",
+      "nodeType": "book",
       "title": "आरोह भाग-1",
       "description": null,
       "officialOrder": 3,
       "marksWeightage": null,
       "sourcePage": 8,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Hindi_Core_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-302:unit:03:आर-ह-भ-ग-1",
+      "externalKey": "cbse-2026-27-xi-302:book:03:आर-ह-भ-ग-1",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-302:unit:04:व-त-न-भ-ग-1",
+      "id": "node-cbse-2026-27-xi-302:book:04:व-त-न-भ-ग-1",
       "subjectId": "cbse-2026-27-xi-302",
       "parentId": null,
-      "nodeType": "unit",
+      "nodeType": "book",
       "title": "वितान भाग-1",
       "description": null,
       "officialOrder": 4,
       "marksWeightage": null,
       "sourcePage": 8,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Hindi_Core_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-302:unit:04:व-त-न-भ-ग-1",
+      "externalKey": "cbse-2026-27-xi-302:book:04:व-त-न-भ-ग-1",
       "active": true
     },
     {
@@ -3145,104 +1325,6 @@
       "sourcePage": 5,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Hindi_Core_SecP2_2026-27.pdf",
       "externalKey": "cbse-2026-27-xi-302:project:06:पर-य-जन-क-र-य",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-802:unit:01:computer-organization",
-      "subjectId": "cbse-2026-27-xi-802",
-      "parentId": null,
-      "nodeType": "unit",
-      "title": "Computer Organization",
-      "description": null,
-      "officialOrder": 1,
-      "marksWeightage": null,
-      "sourcePage": 3,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/Curriculum27/SrSec/802-IT.pdf",
-      "externalKey": "cbse-2026-27-xi-802:unit:01:computer-organization",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-802:unit:02:networking-and-internet",
-      "subjectId": "cbse-2026-27-xi-802",
-      "parentId": null,
-      "nodeType": "unit",
-      "title": "Networking and Internet",
-      "description": null,
-      "officialOrder": 2,
-      "marksWeightage": null,
-      "sourcePage": 3,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/Curriculum27/SrSec/802-IT.pdf",
-      "externalKey": "cbse-2026-27-xi-802:unit:02:networking-and-internet",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-802:unit:03:office-automation-tools",
-      "subjectId": "cbse-2026-27-xi-802",
-      "parentId": null,
-      "nodeType": "unit",
-      "title": "Office Automation Tools",
-      "description": null,
-      "officialOrder": 3,
-      "marksWeightage": null,
-      "sourcePage": 3,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/Curriculum27/SrSec/802-IT.pdf",
-      "externalKey": "cbse-2026-27-xi-802:unit:03:office-automation-tools",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-802:unit:04:rdbms",
-      "subjectId": "cbse-2026-27-xi-802",
-      "parentId": null,
-      "nodeType": "unit",
-      "title": "RDBMS",
-      "description": null,
-      "officialOrder": 4,
-      "marksWeightage": null,
-      "sourcePage": 3,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/Curriculum27/SrSec/802-IT.pdf",
-      "externalKey": "cbse-2026-27-xi-802:unit:04:rdbms",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-802:unit:05:fundamentals-of-java",
-      "subjectId": "cbse-2026-27-xi-802",
-      "parentId": null,
-      "nodeType": "unit",
-      "title": "Fundamentals of Java",
-      "description": null,
-      "officialOrder": 5,
-      "marksWeightage": null,
-      "sourcePage": 3,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/Curriculum27/SrSec/802-IT.pdf",
-      "externalKey": "cbse-2026-27-xi-802:unit:05:fundamentals-of-java",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-802:practical:06:office-automation-tools-java-and-mysql-practical-work",
-      "subjectId": "cbse-2026-27-xi-802",
-      "parentId": null,
-      "nodeType": "practical",
-      "title": "Office Automation Tools, Java and MySQL Practical Work",
-      "description": null,
-      "officialOrder": 6,
-      "marksWeightage": null,
-      "sourcePage": 3,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/Curriculum27/SrSec/802-IT.pdf",
-      "externalKey": "cbse-2026-27-xi-802:practical:06:office-automation-tools-java-and-mysql-practical-work",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-802:project:07:project-work",
-      "subjectId": "cbse-2026-27-xi-802",
-      "parentId": null,
-      "nodeType": "project",
-      "title": "Project Work",
-      "description": null,
-      "officialOrder": 7,
-      "marksWeightage": null,
-      "sourcePage": 3,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/Curriculum27/SrSec/802-IT.pdf",
-      "externalKey": "cbse-2026-27-xi-802:project:07:project-work",
       "active": true
     },
     {
@@ -3383,202 +1465,6 @@
       "sourcePage": 2,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/Curriculum27/SrSec/843-AI-XI.pdf",
       "externalKey": "cbse-2026-27-xi-843:project:10:capstone-project",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-001:assessment_area:01:reading-comprehension",
-      "subjectId": "cbse-2026-27-xi-001",
-      "parentId": null,
-      "nodeType": "assessment_area",
-      "title": "Reading comprehension",
-      "description": null,
-      "officialOrder": 1,
-      "marksWeightage": null,
-      "sourcePage": 2,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_elective_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-001:assessment_area:01:reading-comprehension",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-001:assessment_area:02:creative-writing",
-      "subjectId": "cbse-2026-27-xi-001",
-      "parentId": null,
-      "nodeType": "assessment_area",
-      "title": "Creative writing",
-      "description": null,
-      "officialOrder": 2,
-      "marksWeightage": null,
-      "sourcePage": 2,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_elective_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-001:assessment_area:02:creative-writing",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-001:unit:03:literature",
-      "subjectId": "cbse-2026-27-xi-001",
-      "parentId": null,
-      "nodeType": "unit",
-      "title": "Literature",
-      "description": null,
-      "officialOrder": 3,
-      "marksWeightage": null,
-      "sourcePage": 3,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_elective_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-001:unit:03:literature",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-001:cbse-2026-27-xi-001:unit:03:literature:topic:01:kaleidoscope-short-stories",
-      "subjectId": "cbse-2026-27-xi-001",
-      "parentId": "node-cbse-2026-27-xi-001:unit:03:literature",
-      "nodeType": "topic",
-      "title": "Kaleidoscope - Short Stories",
-      "description": null,
-      "officialOrder": 1,
-      "marksWeightage": null,
-      "sourcePage": 3,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_elective_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-001:cbse-2026-27-xi-001:unit:03:literature:topic:01:kaleidoscope-short-stories",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-001:cbse-2026-27-xi-001:unit:03:literature:topic:02:kaleidoscope-poetry",
-      "subjectId": "cbse-2026-27-xi-001",
-      "parentId": "node-cbse-2026-27-xi-001:unit:03:literature",
-      "nodeType": "topic",
-      "title": "Kaleidoscope - Poetry",
-      "description": null,
-      "officialOrder": 2,
-      "marksWeightage": null,
-      "sourcePage": 3,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_elective_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-001:cbse-2026-27-xi-001:unit:03:literature:topic:02:kaleidoscope-poetry",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-001:cbse-2026-27-xi-001:unit:03:literature:topic:03:kaleidoscope-non-fiction",
-      "subjectId": "cbse-2026-27-xi-001",
-      "parentId": "node-cbse-2026-27-xi-001:unit:03:literature",
-      "nodeType": "topic",
-      "title": "Kaleidoscope - Non-fiction",
-      "description": null,
-      "officialOrder": 3,
-      "marksWeightage": null,
-      "sourcePage": 3,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_elective_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-001:cbse-2026-27-xi-001:unit:03:literature:topic:03:kaleidoscope-non-fiction",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-001:cbse-2026-27-xi-001:unit:03:literature:topic:04:drama",
-      "subjectId": "cbse-2026-27-xi-001",
-      "parentId": "node-cbse-2026-27-xi-001:unit:03:literature",
-      "nodeType": "topic",
-      "title": "Drama",
-      "description": null,
-      "officialOrder": 4,
-      "marksWeightage": null,
-      "sourcePage": 3,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_elective_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-001:cbse-2026-27-xi-001:unit:03:literature:topic:04:drama",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-001:cbse-2026-27-xi-001:unit:03:literature:topic:05:fiction",
-      "subjectId": "cbse-2026-27-xi-001",
-      "parentId": "node-cbse-2026-27-xi-001:unit:03:literature",
-      "nodeType": "topic",
-      "title": "Fiction",
-      "description": null,
-      "officialOrder": 5,
-      "marksWeightage": null,
-      "sourcePage": 4,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_elective_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-001:cbse-2026-27-xi-001:unit:03:literature:topic:05:fiction",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-001:project:04:seminar",
-      "subjectId": "cbse-2026-27-xi-001",
-      "parentId": null,
-      "nodeType": "project",
-      "title": "Seminar",
-      "description": null,
-      "officialOrder": 4,
-      "marksWeightage": null,
-      "sourcePage": 4,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/English_elective_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-001:project:04:seminar",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-002:assessment_area:01:अपठ-त-ब-ध",
-      "subjectId": "cbse-2026-27-xi-002",
-      "parentId": null,
-      "nodeType": "assessment_area",
-      "title": "अपठित बोध",
-      "description": null,
-      "officialOrder": 1,
-      "marksWeightage": null,
-      "sourcePage": 7,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Hindi_Elective_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-002:assessment_area:01:अपठ-त-ब-ध",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-002:assessment_area:02:अभ-व-यक-त-और-म-ध-यम",
-      "subjectId": "cbse-2026-27-xi-002",
-      "parentId": null,
-      "nodeType": "assessment_area",
-      "title": "अभिव्यक्ति और माध्यम",
-      "description": null,
-      "officialOrder": 2,
-      "marksWeightage": null,
-      "sourcePage": 7,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Hindi_Elective_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-002:assessment_area:02:अभ-व-यक-त-और-म-ध-यम",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-002:unit:03:अ-तर-भ-ग-1",
-      "subjectId": "cbse-2026-27-xi-002",
-      "parentId": null,
-      "nodeType": "unit",
-      "title": "अंतरा भाग-1",
-      "description": null,
-      "officialOrder": 3,
-      "marksWeightage": null,
-      "sourcePage": 8,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Hindi_Elective_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-002:unit:03:अ-तर-भ-ग-1",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-002:unit:04:अ-तर-ल-भ-ग-1",
-      "subjectId": "cbse-2026-27-xi-002",
-      "parentId": null,
-      "nodeType": "unit",
-      "title": "अंतराल भाग-1",
-      "description": null,
-      "officialOrder": 4,
-      "marksWeightage": null,
-      "sourcePage": 8,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Hindi_Elective_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-002:unit:04:अ-तर-ल-भ-ग-1",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-002:project:05:पर-य-जन-क-र-य",
-      "subjectId": "cbse-2026-27-xi-002",
-      "parentId": null,
-      "nodeType": "project",
-      "title": "परियोजना कार्य",
-      "description": null,
-      "officialOrder": 5,
-      "marksWeightage": null,
-      "sourcePage": 6,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Hindi_Elective_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-002:project:05:पर-य-जन-क-र-य",
       "active": true
     },
     {
@@ -4016,23 +1902,23 @@
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography",
+      "id": "node-cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography",
       "subjectId": "cbse-2026-27-xi-029",
       "parentId": null,
-      "nodeType": "unit",
+      "nodeType": "book",
       "title": "Fundamentals of Physical Geography",
       "description": null,
       "officialOrder": 1,
       "marksWeightage": null,
       "sourcePage": 3,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography",
+      "externalKey": "cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:01:geography-as-a-discipline",
+      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:01:geography-as-a-discipline",
       "subjectId": "cbse-2026-27-xi-029",
-      "parentId": "node-cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography",
+      "parentId": "node-cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography",
       "nodeType": "chapter",
       "title": "Geography as a Discipline",
       "description": null,
@@ -4040,13 +1926,13 @@
       "marksWeightage": null,
       "sourcePage": 5,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:01:geography-as-a-discipline",
+      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:01:geography-as-a-discipline",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:02:the-origin-and-evolution-of-the-earth",
+      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:02:the-origin-and-evolution-of-the-earth",
       "subjectId": "cbse-2026-27-xi-029",
-      "parentId": "node-cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography",
+      "parentId": "node-cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography",
       "nodeType": "chapter",
       "title": "The Origin and Evolution of the Earth",
       "description": null,
@@ -4054,13 +1940,13 @@
       "marksWeightage": null,
       "sourcePage": 5,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:02:the-origin-and-evolution-of-the-earth",
+      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:02:the-origin-and-evolution-of-the-earth",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:03:interior-of-the-earth",
+      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:03:interior-of-the-earth",
       "subjectId": "cbse-2026-27-xi-029",
-      "parentId": "node-cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography",
+      "parentId": "node-cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography",
       "nodeType": "chapter",
       "title": "Interior of the Earth",
       "description": null,
@@ -4068,13 +1954,13 @@
       "marksWeightage": null,
       "sourcePage": 5,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:03:interior-of-the-earth",
+      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:03:interior-of-the-earth",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:04:distribution-of-oceans-and-continents",
+      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:04:distribution-of-oceans-and-continents",
       "subjectId": "cbse-2026-27-xi-029",
-      "parentId": "node-cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography",
+      "parentId": "node-cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography",
       "nodeType": "chapter",
       "title": "Distribution of Oceans and Continents",
       "description": null,
@@ -4082,13 +1968,13 @@
       "marksWeightage": null,
       "sourcePage": 5,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:04:distribution-of-oceans-and-continents",
+      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:04:distribution-of-oceans-and-continents",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:05:geomorphic-processes",
+      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:05:geomorphic-processes",
       "subjectId": "cbse-2026-27-xi-029",
-      "parentId": "node-cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography",
+      "parentId": "node-cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography",
       "nodeType": "chapter",
       "title": "Geomorphic Processes",
       "description": null,
@@ -4096,13 +1982,13 @@
       "marksWeightage": null,
       "sourcePage": 5,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:05:geomorphic-processes",
+      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:05:geomorphic-processes",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:06:landforms-and-their-evolution",
+      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:06:landforms-and-their-evolution",
       "subjectId": "cbse-2026-27-xi-029",
-      "parentId": "node-cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography",
+      "parentId": "node-cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography",
       "nodeType": "chapter",
       "title": "Landforms and their Evolution",
       "description": null,
@@ -4110,13 +1996,13 @@
       "marksWeightage": null,
       "sourcePage": 5,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:06:landforms-and-their-evolution",
+      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:06:landforms-and-their-evolution",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:07:composition-and-structure-of-atmosphere",
+      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:07:composition-and-structure-of-atmosphere",
       "subjectId": "cbse-2026-27-xi-029",
-      "parentId": "node-cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography",
+      "parentId": "node-cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography",
       "nodeType": "chapter",
       "title": "Composition and Structure of Atmosphere",
       "description": null,
@@ -4124,13 +2010,13 @@
       "marksWeightage": null,
       "sourcePage": 6,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:07:composition-and-structure-of-atmosphere",
+      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:07:composition-and-structure-of-atmosphere",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:08:solar-radiation-heat-balance-and-temperature",
+      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:08:solar-radiation-heat-balance-and-temperature",
       "subjectId": "cbse-2026-27-xi-029",
-      "parentId": "node-cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography",
+      "parentId": "node-cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography",
       "nodeType": "chapter",
       "title": "Solar Radiation, Heat Balance and Temperature",
       "description": null,
@@ -4138,13 +2024,13 @@
       "marksWeightage": null,
       "sourcePage": 6,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:08:solar-radiation-heat-balance-and-temperature",
+      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:08:solar-radiation-heat-balance-and-temperature",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:09:atmospheric-circulation-and-weather-systems",
+      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:09:atmospheric-circulation-and-weather-systems",
       "subjectId": "cbse-2026-27-xi-029",
-      "parentId": "node-cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography",
+      "parentId": "node-cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography",
       "nodeType": "chapter",
       "title": "Atmospheric Circulation and Weather Systems",
       "description": null,
@@ -4152,13 +2038,13 @@
       "marksWeightage": null,
       "sourcePage": 6,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:09:atmospheric-circulation-and-weather-systems",
+      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:09:atmospheric-circulation-and-weather-systems",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:10:water-in-the-atmosphere",
+      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:10:water-in-the-atmosphere",
       "subjectId": "cbse-2026-27-xi-029",
-      "parentId": "node-cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography",
+      "parentId": "node-cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography",
       "nodeType": "chapter",
       "title": "Water in the Atmosphere",
       "description": null,
@@ -4166,13 +2052,13 @@
       "marksWeightage": null,
       "sourcePage": 6,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:10:water-in-the-atmosphere",
+      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:10:water-in-the-atmosphere",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:11:world-climate-and-climate-change",
+      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:11:world-climate-and-climate-change",
       "subjectId": "cbse-2026-27-xi-029",
-      "parentId": "node-cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography",
+      "parentId": "node-cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography",
       "nodeType": "chapter",
       "title": "World Climate and Climate Change",
       "description": null,
@@ -4180,13 +2066,13 @@
       "marksWeightage": null,
       "sourcePage": 6,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:11:world-climate-and-climate-change",
+      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:11:world-climate-and-climate-change",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:12:water-oceans",
+      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:12:water-oceans",
       "subjectId": "cbse-2026-27-xi-029",
-      "parentId": "node-cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography",
+      "parentId": "node-cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography",
       "nodeType": "chapter",
       "title": "Water (Oceans)",
       "description": null,
@@ -4194,13 +2080,13 @@
       "marksWeightage": null,
       "sourcePage": 6,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:12:water-oceans",
+      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:12:water-oceans",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:13:movements-of-ocean-water",
+      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:13:movements-of-ocean-water",
       "subjectId": "cbse-2026-27-xi-029",
-      "parentId": "node-cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography",
+      "parentId": "node-cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography",
       "nodeType": "chapter",
       "title": "Movements of Ocean Water",
       "description": null,
@@ -4208,13 +2094,13 @@
       "marksWeightage": null,
       "sourcePage": 6,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:13:movements-of-ocean-water",
+      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:13:movements-of-ocean-water",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:14:biodiversity-and-conservation",
+      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:14:biodiversity-and-conservation",
       "subjectId": "cbse-2026-27-xi-029",
-      "parentId": "node-cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography",
+      "parentId": "node-cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography",
       "nodeType": "chapter",
       "title": "Biodiversity and Conservation",
       "description": null,
@@ -4222,27 +2108,27 @@
       "marksWeightage": null,
       "sourcePage": 6,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:01:fundamentals-of-physical-geography:chapter:14:biodiversity-and-conservation",
+      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:01:fundamentals-of-physical-geography:chapter:14:biodiversity-and-conservation",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:unit:02:india-physical-environment",
+      "id": "node-cbse-2026-27-xi-029:book:02:india-physical-environment",
       "subjectId": "cbse-2026-27-xi-029",
       "parentId": null,
-      "nodeType": "unit",
+      "nodeType": "book",
       "title": "India - Physical Environment",
       "description": null,
       "officialOrder": 2,
       "marksWeightage": null,
       "sourcePage": 4,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:unit:02:india-physical-environment",
+      "externalKey": "cbse-2026-27-xi-029:book:02:india-physical-environment",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:02:india-physical-environment:chapter:01:india-location",
+      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:02:india-physical-environment:chapter:01:india-location",
       "subjectId": "cbse-2026-27-xi-029",
-      "parentId": "node-cbse-2026-27-xi-029:unit:02:india-physical-environment",
+      "parentId": "node-cbse-2026-27-xi-029:book:02:india-physical-environment",
       "nodeType": "chapter",
       "title": "India - Location",
       "description": null,
@@ -4250,13 +2136,13 @@
       "marksWeightage": null,
       "sourcePage": 6,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:02:india-physical-environment:chapter:01:india-location",
+      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:02:india-physical-environment:chapter:01:india-location",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:02:india-physical-environment:chapter:02:structure-and-physiography",
+      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:02:india-physical-environment:chapter:02:structure-and-physiography",
       "subjectId": "cbse-2026-27-xi-029",
-      "parentId": "node-cbse-2026-27-xi-029:unit:02:india-physical-environment",
+      "parentId": "node-cbse-2026-27-xi-029:book:02:india-physical-environment",
       "nodeType": "chapter",
       "title": "Structure and Physiography",
       "description": null,
@@ -4264,13 +2150,13 @@
       "marksWeightage": null,
       "sourcePage": 6,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:02:india-physical-environment:chapter:02:structure-and-physiography",
+      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:02:india-physical-environment:chapter:02:structure-and-physiography",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:02:india-physical-environment:chapter:03:drainage-system",
+      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:02:india-physical-environment:chapter:03:drainage-system",
       "subjectId": "cbse-2026-27-xi-029",
-      "parentId": "node-cbse-2026-27-xi-029:unit:02:india-physical-environment",
+      "parentId": "node-cbse-2026-27-xi-029:book:02:india-physical-environment",
       "nodeType": "chapter",
       "title": "Drainage System",
       "description": null,
@@ -4278,13 +2164,13 @@
       "marksWeightage": null,
       "sourcePage": 7,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:02:india-physical-environment:chapter:03:drainage-system",
+      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:02:india-physical-environment:chapter:03:drainage-system",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:02:india-physical-environment:chapter:04:climate",
+      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:02:india-physical-environment:chapter:04:climate",
       "subjectId": "cbse-2026-27-xi-029",
-      "parentId": "node-cbse-2026-27-xi-029:unit:02:india-physical-environment",
+      "parentId": "node-cbse-2026-27-xi-029:book:02:india-physical-environment",
       "nodeType": "chapter",
       "title": "Climate",
       "description": null,
@@ -4292,13 +2178,13 @@
       "marksWeightage": null,
       "sourcePage": 7,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:02:india-physical-environment:chapter:04:climate",
+      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:02:india-physical-environment:chapter:04:climate",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:02:india-physical-environment:chapter:05:natural-vegetation",
+      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:02:india-physical-environment:chapter:05:natural-vegetation",
       "subjectId": "cbse-2026-27-xi-029",
-      "parentId": "node-cbse-2026-27-xi-029:unit:02:india-physical-environment",
+      "parentId": "node-cbse-2026-27-xi-029:book:02:india-physical-environment",
       "nodeType": "chapter",
       "title": "Natural Vegetation",
       "description": null,
@@ -4306,13 +2192,13 @@
       "marksWeightage": null,
       "sourcePage": 7,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:02:india-physical-environment:chapter:05:natural-vegetation",
+      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:02:india-physical-environment:chapter:05:natural-vegetation",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:02:india-physical-environment:chapter:06:natural-hazards-and-disasters",
+      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:02:india-physical-environment:chapter:06:natural-hazards-and-disasters",
       "subjectId": "cbse-2026-27-xi-029",
-      "parentId": "node-cbse-2026-27-xi-029:unit:02:india-physical-environment",
+      "parentId": "node-cbse-2026-27-xi-029:book:02:india-physical-environment",
       "nodeType": "chapter",
       "title": "Natural Hazards and Disasters",
       "description": null,
@@ -4320,21 +2206,35 @@
       "marksWeightage": null,
       "sourcePage": 7,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:unit:02:india-physical-environment:chapter:06:natural-hazards-and-disasters",
+      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:02:india-physical-environment:chapter:06:natural-hazards-and-disasters",
       "active": true
     },
     {
-      "id": "node-cbse-2026-27-xi-029:practical:03:geography-practical-part-i",
+      "id": "node-cbse-2026-27-xi-029:book:03:practical-work-in-geography-part-i",
       "subjectId": "cbse-2026-27-xi-029",
       "parentId": null,
-      "nodeType": "practical",
-      "title": "Geography Practical Part I",
+      "nodeType": "book",
+      "title": "Practical Work in Geography Part I",
       "description": null,
       "officialOrder": 3,
       "marksWeightage": null,
       "sourcePage": 7,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-029:practical:03:geography-practical-part-i",
+      "externalKey": "cbse-2026-27-xi-029:book:03:practical-work-in-geography-part-i",
+      "active": true
+    },
+    {
+      "id": "node-cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:03:practical-work-in-geography-part-i:practical:01:geography-practical-part-i",
+      "subjectId": "cbse-2026-27-xi-029",
+      "parentId": "node-cbse-2026-27-xi-029:book:03:practical-work-in-geography-part-i",
+      "nodeType": "practical",
+      "title": "Geography Practical Part I",
+      "description": null,
+      "officialOrder": 1,
+      "marksWeightage": null,
+      "sourcePage": 7,
+      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Geography_SecP2_2026-27.pdf",
+      "externalKey": "cbse-2026-27-xi-029:cbse-2026-27-xi-029:book:03:practical-work-in-geography-part-i:practical:01:geography-practical-part-i",
       "active": true
     },
     {
@@ -6533,314 +4433,6 @@
       "sourcePage": 6,
       "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Accountancy_SecP2_2026-27.pdf",
       "externalKey": "cbse-2026-27-xi-055:project:04:project-work",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-064:unit:01:introduction-to-home-science",
-      "subjectId": "cbse-2026-27-xi-064",
-      "parentId": null,
-      "nodeType": "unit",
-      "title": "Introduction to Home Science",
-      "description": null,
-      "officialOrder": 1,
-      "marksWeightage": null,
-      "sourcePage": 4,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Home_Science_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-064:unit:01:introduction-to-home-science",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-064:unit:02:understanding-oneself-adolescence",
-      "subjectId": "cbse-2026-27-xi-064",
-      "parentId": null,
-      "nodeType": "unit",
-      "title": "Understanding Oneself: Adolescence",
-      "description": null,
-      "officialOrder": 2,
-      "marksWeightage": null,
-      "sourcePage": 4,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Home_Science_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-064:unit:02:understanding-oneself-adolescence",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-064:cbse-2026-27-xi-064:unit:02:understanding-oneself-adolescence:chapter:01:understanding-the-self",
-      "subjectId": "cbse-2026-27-xi-064",
-      "parentId": "node-cbse-2026-27-xi-064:unit:02:understanding-oneself-adolescence",
-      "nodeType": "chapter",
-      "title": "Understanding the Self",
-      "description": null,
-      "officialOrder": 1,
-      "marksWeightage": null,
-      "sourcePage": 5,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Home_Science_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-064:cbse-2026-27-xi-064:unit:02:understanding-oneself-adolescence:chapter:01:understanding-the-self",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-064:cbse-2026-27-xi-064:unit:02:understanding-oneself-adolescence:chapter:02:food-nutrition-health-and-fitness",
-      "subjectId": "cbse-2026-27-xi-064",
-      "parentId": "node-cbse-2026-27-xi-064:unit:02:understanding-oneself-adolescence",
-      "nodeType": "chapter",
-      "title": "Food, Nutrition, Health and Fitness",
-      "description": null,
-      "officialOrder": 2,
-      "marksWeightage": null,
-      "sourcePage": 6,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Home_Science_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-064:cbse-2026-27-xi-064:unit:02:understanding-oneself-adolescence:chapter:02:food-nutrition-health-and-fitness",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-064:cbse-2026-27-xi-064:unit:02:understanding-oneself-adolescence:chapter:03:management-of-resources",
-      "subjectId": "cbse-2026-27-xi-064",
-      "parentId": "node-cbse-2026-27-xi-064:unit:02:understanding-oneself-adolescence",
-      "nodeType": "chapter",
-      "title": "Management of Resources",
-      "description": null,
-      "officialOrder": 3,
-      "marksWeightage": null,
-      "sourcePage": 6,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Home_Science_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-064:cbse-2026-27-xi-064:unit:02:understanding-oneself-adolescence:chapter:03:management-of-resources",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-064:cbse-2026-27-xi-064:unit:02:understanding-oneself-adolescence:chapter:04:fabric-around-us",
-      "subjectId": "cbse-2026-27-xi-064",
-      "parentId": "node-cbse-2026-27-xi-064:unit:02:understanding-oneself-adolescence",
-      "nodeType": "chapter",
-      "title": "Fabric Around Us",
-      "description": null,
-      "officialOrder": 4,
-      "marksWeightage": null,
-      "sourcePage": 6,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Home_Science_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-064:cbse-2026-27-xi-064:unit:02:understanding-oneself-adolescence:chapter:04:fabric-around-us",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-064:cbse-2026-27-xi-064:unit:02:understanding-oneself-adolescence:chapter:05:media-communication-technology",
-      "subjectId": "cbse-2026-27-xi-064",
-      "parentId": "node-cbse-2026-27-xi-064:unit:02:understanding-oneself-adolescence",
-      "nodeType": "chapter",
-      "title": "Media Communication Technology",
-      "description": null,
-      "officialOrder": 5,
-      "marksWeightage": null,
-      "sourcePage": 7,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Home_Science_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-064:cbse-2026-27-xi-064:unit:02:understanding-oneself-adolescence:chapter:05:media-communication-technology",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-064:unit:03:understanding-family-community-and-society",
-      "subjectId": "cbse-2026-27-xi-064",
-      "parentId": null,
-      "nodeType": "unit",
-      "title": "Understanding Family, Community and Society",
-      "description": null,
-      "officialOrder": 3,
-      "marksWeightage": null,
-      "sourcePage": 8,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Home_Science_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-064:unit:03:understanding-family-community-and-society",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-064:cbse-2026-27-xi-064:unit:03:understanding-family-community-and-society:chapter:01:concerns-and-needs-in-diverse-contexts",
-      "subjectId": "cbse-2026-27-xi-064",
-      "parentId": "node-cbse-2026-27-xi-064:unit:03:understanding-family-community-and-society",
-      "nodeType": "chapter",
-      "title": "Concerns and Needs in Diverse Contexts",
-      "description": null,
-      "officialOrder": 1,
-      "marksWeightage": null,
-      "sourcePage": 8,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Home_Science_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-064:cbse-2026-27-xi-064:unit:03:understanding-family-community-and-society:chapter:01:concerns-and-needs-in-diverse-contexts",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-064:unit:04:childhood",
-      "subjectId": "cbse-2026-27-xi-064",
-      "parentId": null,
-      "nodeType": "unit",
-      "title": "Childhood",
-      "description": null,
-      "officialOrder": 4,
-      "marksWeightage": null,
-      "sourcePage": 4,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Home_Science_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-064:unit:04:childhood",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-064:cbse-2026-27-xi-064:unit:04:childhood:chapter:01:nutrition-health-and-well-being",
-      "subjectId": "cbse-2026-27-xi-064",
-      "parentId": "node-cbse-2026-27-xi-064:unit:04:childhood",
-      "nodeType": "chapter",
-      "title": "Nutrition, Health and Well-being",
-      "description": null,
-      "officialOrder": 1,
-      "marksWeightage": null,
-      "sourcePage": 9,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Home_Science_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-064:cbse-2026-27-xi-064:unit:04:childhood:chapter:01:nutrition-health-and-well-being",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-064:cbse-2026-27-xi-064:unit:04:childhood:chapter:02:our-apparel",
-      "subjectId": "cbse-2026-27-xi-064",
-      "parentId": "node-cbse-2026-27-xi-064:unit:04:childhood",
-      "nodeType": "chapter",
-      "title": "Our Apparel",
-      "description": null,
-      "officialOrder": 2,
-      "marksWeightage": null,
-      "sourcePage": 9,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Home_Science_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-064:cbse-2026-27-xi-064:unit:04:childhood:chapter:02:our-apparel",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-064:unit:05:adulthood",
-      "subjectId": "cbse-2026-27-xi-064",
-      "parentId": null,
-      "nodeType": "unit",
-      "title": "Adulthood",
-      "description": null,
-      "officialOrder": 5,
-      "marksWeightage": null,
-      "sourcePage": 4,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Home_Science_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-064:unit:05:adulthood",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-064:cbse-2026-27-xi-064:unit:05:adulthood:chapter:01:financial-management-and-planning",
-      "subjectId": "cbse-2026-27-xi-064",
-      "parentId": "node-cbse-2026-27-xi-064:unit:05:adulthood",
-      "nodeType": "chapter",
-      "title": "Financial Management and Planning",
-      "description": null,
-      "officialOrder": 1,
-      "marksWeightage": null,
-      "sourcePage": 10,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Home_Science_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-064:cbse-2026-27-xi-064:unit:05:adulthood:chapter:01:financial-management-and-planning",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-064:cbse-2026-27-xi-064:unit:05:adulthood:chapter:02:care-and-maintenance-of-fabrics",
-      "subjectId": "cbse-2026-27-xi-064",
-      "parentId": "node-cbse-2026-27-xi-064:unit:05:adulthood",
-      "nodeType": "chapter",
-      "title": "Care and Maintenance of Fabrics",
-      "description": null,
-      "officialOrder": 2,
-      "marksWeightage": null,
-      "sourcePage": 11,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Home_Science_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-064:cbse-2026-27-xi-064:unit:05:adulthood:chapter:02:care-and-maintenance-of-fabrics",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-064:practical:06:practical-work",
-      "subjectId": "cbse-2026-27-xi-064",
-      "parentId": null,
-      "nodeType": "practical",
-      "title": "Practical Work",
-      "description": null,
-      "officialOrder": 6,
-      "marksWeightage": null,
-      "sourcePage": 12,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Home_Science_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-064:practical:06:practical-work",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-065:unit:01:introduction-to-computer-system",
-      "subjectId": "cbse-2026-27-xi-065",
-      "parentId": null,
-      "nodeType": "unit",
-      "title": "Introduction to Computer System",
-      "description": null,
-      "officialOrder": 1,
-      "marksWeightage": null,
-      "sourcePage": 1,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Informatics_Practices_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-065:unit:01:introduction-to-computer-system",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-065:unit:02:introduction-to-python",
-      "subjectId": "cbse-2026-27-xi-065",
-      "parentId": null,
-      "nodeType": "unit",
-      "title": "Introduction to Python",
-      "description": null,
-      "officialOrder": 2,
-      "marksWeightage": null,
-      "sourcePage": 2,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Informatics_Practices_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-065:unit:02:introduction-to-python",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-065:unit:03:database-concepts-and-the-structured-query-language",
-      "subjectId": "cbse-2026-27-xi-065",
-      "parentId": null,
-      "nodeType": "unit",
-      "title": "Database Concepts and the Structured Query Language",
-      "description": null,
-      "officialOrder": 3,
-      "marksWeightage": null,
-      "sourcePage": 2,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Informatics_Practices_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-065:unit:03:database-concepts-and-the-structured-query-language",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-065:unit:04:introduction-to-the-emerging-trends",
-      "subjectId": "cbse-2026-27-xi-065",
-      "parentId": null,
-      "nodeType": "unit",
-      "title": "Introduction to the Emerging Trends",
-      "description": null,
-      "officialOrder": 4,
-      "marksWeightage": null,
-      "sourcePage": 2,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Informatics_Practices_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-065:unit:04:introduction-to-the-emerging-trends",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-065:practical:05:practical-work",
-      "subjectId": "cbse-2026-27-xi-065",
-      "parentId": null,
-      "nodeType": "practical",
-      "title": "Practical Work",
-      "description": null,
-      "officialOrder": 5,
-      "marksWeightage": null,
-      "sourcePage": 4,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Informatics_Practices_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-065:practical:05:practical-work",
-      "active": true
-    },
-    {
-      "id": "node-cbse-2026-27-xi-065:project:06:project-work",
-      "subjectId": "cbse-2026-27-xi-065",
-      "parentId": null,
-      "nodeType": "project",
-      "title": "Project Work",
-      "description": null,
-      "officialOrder": 6,
-      "marksWeightage": null,
-      "sourcePage": 4,
-      "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Informatics_Practices_SecP2_2026-27.pdf",
-      "externalKey": "cbse-2026-27-xi-065:project:06:project-work",
       "active": true
     },
     {

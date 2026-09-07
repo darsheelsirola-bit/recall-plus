@@ -337,7 +337,7 @@ export default function EditTimetableModal({ open, blocks = [], initialProfile, 
           </div>
         ) : null}
 
-        <div className="mt-5 flex flex-wrap justify-end gap-2">
+        <div className="mt-5 flex flex-wrap justify-end gap-3">
           <Button type="button" variant="destructive" onClick={onDelete}><Trash2 data-icon="inline-start" /> Delete timetable</Button>
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
           <Button type="button" onClick={save}>Save timetable</Button>

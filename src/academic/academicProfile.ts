@@ -1,14 +1,17 @@
 import type {
   AcademicPathway,
+  CurriculumGrade,
   CurriculumNode,
   CurriculumSubject,
   SubjectSelection,
   UserAcademicProfile,
 } from '../data/curriculum/types.ts'
 import {
-  CBSE_2026_27_XI_SELECTABLE_SUBJECTS,
-  CBSE_2026_27_XI_SUBJECTS_BY_ID,
-} from '../data/curriculum/cbse/2026-27/class-11/catalogue.ts'
+  CURRICULUM_VERSION_ID_BY_GRADE,
+  gradeForVersionId,
+  selectableSubjectsForGrade,
+  subjectById,
+} from '../data/curriculum/registry.ts'
 import { supabase } from '../lib/supabase.ts'
 import { runForExpectedSessionUser } from '../utils/authSessionGuard.ts'
 
@@ -35,7 +38,7 @@ export interface AcademicWorkspace {
 interface AcademicProfileRow {
   user_id: string
   board: 'CBSE'
-  grade: 'XI'
+  grade: CurriculumGrade
   academic_year: '2026-27'
   curriculum_version_id: string
   pathway: AcademicPathway | null
@@ -76,7 +79,7 @@ function mapProfile(row: AcademicProfileRow): UserAcademicProfile {
   return {
     userId: row.user_id,
     board: row.board,
-    grade: row.grade,
+    grade: row.grade === 'XII' ? 'XII' : 'XI',
     academicYear: row.academic_year,
     curriculumVersionId: row.curriculum_version_id,
     pathway: row.pathway as AcademicPathway,
@@ -88,7 +91,7 @@ function mapProfile(row: AcademicProfileRow): UserAcademicProfile {
 }
 
 function mapSubject(row: UserSubjectRow): ActiveUserSubject | null {
-  const subject = CBSE_2026_27_XI_SUBJECTS_BY_ID.get(row.curriculum_subject_id)
+  const subject = subjectById(row.curriculum_subject_id)
   if (!subject) return null
   return {
     curriculumSubjectId: row.curriculum_subject_id,
@@ -133,10 +136,36 @@ export async function loadAcademicWorkspace(
   if (profileResult.error) {
     throw new Error(`Could not load your academic profile: ${profileResult.error.message}`)
   }
-  if (!profileResult.data) {
-    throw new Error(
-      'Your academic profile is missing. Sign out and back in, then retry.',
+
+  let profileRow = (profileResult.data ?? null) as AcademicProfileRow | null
+  if (!profileRow) {
+    const { error: ensureError } = await runForExpectedSessionUser(
+      supabase.auth,
+      expectedUserId,
+      () => supabase.rpc('ensure_recall_user_bootstrap'),
     )
+    if (ensureError) {
+      throw new Error(
+        'Your academic profile is missing. Sign out and back in, then retry.',
+      )
+    }
+    const retry = await runForExpectedSessionUser(
+      supabase.auth,
+      expectedUserId,
+      () => supabase
+        .from('user_academic_profiles')
+        .select(
+          'user_id, board, grade, academic_year, curriculum_version_id, pathway, timezone, school_name, onboarding_completed, onboarding_completed_at',
+        )
+        .eq('user_id', expectedUserId)
+        .maybeSingle(),
+    )
+    if (retry.error || !retry.data) {
+      throw new Error(
+        'Your academic profile is missing. Sign out and back in, then retry.',
+      )
+    }
+    profileRow = retry.data as AcademicProfileRow
   }
   if (subjectsResult.error) {
     throw new Error(`Could not load your subjects: ${subjectsResult.error.message}`)
@@ -151,7 +180,7 @@ export async function loadAcademicWorkspace(
     .map(mapSubject)
     .filter((subject): subject is ActiveUserSubject => Boolean(subject))
   return {
-    profile: mapProfile(profileResult.data as AcademicProfileRow),
+    profile: mapProfile(profileRow),
     subjects,
     curriculumNodes: [],
     migrationCandidates: ((candidatesResult.data ?? []) as MigrationCandidateRow[])
@@ -170,6 +199,7 @@ export async function saveAcademicOnboardingProgress(
   expectedUserId: string,
   pathway: AcademicPathway | null,
   schoolName: string,
+  grade: CurriculumGrade = 'XI',
 ): Promise<void> {
   const { error } = await runForExpectedSessionUser(
     supabase.auth,
@@ -177,6 +207,7 @@ export async function saveAcademicOnboardingProgress(
     () => supabase.rpc('save_recall_onboarding_progress', {
       p_pathway: pathway,
       p_school_name: schoolName.trim() || null,
+      p_curriculum_version_id: CURRICULUM_VERSION_ID_BY_GRADE[grade],
     }),
   )
   if (error) {
@@ -189,6 +220,7 @@ export async function saveAcademicProfile(
   pathway: AcademicPathway,
   schoolName: string,
   selections: readonly SubjectSelection[],
+  grade: CurriculumGrade = 'XI',
 ): Promise<void> {
   const { error } = await runForExpectedSessionUser(
     supabase.auth,
@@ -197,6 +229,7 @@ export async function saveAcademicProfile(
       p_pathway: pathway,
       p_school_name: schoolName.trim() || null,
       p_selections: selections,
+      p_curriculum_version_id: CURRICULUM_VERSION_ID_BY_GRADE[grade],
     }),
   )
   if (error) {
@@ -222,4 +255,13 @@ export async function saveAcademicProfile(
   }
 }
 
-export const academicSubjectCatalogue = CBSE_2026_27_XI_SELECTABLE_SUBJECTS
+export function academicSubjectCatalogueFor(
+  grade: CurriculumGrade,
+): readonly CurriculumSubject[] {
+  return selectableSubjectsForGrade(grade)
+}
+
+/** @deprecated Prefer academicSubjectCatalogueFor(grade). Defaults to Class XI. */
+export const academicSubjectCatalogue = selectableSubjectsForGrade('XI')
+
+export { gradeForVersionId }

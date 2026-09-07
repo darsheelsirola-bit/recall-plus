@@ -1,3 +1,4 @@
+import { usesGroq } from './ai/config.js'
 import { AppError, ERROR_CODES } from './errors.js'
 
 const DEFAULT_TIMEOUT_MS = 20_000
@@ -11,7 +12,7 @@ export const MAX_PROVIDER_ATTEMPTS = 3
 export const PROVIDER_TOTAL_DEADLINE_MS = 45_000
 
 function configuredTimeout() {
-  const requested = Number(process.env.GROQ_REQUEST_TIMEOUT_MS)
+  const requested = Number(usesGroq() ? process.env.GROQ_REQUEST_TIMEOUT_MS : process.env.NVIDIA_REQUEST_TIMEOUT_MS)
   if (!Number.isFinite(requested)) return DEFAULT_TIMEOUT_MS
   return Math.min(MAX_TIMEOUT_MS, Math.max(MIN_TIMEOUT_MS, Math.trunc(requested)))
 }
@@ -29,6 +30,7 @@ function providerUnavailable(message, {
   statusCode = 503,
   upstreamStatus,
   retryAfterMs,
+  providerCategory = 'nvidia_unavailable',
 } = {}) {
   const error = new AppError(message, {
     code: ERROR_CODES.AI_PROVIDER_UNAVAILABLE,
@@ -38,6 +40,7 @@ function providerUnavailable(message, {
   })
   error.upstreamStatus = upstreamStatus
   error.retryAfterMs = retryAfterMs
+  error.providerCategory = providerCategory
   return error
 }
 
@@ -66,14 +69,22 @@ function releaseProviderResponse(response) {
 export function providerHttpError(response) {
   const status = Number(response?.status)
   const rateLimited = status === 429
+  const providerCategory = status === 401 || status === 403
+    ? 'nvidia_authentication_error'
+    : rateLimited
+      ? 'nvidia_rate_limit'
+      : status === 404 || status === 422
+        ? 'invalid_nvidia_model'
+        : 'nvidia_unavailable'
   const error = providerUnavailable(
     rateLimited
-      ? 'The AI service is busy right now. Please try again shortly.'
+      ? 'The AI service is temporarily busy. Please try again shortly.'
       : 'The AI service is temporarily unavailable. Please try again.',
     {
       statusCode: status >= 500 || status === 401 || status === 403 || rateLimited ? 503 : 502,
       upstreamStatus: status,
       retryAfterMs: rateLimited ? retryAfterMilliseconds(response) : null,
+      providerCategory,
     },
   )
   releaseProviderResponse(response)
@@ -82,12 +93,14 @@ export function providerHttpError(response) {
 }
 
 export function providerResponseInvalid(cause) {
-  return new AppError('The AI service returned an invalid response. Please try again.', {
+  const error = new AppError('The AI service returned an invalid response. Please try again.', {
     code: ERROR_CODES.AI_PROVIDER_RESPONSE_INVALID,
     statusCode: 502,
     cause,
     details: { retryable: true },
   })
+  error.providerCategory = 'structured_output_failure'
+  return error
 }
 
 export async function readProviderJson(response, maxBytes = MAX_PROVIDER_RESPONSE_BYTES) {
@@ -128,6 +141,7 @@ export async function readProviderJson(response, maxBytes = MAX_PROVIDER_RESPONS
       throw providerUnavailable('The AI service took too long to respond. Please try again.', {
         cause: error,
         statusCode: 504,
+        providerCategory: 'nvidia_timeout',
       })
     }
     if (error instanceof AppError) throw error
@@ -145,11 +159,12 @@ export async function waitBeforeProviderRetry(error, attemptNumber, deadlineAt) 
   if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs))
 }
 
-export async function fetchGroq(input, init, { deadlineAt = Date.now() + PROVIDER_TOTAL_DEADLINE_MS } = {}) {
+export async function fetchProvider(input, init, { deadlineAt = Date.now() + PROVIDER_TOTAL_DEADLINE_MS } = {}) {
   const remaining = deadlineAt - Date.now()
   if (remaining <= 0) {
     throw providerUnavailable('The AI service took too long to respond. Please try again.', {
       statusCode: 504,
+      providerCategory: 'nvidia_timeout',
     })
   }
 
@@ -169,6 +184,7 @@ export async function fetchGroq(input, init, { deadlineAt = Date.now() + PROVIDE
       throw providerUnavailable('The AI service took too long to respond. Please try again.', {
         cause: error,
         statusCode: 504,
+        providerCategory: 'nvidia_timeout',
       })
     }
     throw providerUnavailable('The AI service is temporarily unavailable. Please try again.', {

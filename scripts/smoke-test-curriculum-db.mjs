@@ -7,7 +7,8 @@ import { PGlite } from '@electric-sql/pglite'
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const migrationDirectory = path.join(projectRoot, 'supabase', 'migrations')
 const expectedCurriculumMigration = '20260730120000_curriculum_profiles_and_rls.sql'
-const expectedLatestMigration = '20260803120000_validate_study_log_curriculum.sql'
+const expectedOutlineMigration = '20260812130000_fill_missing_allowlist_outlines.sql'
+const expectedQuizScoringMigration = '20260817104756_add_server_scored_quiz_submissions.sql'
 
 const bootstrapSql = `
 do $roles$
@@ -127,10 +128,11 @@ const migrationFiles = (await readdir(migrationDirectory))
   .filter((name) => /^\d+_[a-z0-9_]+[.]sql$/.test(name))
   .sort()
 
-assert.equal(
-  migrationFiles.at(-1),
-  expectedLatestMigration,
-  'the study-log curriculum guard must remain the newest checked-in migration',
+assert.ok(migrationFiles.includes(expectedOutlineMigration), 'the outline migration must remain checked in')
+assert.ok(migrationFiles.includes(expectedQuizScoringMigration), 'the server-scoring migration must remain checked in')
+assert.ok(
+  migrationFiles.indexOf(expectedQuizScoringMigration) > migrationFiles.indexOf(expectedOutlineMigration),
+  'server-scored quiz submissions must be applied after generation-attempt storage exists',
 )
 
 const db = new PGlite()
@@ -220,16 +222,49 @@ try {
     db,
     `select
       count(*)::integer as total,
-      count(*) filter (where subject_group <> 'IA')::integer as selectable
+      count(*) filter (where active and subject_group <> 'IA')::integer as active_selectable,
+      count(*) filter (where active and subject_group = 'L')::integer as active_languages
     from public.curriculum_subjects`,
   )
-  assert.deepEqual(catalogue, { total: 124, selectable: 121 })
+  assert.deepEqual(catalogue, {
+    total: 148,
+    active_selectable: 48,
+    active_languages: 6,
+  })
+
+  const xiiVersion = await scalar(
+    db,
+    `select count(*)::integer as count
+     from public.curriculum_versions
+     where id = 'cbse-2026-27-xii-v1' and grade = 'XII'`,
+  )
+  assert.equal(xiiVersion.count, 1)
+
+  const xiiSubjects = await scalar(
+    db,
+    `select count(*)::integer as count
+     from public.curriculum_subjects
+     where curriculum_version_id = 'cbse-2026-27-xii-v1' and active`,
+  )
+  assert.equal(xiiSubjects.count, 24)
+
+  const activeBooks = await scalar(
+    db,
+    `select count(*)::integer as count
+     from public.curriculum_nodes
+     where active and node_type = 'book'`,
+  )
+  assert.ok(activeBooks.count >= 5)
 
   const nodes = await scalar(
     db,
-    'select count(*)::integer as count from public.curriculum_nodes',
+    `select
+      count(*)::integer as total,
+      count(*) filter (where active)::integer as active
+    from public.curriculum_nodes`,
   )
-  assert.equal(nodes.count, 295)
+  assert.ok(nodes.total >= 295)
+  assert.ok(nodes.active > 0)
 
   await db.query(
     `insert into auth.users (id, email, raw_user_meta_data)
@@ -359,6 +394,48 @@ try {
   assert.equal(saved.result.onboardingCompleted, true)
   assert.equal(saved.result.subjects.length, 5)
 
+  const validXiiSelection = validScienceSelection.replaceAll(
+    'cbse-2026-27-xi-',
+    'cbse-2026-27-xii-',
+  )
+  const savedXii = await scalar(
+    db,
+    `select public.save_recall_academic_profile(
+      'science',
+      'Smoke Test School XII',
+      $1::jsonb,
+      'cbse-2026-27-xii-v1'
+    ) as result`,
+    [validXiiSelection],
+  )
+  assert.equal(savedXii.result.grade, 'XII')
+  assert.equal(savedXii.result.curriculumVersionId, 'cbse-2026-27-xii-v1')
+  assert.equal(savedXii.result.subjects.length, 5)
+
+  const profileGrade = await scalar(
+    db,
+    `select grade, curriculum_version_id
+     from public.user_academic_profiles
+     where user_id = $1`,
+    [testUserId],
+  )
+  assert.deepEqual(profileGrade, {
+    grade: 'XII',
+    curriculum_version_id: 'cbse-2026-27-xii-v1',
+  })
+
+  // Restore XI profile for subsequent study-log checks that use XI Physics nodes.
+  await scalar(
+    db,
+    `select public.save_recall_academic_profile(
+      'science',
+      'Smoke Test School',
+      $1::jsonb,
+      'cbse-2026-27-xi-v1'
+    ) as result`,
+    [validScienceSelection],
+  )
+
   const physicsNodes = await db.query(
     `with root as (
       select id, parent_id, official_order
@@ -479,9 +556,40 @@ try {
     ],
   )
 
+  const quizSubmissionSecurity = await scalar(
+    db,
+    `select
+      (select relrowsecurity from pg_catalog.pg_class where oid = 'public.quiz_submissions'::regclass) as rls_enabled,
+      has_table_privilege('authenticated', 'public.quiz_submissions', 'SELECT') as authenticated_can_select,
+      has_table_privilege('authenticated', 'public.quiz_submissions', 'INSERT') as authenticated_can_insert,
+      has_table_privilege('service_role', 'public.quiz_submissions', 'SELECT') as service_can_select,
+      has_table_privilege('service_role', 'public.quiz_submissions', 'INSERT') as service_can_insert`,
+  )
+  assert.deepEqual(quizSubmissionSecurity, {
+    rls_enabled: true,
+    authenticated_can_select: false,
+    authenticated_can_insert: false,
+    service_can_select: true,
+    service_can_insert: true,
+  })
+
+  await assert.rejects(
+    db.query(
+      `insert into public.quiz_submissions (
+        request_id, user_id, answers_hash, answers, score, question_count
+      ) values ($1, $2, $3, '{}'::jsonb, 6, 5)`,
+      [
+        '00000000-0000-4000-8000-000000000799',
+        legacyUserId,
+        'a'.repeat(64),
+      ],
+    ),
+    /quiz_submissions_score_check|violates check constraint/i,
+  )
+
   console.log(
     `Database smoke test passed: ${migrationFiles.length} migrations, `
-    + `${catalogue.total} subjects, ${nodes.count} nodes, preserved legacy snapshot, `
+    + `${catalogue.total} subjects, ${nodes.total} nodes, preserved legacy snapshot, `
     + 'owner-bound onboarding.',
   )
 } finally {

@@ -30,6 +30,10 @@ import {
   SYNC_RETRY_LIMIT,
 } from '../utils/syncUtils'
 import { friendlyPasswordAuthError } from './passwordErrors'
+import {
+  passwordSignInAfterSignUpResult,
+  shouldAttemptPasswordSignInAfterSignUp,
+} from './passwordSignUp'
 
 interface AuthResult {
   error: string
@@ -126,6 +130,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setUpdatingProfileName(false)
         profileNameOperationRef.current = null
         setDataConflict(false)
+        setDataError('')
+        setDataReady(false)
+        setDataOwnerId('')
+        setProfile(null)
+        setDataLoading(Boolean(nextUserId))
       }
       setSession(nextSession)
       setAuthLoading(false)
@@ -134,6 +143,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setDataOwnerId('')
       setDataLoading(false)
       setDataReady(false)
+      setDataError('')
+      setDataConflict(false)
     }
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event, nextSession) => {
@@ -189,9 +200,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setDataOwnerId(activeHydrationUser.id)
         setDataReady(true)
         setDataConflict(false)
+        // Optional cloud sync issues must not block authenticated entry.
+        setDataError(result.syncWarning || '')
       } catch (error: unknown) {
         if (!isCurrent()) return
-        setDataError(errorMessage(error, 'Could not load your Recall+ data.'))
+        setDataError(errorMessage(error, 'Could not load your Recall+ profile.'))
         setDataConflict(error instanceof DataSyncConflictError)
         setDataReady(false)
       } finally {
@@ -314,8 +327,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
       return { error: 'Supabase is not configured for this Recall+ installation.' }
     }
     const displayName = name.trim()
+    const trimmedEmail = email.trim()
     const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
+      email: trimmedEmail,
       password,
       options: {
         emailRedirectTo: typeof window === 'undefined'
@@ -330,10 +344,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
         },
       },
     })
-    return {
-      error: friendlyPasswordAuthError(error, 'signup'),
-      needsEmailConfirmation: Boolean(data.user && !data.session),
+    if (data.session) return { error: '' }
+    if (!shouldAttemptPasswordSignInAfterSignUp({ session: data.session, error })) {
+      return { error: friendlyPasswordAuthError(error, 'signup') }
     }
+
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email: trimmedEmail,
+      password,
+    })
+    return passwordSignInAfterSignUpResult({
+      session: signInData.session,
+      error: signInError,
+    })
   }, [])
 
   const requestPasswordReset = useCallback(async (email: string): Promise<AuthResult> => {

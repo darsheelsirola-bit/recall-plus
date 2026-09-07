@@ -28,11 +28,11 @@ export default function StudyLogList({ logs, isActiveRecord = null, onEdit, empt
                   {archived ? <Badge variant="outline" className="rounded-full">Archived subject</Badge> : null}
                   <span className="text-xs text-muted-foreground">{formatDate(log.date)}</span>
                 </div>
-                <div className="mt-2 flex flex-wrap gap-1.5">
+                <div className="mt-2 flex flex-wrap gap-2">
                   {topics.length ? topics.map((topic) => <Badge key={topic} variant="secondary" className="rounded-full">{topic}</Badge>) : <span className="text-xs text-muted-foreground">No topic</span>}
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex shrink-0 items-center gap-3">
                 <span className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground"><Clock3 className="size-3.5" /> {formatStudyMinutes(log.timeSpent, { compact: true })}</span>
                 {onEdit && !archived ? <Button type="button" onClick={() => onEdit(log)} variant="ghost" size="icon-sm" aria-label={`Edit ${log.subject} log`}><Pencil /></Button> : null}
               </div>

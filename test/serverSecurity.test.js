@@ -4,7 +4,7 @@ import { createApp } from '../server/app.js'
 import {
   handleQuizGeneration,
 } from '../server/apiHandlers.js'
-import { requestQuiz } from '../server/groq.js'
+import { requestQuiz } from '../server/quizGeneration.js'
 import { normalizeInsightsRequest, requestInsights } from '../server/insights.js'
 import {
   assertJsonValueWithinLimits,
@@ -13,7 +13,7 @@ import {
 } from '../server/requestValidation.js'
 import { sendError } from '../server/http.js'
 import { AppError } from '../server/errors.js'
-import { fetchGroq, readProviderJson } from '../server/upstreamFetch.js'
+import { fetchProvider, readProviderJson } from '../server/upstreamFetch.js'
 import handleUnknownApiRoute from '../api/[...path].js'
 import {
   QUIZ_VERIFICATION_VERSION,
@@ -125,7 +125,16 @@ function mixedPhysicsQuiz() {
       answer: '5 m/s²',
       explanation: 'Newton’s second law gives a = F/m = 10/2 = 5 m/s².',
     },
-  ]
+  ].map((question) => ({
+    questionType: ['q2', 'q5'].includes(question.id) ? 'numerical' : 'theory',
+    sourceReference: 'test-topic',
+    calculation: question.id === 'q2'
+      ? { operation: 'divide', operands: [20, 4], unit: 'm/s', decimals: 0 }
+      : question.id === 'q5'
+        ? { operation: 'divide', operands: [10, 2], unit: 'm/s²', decimals: 0 }
+        : null,
+    ...question,
+  }))
 }
 
 async function withHttpServer(callback) {
@@ -306,16 +315,14 @@ test('insight validation bounds every nested collection and rejects unknown data
   }), null)
 })
 
-test('AI insights never fall back to the quiz credential', async () => {
-  const originalInsightsKey = process.env.GROQ_INSIGHTS_API_KEY
-  const originalQuizKey = process.env.GROQ_QUIZ_API_KEY
+test('AI insights fail closed without NVIDIA_API_KEY', async () => {
+  const originalKey = process.env.NVIDIA_API_KEY
   const originalFetch = globalThis.fetch
   let providerCalls = 0
-  delete process.env.GROQ_INSIGHTS_API_KEY
-  process.env.GROQ_QUIZ_API_KEY = 'quiz-only-test-key'
+  delete process.env.NVIDIA_API_KEY
   globalThis.fetch = async () => {
     providerCalls += 1
-    throw new Error('Provider must not be called without the insights key.')
+    throw new Error('Provider must not be called without NVIDIA_API_KEY.')
   }
 
   try {
@@ -330,21 +337,19 @@ test('AI insights never fall back to the quiz credential', async () => {
     assert.equal(providerCalls, 0)
   } finally {
     globalThis.fetch = originalFetch
-    if (originalInsightsKey === undefined) delete process.env.GROQ_INSIGHTS_API_KEY
-    else process.env.GROQ_INSIGHTS_API_KEY = originalInsightsKey
-    if (originalQuizKey === undefined) delete process.env.GROQ_QUIZ_API_KEY
-    else process.env.GROQ_QUIZ_API_KEY = originalQuizKey
+    if (originalKey === undefined) delete process.env.NVIDIA_API_KEY
+    else process.env.NVIDIA_API_KEY = originalKey
   }
 })
 
-test('AI insights authenticate only with the dedicated insights credential', async () => {
-  const originalInsightsKey = process.env.GROQ_INSIGHTS_API_KEY
-  const originalQuizKey = process.env.GROQ_QUIZ_API_KEY
+test('AI insights authenticate only with NVIDIA_API_KEY', async () => {
+  const originalKey = process.env.NVIDIA_API_KEY
   const originalFetch = globalThis.fetch
   let authorization = ''
-  process.env.GROQ_INSIGHTS_API_KEY = 'insights-only-test-key'
-  process.env.GROQ_QUIZ_API_KEY = 'quiz-only-test-key'
-  globalThis.fetch = async (_input, init) => {
+  let providerUrl = ''
+  process.env.NVIDIA_API_KEY = 'nvidia-insights-test-key'
+  globalThis.fetch = async (input, init) => {
+    providerUrl = String(input)
     authorization = init.headers.Authorization
     return providerQuizResponse({
       headline: 'Focus on motion',
@@ -366,15 +371,13 @@ test('AI insights authenticate only with the dedicated insights credential', asy
 
   try {
     const result = await requestInsights(normalized.chapterContexts)
-    assert.equal(authorization, 'Bearer insights-only-test-key')
-    assert.notEqual(authorization, 'Bearer quiz-only-test-key')
-    assert.equal(result.source, 'groq')
+    assert.equal(authorization, 'Bearer nvidia-insights-test-key')
+    assert.equal(providerUrl, 'https://integrate.api.nvidia.com/v1/chat/completions')
+    assert.equal(result.source, 'nvidia')
   } finally {
     globalThis.fetch = originalFetch
-    if (originalInsightsKey === undefined) delete process.env.GROQ_INSIGHTS_API_KEY
-    else process.env.GROQ_INSIGHTS_API_KEY = originalInsightsKey
-    if (originalQuizKey === undefined) delete process.env.GROQ_QUIZ_API_KEY
-    else process.env.GROQ_QUIZ_API_KEY = originalQuizKey
+    if (originalKey === undefined) delete process.env.NVIDIA_API_KEY
+    else process.env.NVIDIA_API_KEY = originalKey
   }
 })
 
@@ -426,12 +429,16 @@ test('already-parsed bodies without a raw byte count fail closed', () => {
 
 test('quiz generation is accepted only after two answer-blind verification passes agree', async () => {
   const originalFetch = globalThis.fetch
-  const originalKey = process.env.GROQ_QUIZ_API_KEY
+  const originalKey = process.env.NVIDIA_API_KEY
   const questions = mixedPhysicsQuiz()
   let providerCalls = 0
-  process.env.GROQ_QUIZ_API_KEY = 'test-only-key'
-  globalThis.fetch = async () => {
+  const providerUrls = []
+  const providerBodies = []
+  process.env.NVIDIA_API_KEY = 'test-only-key'
+  globalThis.fetch = async (input, init) => {
     providerCalls += 1
+    providerUrls.push(String(input))
+    providerBodies.push(JSON.parse(init.body))
     if (providerCalls === 1) return providerQuizResponse({ questions })
     return providerQuizResponse({
       verifications: verificationEntries(questions),
@@ -447,6 +454,12 @@ test('quiz generation is accepted only after two answer-blind verification passe
       level: 'mixed',
     })
     assert.equal(providerCalls, 3)
+    assert.equal(providerUrls.every((url) => url === 'https://integrate.api.nvidia.com/v1/chat/completions'), true)
+    assert.equal(providerBodies.every((body) => body.model === 'z-ai/glm-5.2'), true)
+    assert.equal(providerBodies[0].reasoning_effort, 'medium')
+    assert.equal(providerBodies[1].reasoning_effort, 'high')
+    assert.equal(providerBodies[2].reasoning_effort, 'high')
+    assert.equal(providerBodies.every((body) => body.response_format === undefined), true)
     assert.equal(validateVerifiedQuizQuestions(verified, 5), true)
     assert.equal(
       verified.every((question) => question.verification === QUIZ_VERIFICATION_VERSION),
@@ -454,20 +467,18 @@ test('quiz generation is accepted only after two answer-blind verification passe
     )
   } finally {
     globalThis.fetch = originalFetch
-    if (originalKey === undefined) delete process.env.GROQ_QUIZ_API_KEY
-    else process.env.GROQ_QUIZ_API_KEY = originalKey
+    if (originalKey === undefined) delete process.env.NVIDIA_API_KEY
+    else process.env.NVIDIA_API_KEY = originalKey
   }
 })
 
-test('Recall and practice generation use only their dedicated Groq credentials', async () => {
+test('Recall and practice generation share NVIDIA_API_KEY and fail closed without it', async () => {
   const originalFetch = globalThis.fetch
-  const originalQuizKey = process.env.GROQ_QUIZ_API_KEY
-  const originalRecallKey = process.env.GROQ_RECALL_API_KEY
+  const originalKey = process.env.NVIDIA_API_KEY
   const questions = mixedPhysicsQuiz()
   const authorizations = []
   let providerCalls = 0
-  process.env.GROQ_QUIZ_API_KEY = 'practice-only-test-key'
-  process.env.GROQ_RECALL_API_KEY = 'recall-only-test-key'
+  process.env.NVIDIA_API_KEY = 'nvidia-shared-test-key'
   globalThis.fetch = async (_url, init) => {
     authorizations.push(init.headers.Authorization)
     providerCalls += 1
@@ -484,7 +495,7 @@ test('Recall and practice generation use only their dedicated Groq credentials',
       level: 'mixed',
       purpose: 'recall',
     })
-    assert.deepEqual(authorizations, Array(3).fill('Bearer recall-only-test-key'))
+    assert.deepEqual(authorizations, Array(3).fill('Bearer nvidia-shared-test-key'))
 
     authorizations.length = 0
     await requestQuiz({
@@ -495,9 +506,9 @@ test('Recall and practice generation use only their dedicated Groq credentials',
       level: 'mixed',
       purpose: 'practice',
     })
-    assert.deepEqual(authorizations, Array(3).fill('Bearer practice-only-test-key'))
+    assert.deepEqual(authorizations, Array(3).fill('Bearer nvidia-shared-test-key'))
 
-    delete process.env.GROQ_RECALL_API_KEY
+    delete process.env.NVIDIA_API_KEY
     authorizations.length = 0
     await assert.rejects(
       requestQuiz({
@@ -513,35 +524,39 @@ test('Recall and practice generation use only their dedicated Groq credentials',
     assert.deepEqual(authorizations, [])
   } finally {
     globalThis.fetch = originalFetch
-    if (originalQuizKey === undefined) delete process.env.GROQ_QUIZ_API_KEY
-    else process.env.GROQ_QUIZ_API_KEY = originalQuizKey
-    if (originalRecallKey === undefined) delete process.env.GROQ_RECALL_API_KEY
-    else process.env.GROQ_RECALL_API_KEY = originalRecallKey
+    if (originalKey === undefined) delete process.env.NVIDIA_API_KEY
+    else process.env.NVIDIA_API_KEY = originalKey
   }
 })
 
 test('answer verification rejects the two incorrect physics keys reported by the user', async () => {
   const originalFetch = globalThis.fetch
-  const originalKey = process.env.GROQ_QUIZ_API_KEY
+  const originalKey = process.env.NVIDIA_API_KEY
   const questions = mixedPhysicsQuiz()
   questions[0] = {
     id: 'q1',
     difficulty: 'easy',
+    questionType: 'theory',
     question: 'A particle is projected at 20 m/s at 60 degrees. What is its vertical velocity component?',
     options: ['10 m/s', '10√3 m/s', '20 m/s', '5√3 m/s'],
     answer: '10 m/s',
     explanation: 'The vertical component is v sin θ.',
+    sourceReference: 'test-topic',
+    calculation: null,
   }
   questions[2] = {
     id: 'q3',
     difficulty: 'medium',
+    questionType: 'theory',
     question: 'A stone is thrown upward at 25 m/s. What is its velocity after 2 s if g = 10 m/s²?',
     options: ['5 m/s', '15 m/s', '20 m/s', '45 m/s'],
     answer: '15 m/s',
     explanation: 'Use v = u - gt.',
+    sourceReference: 'test-topic',
+    calculation: null,
   }
   let providerCalls = 0
-  process.env.GROQ_QUIZ_API_KEY = 'test-only-key'
+  process.env.NVIDIA_API_KEY = 'test-only-key'
   globalThis.fetch = async () => {
     providerCalls += 1
     if (providerCalls === 1) return providerQuizResponse({ questions })
@@ -571,16 +586,16 @@ test('answer verification rejects the two incorrect physics keys reported by the
     assert.equal(providerCalls, 2)
   } finally {
     globalThis.fetch = originalFetch
-    if (originalKey === undefined) delete process.env.GROQ_QUIZ_API_KEY
-    else process.env.GROQ_QUIZ_API_KEY = originalKey
+    if (originalKey === undefined) delete process.env.NVIDIA_API_KEY
+    else process.env.NVIDIA_API_KEY = originalKey
   }
 })
 
 test('provider response bodies and arbitrary status-bearing errors never leak', async () => {
   const canary = 'provider-secret-canary-DO-NOT-LEAK'
   const originalFetch = globalThis.fetch
-  const originalKey = process.env.GROQ_QUIZ_API_KEY
-  process.env.GROQ_QUIZ_API_KEY = 'test-only-key'
+  const originalKey = process.env.NVIDIA_API_KEY
+  process.env.NVIDIA_API_KEY = 'test-only-key'
   globalThis.fetch = async () => new Response(JSON.stringify({
     error: { message: canary },
   }), {
@@ -613,16 +628,16 @@ test('provider response bodies and arbitrary status-bearing errors never leak', 
     assert.equal(JSON.stringify(response.body).includes(canary), false)
   } finally {
     globalThis.fetch = originalFetch
-    if (originalKey === undefined) delete process.env.GROQ_QUIZ_API_KEY
-    else process.env.GROQ_QUIZ_API_KEY = originalKey
+    if (originalKey === undefined) delete process.env.NVIDIA_API_KEY
+    else process.env.NVIDIA_API_KEY = originalKey
   }
 })
 
-test('provider retries are capped at three total calls across model candidates', async () => {
+test('an invalid NVIDIA model is not retried', async () => {
   const originalFetch = globalThis.fetch
-  const originalKey = process.env.GROQ_QUIZ_API_KEY
+  const originalKey = process.env.NVIDIA_API_KEY
   let providerCalls = 0
-  process.env.GROQ_QUIZ_API_KEY = 'test-only-key'
+  process.env.NVIDIA_API_KEY = 'test-only-key'
   globalThis.fetch = async () => {
     providerCalls += 1
     return new Response('{}', { status: 404 })
@@ -636,11 +651,37 @@ test('provider retries are capped at three total calls across model candidates',
       count: 5,
       level: 'mixed',
     }))
+    assert.equal(providerCalls, 1)
+  } finally {
+    globalThis.fetch = originalFetch
+    if (originalKey === undefined) delete process.env.NVIDIA_API_KEY
+    else process.env.NVIDIA_API_KEY = originalKey
+  }
+})
+
+test('transient NVIDIA failures are capped at three attempts on the same model', async () => {
+  const originalFetch = globalThis.fetch
+  const originalKey = process.env.NVIDIA_API_KEY
+  let providerCalls = 0
+  process.env.NVIDIA_API_KEY = 'test-only-key'
+  globalThis.fetch = async () => {
+    providerCalls += 1
+    return new Response('{}', { status: 500 })
+  }
+
+  try {
+    await assert.rejects(requestQuiz({
+      subject: 'Physics',
+      chapter: 'Motion',
+      topic: 'Velocity',
+      count: 5,
+      level: 'mixed',
+    }))
     assert.equal(providerCalls, 3)
   } finally {
     globalThis.fetch = originalFetch
-    if (originalKey === undefined) delete process.env.GROQ_QUIZ_API_KEY
-    else process.env.GROQ_QUIZ_API_KEY = originalKey
+    if (originalKey === undefined) delete process.env.NVIDIA_API_KEY
+    else process.env.NVIDIA_API_KEY = originalKey
   }
 })
 
@@ -657,12 +698,16 @@ test('provider deadline remains active while the response body is streaming', as
   })
 
   try {
-    const response = await fetchGroq('https://provider.invalid/test', {}, {
+    const response = await fetchProvider('https://provider.invalid/test', {}, {
       deadlineAt: Date.now() + 40,
     })
     await assert.rejects(
       readProviderJson(response),
-      (error) => error.code === 'AI_PROVIDER_UNAVAILABLE' && error.statusCode === 504,
+      (error) => (
+        error.code === 'AI_PROVIDER_UNAVAILABLE'
+        && error.statusCode === 504
+        && error.providerCategory === 'nvidia_timeout'
+      ),
     )
   } finally {
     globalThis.fetch = originalFetch
@@ -727,5 +772,31 @@ test('Express and Vercel unknown API routes return the same JSON 404', async () 
     assert.deepEqual(await expressResponse.json(), vercelResponse.body)
     assert.equal(vercelResponse.statusCode, 404)
     assert.equal(vercelResponse.body.code, 'NOT_FOUND')
+  })
+})
+
+test('Express mounts account deletion and applies the shared authentication boundary', async () => {
+  await withHttpServer(async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/delete-account`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ confirmation: 'DELETE MY ACCOUNT' }),
+    })
+
+    assert.equal(response.status, 401)
+    assert.equal((await response.json()).code, 'AUTH_REQUIRED')
+  })
+})
+
+test('Express serves browser security headers on pages and API responses', async () => {
+  await withHttpServer(async (baseUrl) => {
+    for (const path of ['/', '/api/not-a-real-route']) {
+      const response = await fetch(`${baseUrl}${path}`)
+      assert.match(response.headers.get('content-security-policy') || '', /frame-ancestors 'none'/)
+      assert.equal(response.headers.get('permissions-policy'), 'camera=(), geolocation=(), microphone=()')
+      assert.equal(response.headers.get('referrer-policy'), 'strict-origin-when-cross-origin')
+      assert.equal(response.headers.get('x-content-type-options'), 'nosniff')
+      assert.equal(response.headers.get('x-frame-options'), 'DENY')
+    }
   })
 })

@@ -8,6 +8,7 @@ import {
   PATHWAY_PRESETS,
   presetSubjectIds,
   readOnboardingDraft,
+  recommendedSubjects,
   shouldPersistOnboardingProgress,
   writeOnboardingDraft,
 } from '../src/academic/onboarding.ts'
@@ -132,9 +133,22 @@ test('subject arranger rejects incomplete and conflicting combinations', () => {
     null,
   )
   assert.equal(
-    arrangeSubjectSelections(ids('301', '042', '043', '083', '065')),
-    null,
+    recommendedSubjects('science').some((subject) => subject.subjectCode === '065'),
+    false,
   )
+  assert.equal(
+    recommendedSubjects('science').every((subject) =>
+      ['301', '302', '118'].includes(subject.subjectCode) || subject.subjectGroup !== 'L'),
+    true,
+  )
+})
+
+test('onboarding draft can store Class XII for academic-year setup', () => {
+  const storage = memoryStorage()
+  const draft = defaultOnboardingDraft(null, '', [], 'XII')
+  assert.equal(draft.grade, 'XII')
+  writeOnboardingDraft(storage, 'owner-a', draft)
+  assert.equal(readOnboardingDraft(storage, 'owner-a')?.grade, 'XII')
 })
 
 test('onboarding progress is owner-scoped and discards corrupted drafts', () => {

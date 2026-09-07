@@ -103,8 +103,16 @@ export default function AuthCallback() {
     navigate('/auth', { replace: true })
   }
 
-  const workspaceError = exchangeComplete && session && user && dataError
-    ? 'Your account is signed in, but Recall+ could not load your study data. Please retry.'
+  const workspaceError = exchangeComplete && session && user && !loading && !dataReady && dataError
+    ? (
+      dataError.includes('profile')
+        ? 'Your account is signed in, but Recall+ could not load your profile. Please retry.'
+        : dataError.includes('connect') || dataError.includes('network') || dataError.includes('Failed to fetch')
+          ? 'Your account is signed in, but Recall+ could not connect. Check your connection and try again.'
+          : dataError.includes('expired') || dataError.includes('session')
+            ? 'Your session could not be confirmed. Please sign in again.'
+            : 'Your account is signed in, but Recall+ could not finish opening your workspace. Please retry.'
+    )
     : ''
   const missingSessionError = exchangeComplete && !loading && !callbackError && !session
     ? 'Recall+ could not confirm your secure session. Return to Sign In and try again.'

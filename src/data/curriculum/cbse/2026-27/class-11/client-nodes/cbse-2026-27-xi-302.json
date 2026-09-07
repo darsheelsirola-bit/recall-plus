@@ -28,31 +28,31 @@
     "active": true
   },
   {
-    "id": "node-cbse-2026-27-xi-302:unit:03:आर-ह-भ-ग-1",
+    "id": "node-cbse-2026-27-xi-302:book:03:आर-ह-भ-ग-1",
     "subjectId": "cbse-2026-27-xi-302",
     "parentId": null,
-    "nodeType": "unit",
+    "nodeType": "book",
     "title": "आरोह भाग-1",
     "description": null,
     "officialOrder": 3,
     "marksWeightage": null,
     "sourcePage": 8,
     "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Hindi_Core_SecP2_2026-27.pdf",
-    "externalKey": "cbse-2026-27-xi-302:unit:03:आर-ह-भ-ग-1",
+    "externalKey": "cbse-2026-27-xi-302:book:03:आर-ह-भ-ग-1",
     "active": true
   },
   {
-    "id": "node-cbse-2026-27-xi-302:unit:04:व-त-न-भ-ग-1",
+    "id": "node-cbse-2026-27-xi-302:book:04:व-त-न-भ-ग-1",
     "subjectId": "cbse-2026-27-xi-302",
     "parentId": null,
-    "nodeType": "unit",
+    "nodeType": "book",
     "title": "वितान भाग-1",
     "description": null,
     "officialOrder": 4,
     "marksWeightage": null,
     "sourcePage": 8,
     "sourceUrl": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Hindi_Core_SecP2_2026-27.pdf",
-    "externalKey": "cbse-2026-27-xi-302:unit:04:व-त-न-भ-ग-1",
+    "externalKey": "cbse-2026-27-xi-302:book:04:व-त-न-भ-ग-1",
     "active": true
   },
   {

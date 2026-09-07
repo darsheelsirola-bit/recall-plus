@@ -1,11 +1,12 @@
 import { ArrowLeft } from 'lucide-react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import ContactEmailDialog, { SUPPORT_EMAIL } from '../components/ContactEmailDialog'
 import Logo from '../components/Logo'
 
 type LegalDocument = 'privacy' | 'terms'
 
 const EFFECTIVE_DATE = '29 July 2026'
-const SUPPORT_EMAIL = 'darsheel.sirola@gmail.com'
 
 const documents = {
   privacy: {
@@ -123,22 +124,25 @@ const documents = {
 
 export default function Legal({ document }: { document: LegalDocument }) {
   const content = documents[document]
+  const [contactOpen, setContactOpen] = useState(false)
 
   return (
     <main className="min-h-dvh bg-background px-4 py-8 text-foreground sm:px-6 lg:px-8">
       <article className="mx-auto max-w-3xl">
         <header className="border-b border-border pb-8">
-          <Link to="/" className="inline-flex rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <Logo />
-          </Link>
-          <Link
-            to="/"
-            className="mt-8 inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-semibold text-primary transition hover:bg-secondary"
-          >
-            <ArrowLeft className="size-4" aria-hidden="true" />
-            Back to Recall+
-          </Link>
-          <h1 className="mt-6 text-4xl font-semibold tracking-[-0.04em]">{content.title}</h1>
+          <div className="flex items-center justify-between gap-4">
+            <Link to="/" className="inline-flex rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <Logo />
+            </Link>
+            <Link
+              to="/"
+              className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-1 text-sm font-semibold text-primary transition hover:bg-secondary sm:px-3"
+            >
+              <ArrowLeft className="size-4" aria-hidden="true" />
+              Back <span className="hidden sm:inline">to Recall+</span>
+            </Link>
+          </div>
+          <h1 className="mt-8 text-4xl font-semibold tracking-[-0.04em]">{content.title}</h1>
           <p className="mt-3 text-sm text-muted-foreground">Effective {EFFECTIVE_DATE}</p>
           <p className="mt-5 text-base leading-7 text-muted-foreground">{content.introduction}</p>
         </header>
@@ -161,11 +165,17 @@ export default function Legal({ document }: { document: LegalDocument }) {
         <footer className="flex flex-wrap gap-x-5 gap-y-2 border-t border-border py-8 text-sm">
           <Link className="font-semibold text-primary hover:underline" to="/privacy">Privacy Policy</Link>
           <Link className="font-semibold text-primary hover:underline" to="/terms">Terms of Service</Link>
-          <a className="font-semibold text-primary hover:underline" href={`mailto:${SUPPORT_EMAIL}`}>
+          <button
+            type="button"
+            className="font-semibold text-primary hover:underline"
+            onClick={() => setContactOpen(true)}
+          >
             Contact
-          </a>
+          </button>
         </footer>
       </article>
+
+      <ContactEmailDialog open={contactOpen} onClose={() => setContactOpen(false)} />
     </main>
   )
 }

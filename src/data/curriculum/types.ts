@@ -1,5 +1,5 @@
 export type CurriculumBoard = 'CBSE'
-export type CurriculumGrade = 'XI'
+export type CurriculumGrade = 'XI' | 'XII'
 export type CurriculumAcademicYear = '2026-27'
 export type AcademicPathway = 'science' | 'commerce' | 'humanities'
 export type SubjectGroup = 'L' | 'A' | 'S' | 'IA'
@@ -9,6 +9,7 @@ export type SubjectCategory =
   | 'skill_elective'
   | 'internal_assessment'
 export type CurriculumNodeType =
+  | 'book'
   | 'unit'
   | 'chapter'
   | 'topic'

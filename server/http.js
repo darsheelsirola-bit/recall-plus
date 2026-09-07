@@ -9,6 +9,25 @@ export function setPrivateNoStore(response) {
   response.setHeader('Vary', 'Authorization')
 }
 
+export function setSecurityHeaders(response) {
+  response.setHeader('Content-Security-Policy', [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+    "font-src 'self' data:",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "img-src 'self' data: https:",
+    "object-src 'none'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+  ].join('; '))
+  response.setHeader('Permissions-Policy', 'camera=(), geolocation=(), microphone=()')
+  response.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+  response.setHeader('X-Content-Type-Options', 'nosniff')
+  response.setHeader('X-Frame-Options', 'DENY')
+}
+
 /**
  * Header access shared by Express and Vercel's Node request objects.
  *

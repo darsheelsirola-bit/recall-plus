@@ -1,11 +1,12 @@
 import { CalendarDays, Clock3, NotebookPen, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import BackButton from '../components/BackButton'
 import PageHeader from '../components/PageHeader'
 import { curriculumRequestSelection, useActiveCurriculum, useCurriculumSubjects } from '../academic/activeCurriculum'
-import { getChapters, getTopics, selectionFromParams } from '../components/SelectionFields'
+import { getBooks, getChapters, getTopics, selectionFromParams } from '../components/SelectionFields'
 import { getTodayDate } from '../utils/dateUtils'
 import { formatStudyMinutes, getLogTopics } from '../utils/logUtils'
 import { createId } from '../utils/quizUtils'
@@ -35,6 +36,7 @@ export default function AddLog() {
     if (editingLog) {
       return {
         subject: editingLog.subject,
+        book: editingLog.book || '',
         chapter: editingLog.chapter,
         topics: getLogTopics(editingLog),
         date: editingLog.date || getTodayDate(),
@@ -48,6 +50,7 @@ export default function AddLog() {
     const fromParams = selectionFromParams(searchParams, syllabus)
     return {
       subject: fromParams.subject,
+      book: fromParams.book || '',
       chapter: fromParams.chapter,
       topics: searchParams.has('topic') && fromParams.topic ? [fromParams.topic] : [],
       date: getTodayDate(),
@@ -60,6 +63,7 @@ export default function AddLog() {
   })
 
   const [subject, setSubject] = useState(initial.subject)
+  const [book, setBook] = useState(initial.book || '')
   const [chapter, setChapter] = useState(initial.chapter)
   const [topics, setTopics] = useState(initial.topics)
   const [date, setDate] = useState(initial.date)
@@ -71,34 +75,56 @@ export default function AddLog() {
   const [saveError, setSaveError] = useState('')
   const { loading: curriculumLoading, error: curriculumError } = useCurriculumSubjects([subject])
 
-  const chapters = getChapters(subject, syllabus)
+  const books = getBooks(subject, syllabus)
+  const hasBooks = books.length > 0
+  const chapters = getChapters(subject, syllabus, hasBooks ? (book || null) : null)
   const subjectData = syllabus.find((item) => item.subject === subject)
-  const chapterTopics = getTopics(subject, chapter, syllabus)
+  const chapterTopics = getTopics(subject, chapter, syllabus, hasBooks ? (book || null) : null)
   const timetableBlocks = getBlocksForDate(getData(STORAGE_KEYS.studyTimetable, []), date)
     .filter(isActiveRecord)
   const effectiveTimetableBlockId = timetableBlockId || timetableBlocks[0]?.id || ''
   const selectedTimetableBlock = timetableBlocks.find((block) => block.id === effectiveTimetableBlockId) || null
 
   useEffect(() => {
-    if (!chapters.length || chapters.some((item) => item.name === chapter)) return
+    const nextBook = hasBooks
+      ? (books.some((item) => item.name === book) ? book : books[0]?.name || '')
+      : ''
+    const nextChapters = getChapters(subject, syllabus, nextBook || null)
+    if (nextChapters.some((item) => item.name === chapter) && nextBook === book) return
     const requested = editingLog?.chapter || searchParams.get('chapter') || ''
-    const nextChapter = chapters.find((item) => item.name === requested)?.name || chapters[0].name
-    const availableTopics = getTopics(subject, nextChapter, syllabus)
+    const nextChapter = nextChapters.find((item) => item.name === requested)?.name
+      || nextChapters[0]?.name
+      || ''
+    const availableTopics = nextChapter
+      ? getTopics(subject, nextChapter, syllabus, nextBook || null)
+      : []
     const requestedTopics = editingLog ? getLogTopics(editingLog) : [searchParams.get('topic')].filter(Boolean)
     const timer = window.setTimeout(() => {
+      setBook(nextBook)
       setChapter(nextChapter)
       setTopics(requestedTopics.filter((topic) => availableTopics.includes(topic)))
     }, 0)
     return () => window.clearTimeout(timer)
-  }, [chapter, chapters, editingLog, searchParams, subject, syllabus])
+  }, [book, books, chapter, editingLog, hasBooks, searchParams, subject, syllabus])
 
   function changeSubject(nextSubject) {
+    const nextBooks = getBooks(nextSubject, syllabus)
+    const nextBook = nextBooks[0]?.name || ''
     setSubject(nextSubject)
-    setChapter(getChapters(nextSubject, syllabus)[0]?.name || '')
+    setBook(nextBook)
+    setChapter(getChapters(nextSubject, syllabus, nextBook || null)[0]?.name || '')
+    setTopics([])
+  }
+
+  function changeBook(nextBook) {
+    setBook(nextBook)
+    setChapter(getChapters(subject, syllabus, nextBook || null)[0]?.name || '')
     setTopics([])
   }
 
   function changeChapter(nextChapter) {
+    const matched = chapters.find((item) => item.name === nextChapter)
+    if (matched?.bookName) setBook(matched.bookName)
     setChapter(nextChapter)
     setTopics([])
   }
@@ -112,8 +138,11 @@ export default function AddLog() {
     setTimetableBlockId(blockId)
     if (!block) return
     if (block.subject !== subject) {
-      const firstChapter = getChapters(block.subject, syllabus)[0]?.name || ''
+      const nextBooks = getBooks(block.subject, syllabus)
+      const nextBook = nextBooks[0]?.name || ''
+      const firstChapter = getChapters(block.subject, syllabus, nextBook || null)[0]?.name || ''
       setSubject(block.subject)
+      setBook(nextBook)
       setChapter(firstChapter)
       setTopics([])
     }
@@ -147,7 +176,21 @@ export default function AddLog() {
       setSaveError('The selected official curriculum nodes could not be verified.')
       return
     }
-    const fields = { subject, curriculumVersionId, curriculumSubjectId: curriculumSelection.curriculumSubjectId, curriculumNodeIds: [...curriculumSelection.chapterNodeIds, ...curriculumSelection.topicNodeIds], chapter, topics, topic: topics[0], date, timeSpent: actualDuration, confidence, notes: notes.trim(), timetableFollowUp }
+    const fields = {
+      subject,
+      book: hasBooks ? book : null,
+      curriculumVersionId,
+      curriculumSubjectId: curriculumSelection.curriculumSubjectId,
+      curriculumNodeIds: [...curriculumSelection.chapterNodeIds, ...curriculumSelection.topicNodeIds],
+      chapter,
+      topics,
+      topic: topics[0],
+      date,
+      timeSpent: actualDuration,
+      confidence,
+      notes: notes.trim(),
+      timetableFollowUp,
+    }
 
     let savedLog
     try {
@@ -197,42 +240,58 @@ export default function AddLog() {
     <>
       <PageHeader
         title={editingLog ? 'Edit study log' : 'Study log'}
-        actions={<Button variant="outline" render={<Link to="/logs" />}>View all study logs</Button>}
+        actions={<BackButton to="/logs" label="Back to study history" />}
       />
       {curriculumLoading ? <p role="status" className="mb-4 rounded-xl border border-border bg-secondary/35 p-4 text-sm text-muted-foreground">Loading the selected subject curriculum…</p> : null}
       {curriculumError || saveError ? <p role="alert" className="mb-4 rounded-xl border border-destructive/25 bg-destructive/10 p-4 text-sm font-medium text-destructive">{curriculumError || saveError} Your form is still here so you can retry.</p> : null}
       {!curriculumLoading && !curriculumError && subjectData?.contentStatus === 'pending_verification' ? <p className="mb-4 rounded-xl border border-border bg-secondary/35 p-4 text-sm text-muted-foreground">This subject is active, but its official chapter and topic outline is still awaiting verification. Recall+ will not invent study-log topics for it.</p> : null}
       <form onSubmit={handleSubmit} className="grid max-w-7xl gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="p-5 sm:p-6">
-          <div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-xl bg-secondary text-primary"><NotebookPen className="size-5" /></span><div><h2 className="text-lg font-semibold">Study log</h2><p className="text-sm text-muted-foreground">Pick a chapter, then tap every topic you covered.</p></div></div>
+          <div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-xl bg-secondary text-primary"><NotebookPen className="size-5" /></span><div><h2 className="text-lg font-semibold">Study log</h2><p className="text-sm text-muted-foreground">{hasBooks ? 'Pick book → chapter → topics covered.' : 'Pick a chapter or unit, then tap every topic you covered.'}</p></div></div>
 
           <div className="mt-7 grid gap-4 sm:grid-cols-2">
             <label className="field-label">Subject<select className="field" value={subject} onChange={(event) => changeSubject(event.target.value)}>{syllabus.map((item) => <option key={item.subject}>{item.subject}</option>)}</select></label>
             <label className="field-label">Date<div className="relative"><CalendarDays className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink/35" size={18} /><input className="field pl-11" type="date" max={getTodayDate()} value={date} onChange={(event) => { setDate(event.target.value); setTimetableBlockId('') }} required /></div></label>
           </div>
 
-          <label className="field-label mt-5">Chapter<select className="field" value={chapter} onChange={(event) => changeChapter(event.target.value)}>{chapters.map((item, index) => <option key={item.name} value={item.name}>Chapter {index + 1}: {item.name}</option>)}</select></label>
+          {hasBooks ? (
+            <label className="field-label mt-5">Book
+              <select className="field" value={book} onChange={(event) => changeBook(event.target.value)}>
+                {books.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}
+              </select>
+            </label>
+          ) : null}
+
+          <label className="field-label mt-5">{hasBooks ? 'Chapter' : 'Chapter / Unit'}
+            <select className="field" value={chapter} onChange={(event) => changeChapter(event.target.value)}>
+              {chapters.map((item, index) => (
+                <option key={`${item.bookId || 'root'}:${item.name}`} value={item.name}>
+                  {hasBooks ? item.name : `Chapter ${index + 1}: ${item.name}`}
+                </option>
+              ))}
+            </select>
+          </label>
 
           <div className="mt-6">
             <p className="field-label">Topics covered{topics.length ? <span className="ml-2 text-xs font-bold text-indigo">{topics.length} selected</span> : null}</p>
             {topics.length ? (
               <div className="mt-2 flex flex-wrap gap-2">
                 {topics.map((topic) => (
-                  <span key={topic} className="inline-flex min-h-11 items-center gap-1 rounded-full bg-primary py-0 pl-3 pr-0.5 text-sm font-semibold text-primary-foreground">
+                  <span key={topic} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary py-0 pl-3.5 pr-1 text-sm font-semibold text-primary-foreground">
                     {topic}
-                    <button type="button" onClick={() => toggleTopic(topic)} className="grid size-11 place-items-center rounded-full bg-white/15 hover:bg-white/30" aria-label={`Remove ${topic}`}><X size={14} /></button>
+                    <button type="button" onClick={() => toggleTopic(topic)} className="grid size-8 shrink-0 place-items-center rounded-full bg-white/15 hover:bg-white/30" aria-label={`Remove ${topic}`}><X size={12} strokeWidth={2} /></button>
                   </span>
                 ))}
               </div>
             ) : <p className="mt-2 text-sm text-muted-foreground">Tap topics below to add them.</p>}
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap gap-3">
               {chapterTopics.map((topic) => { const active = topics.includes(topic); return <button type="button" key={topic} aria-pressed={active} onClick={() => toggleTopic(topic)} className={`min-h-11 rounded-full border px-3 py-2 text-sm font-medium transition ${active ? 'border-primary bg-secondary text-primary' : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-primary'}`}>{active ? '✓ ' : '+ '}{topic}</button> })}
             </div>
           </div>
 
           <div className="mt-6 grid gap-5 sm:grid-cols-2">
             <label className="field-label">Time spent (minutes)<div className="relative"><Clock3 className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink/35" size={18} /><input className="field pl-11" type="number" min="5" max="600" value={timeSpent} onChange={(event) => setTimeSpent(event.target.value)} required /></div></label>
-            <fieldset><legend className="field-label">Confidence level</legend><div className="grid grid-cols-3 gap-2">{['Low', 'Medium', 'High'].map((level) => <button type="button" key={level} onClick={() => setConfidence(level)} className={`min-h-12 rounded-xl border px-3 py-3 text-sm font-semibold transition ${confidence === level ? 'border-primary bg-secondary text-primary' : 'border-border bg-card text-muted-foreground hover:border-primary/30'}`}>{level}</button>)}</div></fieldset>
+            <fieldset><legend className="field-label">Confidence level</legend><div className="grid grid-cols-3 gap-3">{['Low', 'Medium', 'High'].map((level) => <button type="button" key={level} onClick={() => setConfidence(level)} className={`min-h-12 rounded-xl border px-3 py-3 text-sm font-semibold transition ${confidence === level ? 'border-primary bg-secondary text-primary' : 'border-border bg-card text-muted-foreground hover:border-primary/30'}`}>{level}</button>)}</div></fieldset>
           </div>
 
           <label className="field-label mt-6">Notes &amp; reflection<textarea className="field min-h-32 resize-y" placeholder="Key ideas, mistakes, or questions to revisit…" value={notes} onChange={(event) => setNotes(event.target.value)} /></label>

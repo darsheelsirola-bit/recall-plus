@@ -1,4 +1,4 @@
-import { normalizeQuizRequest, requestQuiz } from './groq.js'
+import { normalizeQuizRequest, requestQuiz } from './quizGeneration.js'
 import { normalizeInsightsRequest, requestInsights } from './insights.js'
 import { requestTimetable } from './timetable.js'
 import { normalizeTimetableProfile } from '../shared/timetableValidation.js'
@@ -13,13 +13,19 @@ import {
   runLimitedInsightGeneration,
 } from './generationLimit.js'
 import { sendError, sendMethodNotAllowed, setPrivateNoStore } from './http.js'
-import { isSupabaseConfigured, verifySupabaseUser } from './supabase.js'
+import { isSupabaseConfigured, getSupabaseAdminClient, verifySupabaseUser } from './supabase.js'
 import { hasOnlyKeys, readBoundedJsonBody } from './requestValidation.js'
 import {
   authorizeInsightsRequest,
   authorizeQuizRequest,
   authorizeTimetableRequest,
 } from './curriculumAuthorization.js'
+import { isAiConfigured, usesGroq } from './ai/config.js'
+import {
+  publicQuizQuestions,
+  validateVerifiedQuizQuestions,
+} from '../shared/quizValidation.js'
+import { normalizeQuizSubmission, scoreQuizSubmission } from './quizScoring.js'
 
 async function authenticatedUser(request) {
   return verifySupabaseUser(request)
@@ -33,14 +39,8 @@ export function handleAiStatus(request, response) {
   if (request.method !== 'GET') return sendMethodNotAllowed(response, ['GET'])
   setPrivateNoStore(response)
   return response.status(200).json({
-    configured: Boolean(
-      process.env.GROQ_QUIZ_API_KEY
-      && process.env.GROQ_RECALL_API_KEY
-      && process.env.GROQ_INSIGHTS_API_KEY
-      && process.env.GROQ_TIMETABLE_API_KEY
-      && isSupabaseConfigured()
-    ),
-    provider: 'Groq',
+    configured: Boolean(isAiConfigured() && isSupabaseConfigured()),
+    provider: usesGroq() ? 'Groq' : 'NVIDIA',
   })
 }
 
@@ -97,13 +97,48 @@ export async function handleQuizGeneration(request, response, operations = {}) {
         questions: await injected(operations, 'requestQuiz', requestQuiz)(authorizedInput),
       }),
     })
+    const verifiedQuestions = limited.result?.questions
+    if (!validateVerifiedQuizQuestions(verifiedQuestions, authorizedInput.count)) {
+      throw new AppError('The saved quiz could not be verified safely.', {
+        code: ERROR_CODES.GENERATION_REPLAY_INVALID,
+        statusCode: 503,
+        details: { retryable: true },
+      })
+    }
     return response.status(200).json({
-      ...limited.result,
+      quizId: requestId,
+      questions: publicQuizQuestions(verifiedQuestions),
       remaining: limited.usage.remaining,
       limit: limited.usage.limit,
       resetAt: limited.usage.resetAt,
       localDate: limited.usage.localDate,
     })
+  } catch (error) {
+    return sendError(response, error)
+  }
+}
+
+export async function handleQuizSubmission(request, response, operations = {}) {
+  if (request.method !== 'POST') return sendMethodNotAllowed(response, ['POST'])
+  setPrivateNoStore(response)
+
+  try {
+    const body = readBoundedJsonBody(request)
+    const input = normalizeQuizSubmission(body)
+    if (!input) {
+      throw new AppError('Submit exactly one valid option for every quiz question.', {
+        code: ERROR_CODES.QUIZ_SUBMISSION_INVALID,
+        statusCode: 400,
+      })
+    }
+    const user = await injected(operations, 'authenticatedUser', authenticatedUser)(request)
+    const result = await injected(
+      operations,
+      'scoreQuizSubmission',
+      scoreQuizSubmission,
+    )(user.id, input)
+    response.setHeader('X-Idempotent-Replay', result.replay ? 'true' : 'false')
+    return response.status(200).json(result)
   } catch (error) {
     return sendError(response, error)
   }
@@ -202,6 +237,60 @@ export async function handleInsightGeneration(request, response, operations = {}
     })
     response.setHeader('X-Idempotent-Replay', limited.replay ? 'true' : 'false')
     return response.status(200).json(limited.result)
+  } catch (error) {
+    return sendError(response, error)
+  }
+}
+
+/**
+ * Permanently deletes the authenticated Supabase Auth user. Cascading FK
+ * policies remove owner-scoped public rows. Requires an explicit confirmation
+ * string so a stray click cannot destroy an account.
+ */
+export async function handleAccountDeletion(request, response, operations = {}) {
+  if (request.method !== 'POST') return sendMethodNotAllowed(response, ['POST'])
+  setPrivateNoStore(response)
+
+  try {
+    const body = readBoundedJsonBody(request)
+    if (!hasOnlyKeys(body, ['confirmation'])) {
+      throw new AppError('Invalid account-deletion request.', {
+        code: ERROR_CODES.INVALID_REQUEST,
+        statusCode: 400,
+      })
+    }
+    if (String(body.confirmation || '').trim() !== 'DELETE MY ACCOUNT') {
+      throw new AppError('Type DELETE MY ACCOUNT to confirm permanent deletion.', {
+        code: ERROR_CODES.ACCOUNT_DELETE_CONFIRMATION_REQUIRED,
+        statusCode: 400,
+      })
+    }
+
+    const user = await injected(operations, 'authenticatedUser', authenticatedUser)(request)
+    const admin = injected(operations, 'getSupabaseAdminClient', getSupabaseAdminClient)()
+    const { error: signOutError } = await admin.auth.admin.signOut(user.accessToken, 'global')
+    if (signOutError) {
+      throw new AppError('Your active sessions could not be revoked. Please try again before deleting your account.', {
+        code: ERROR_CODES.ACCOUNT_DELETE_FAILED,
+        statusCode: 503,
+        cause: signOutError,
+        details: { retryable: true },
+      })
+    }
+    const { error } = await admin.auth.admin.deleteUser(user.id)
+    if (error) {
+      throw new AppError('Your account could not be deleted right now. Please try again or email support.', {
+        code: ERROR_CODES.ACCOUNT_DELETE_FAILED,
+        statusCode: 503,
+        cause: error,
+        details: { retryable: true },
+      })
+    }
+
+    return response.status(200).json({
+      deleted: true,
+      message: 'Your Recall+ account and associated cloud data have been deleted.',
+    })
   } catch (error) {
     return sendError(response, error)
   }

@@ -1,6 +1,7 @@
 export {
   QUIZ_VERIFICATION_VERSION,
   validateQuizQuestions,
+  validatePublicQuizQuestions,
   validateVerifiedQuizQuestions,
 } from '../../shared/quizValidation.js'
 

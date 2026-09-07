@@ -78,8 +78,8 @@ export function validateCurriculumCatalog({
     }
   })
 
-  if (selectable.length !== 121) {
-    add('SELECTABLE_COUNT', `Expected 121 selectable subject codes; found ${selectable.length}.`)
+  if (selectable.length !== 24) {
+    add('SELECTABLE_COUNT', `Expected 24 selectable subject codes; found ${selectable.length}.`)
   }
 
   duplicateValues(subjects.map((subject) => subject.id)).forEach((id) =>

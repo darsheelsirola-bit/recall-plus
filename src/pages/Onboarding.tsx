@@ -25,7 +25,7 @@ import Logo from '../components/Logo'
 import { useAuth } from '../auth/AuthProvider.tsx'
 import { useAcademicProfile } from '../academic/AcademicProfileProvider.tsx'
 import {
-  academicSubjectCatalogue,
+  academicSubjectCatalogueFor,
 } from '../academic/academicProfile.ts'
 import {
   arrangeSubjectSelections,
@@ -40,18 +40,20 @@ import {
   writeOnboardingDraft,
   type OnboardingDraft,
 } from '../academic/onboarding.ts'
-import {
-  CBSE_2026_27_XI_SUBJECTS,
-  CBSE_2026_27_XI_SUBJECTS_BY_ID,
-} from '../data/curriculum/cbse/2026-27/class-11/catalogue.ts'
+import { subjectById } from '../data/curriculum/registry.ts'
 import type {
   AcademicPathway,
+  CurriculumGrade,
   CurriculumSubject,
 } from '../data/curriculum/types.ts'
 import {
   countSubjectHistory,
   totalSubjectHistory,
 } from '../utils/subjectHistory.js'
+import {
+  PROFILE_NAME_MAX_LENGTH,
+  validateProfileName,
+} from '../utils/profile.js'
 
 const pathwayOptions: Array<{
   id: AcademicPathway
@@ -75,18 +77,11 @@ const pathwayOptions: Array<{
   },
 ]
 
-const requiredLanguageCodes = new Set(['001', '301', '002', '302'])
-const requiredLanguages = academicSubjectCatalogue.filter((subject) =>
-  requiredLanguageCodes.has(subject.subjectCode ?? ''))
-const allLanguages = academicSubjectCatalogue.filter(
-  (subject) => subject.subjectGroup === 'L',
-)
-const internalAssessmentAreas = CBSE_2026_27_XI_SUBJECTS.filter(
-  (subject) => subject.subjectGroup === 'IA',
-)
+const requiredLanguageCodes = new Set(['301', '302', '118'])
 
-function subjectById(id: string): CurriculumSubject | null {
-  return CBSE_2026_27_XI_SUBJECTS_BY_ID.get(id) ?? null
+function languagesForGrade(grade: CurriculumGrade): CurriculumSubject[] {
+  return academicSubjectCatalogueFor(grade).filter((subject) =>
+    requiredLanguageCodes.has(subject.subjectCode ?? ''))
 }
 
 function SubjectCode({ subject }: { subject: CurriculumSubject }) {
@@ -143,40 +138,75 @@ function SelectionCard({
 
 function StepOne({
   draft,
+  displayName,
   email,
-  name,
+  onDisplayNameChange,
   update,
 }: {
   draft: OnboardingDraft
+  displayName: string
   email: string
-  name: string
+  onDisplayNameChange: (value: string) => void
   update: (patch: Partial<OnboardingDraft>) => void
 }) {
-  const fixedDetails = [
-    ['Board', 'CBSE'],
-    ['Class', 'XI'],
-    ['Academic year', '2026–27'],
-    ['Timezone', 'Asia/Kolkata'],
-  ]
   return (
     <div>
-      <div className="grid min-w-0 gap-3 sm:grid-cols-2">
-        <div className="min-w-0 rounded-2xl border border-border bg-muted/20 p-4">
-          <p className="text-xs font-medium text-muted-foreground">Student</p>
-          <p className="mt-1 truncate text-sm font-semibold">{name}</p>
-        </div>
-        <div className="min-w-0 rounded-2xl border border-border bg-muted/20 p-4">
-          <p className="text-xs font-medium text-muted-foreground">Account email</p>
-          <p className="mt-1 truncate text-sm font-semibold">{email}</p>
-        </div>
-      </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        {fixedDetails.map(([label, value]) => (
-          <div key={label} className="rounded-2xl border border-border bg-card p-4">
-            <p className="text-xs font-medium text-muted-foreground">{label}</p>
-            <p className="mt-1 text-sm font-semibold">{value}</p>
-          </div>
-        ))}
+      <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+        <label className="field-label" htmlFor="student-name">
+          Student
+          <input
+            id="student-name"
+            className="field"
+            autoComplete="name"
+            maxLength={PROFILE_NAME_MAX_LENGTH}
+            value={displayName}
+            onChange={(event) => onDisplayNameChange(event.target.value)}
+          />
+        </label>
+        <label className="field-label" htmlFor="account-email">
+          Account email
+          <input
+            id="account-email"
+            className="field bg-muted/40 text-muted-foreground"
+            value={email}
+            readOnly
+            disabled
+          />
+        </label>
+        <label className="field-label" htmlFor="board">
+          Board
+          <select id="board" className="field" value="CBSE" disabled>
+            <option value="CBSE">CBSE</option>
+          </select>
+        </label>
+        <label className="field-label" htmlFor="grade">
+          Class
+          <select
+            id="grade"
+            className="field"
+            value={draft.grade}
+            onChange={(event) => update({
+              grade: event.target.value === 'XII' ? 'XII' : 'XI',
+              subjectIds: [],
+              preset: 'custom',
+            })}
+          >
+            <option value="XI">Class XI</option>
+            <option value="XII">Class XII</option>
+          </select>
+        </label>
+        <label className="field-label" htmlFor="academic-year">
+          Academic year
+          <select id="academic-year" className="field" value="2026-27" disabled>
+            <option value="2026-27">2026–27</option>
+          </select>
+        </label>
+        <label className="field-label" htmlFor="timezone">
+          Timezone
+          <select id="timezone" className="field" value="Asia/Kolkata" disabled>
+            <option value="Asia/Kolkata">Asia/Kolkata</option>
+          </select>
+        </label>
       </div>
       <label className="field-label mt-5" htmlFor="school-name">
         School name <span className="font-normal text-muted-foreground">(optional)</span>
@@ -190,7 +220,7 @@ function StepOne({
         onChange={(event) => update({ schoolName: event.target.value })}
       />
       <p className="mt-2 text-xs leading-5 text-muted-foreground">
-        Recall+ uses India Standard Time for daily study limits and reminders.
+        Choose Class XI or XII. Board, academic year, and timezone stay on the CBSE 2026–27 India workspace that Recall+ currently supports. Email is your sign-in and cannot change here.
       </p>
     </div>
   )
@@ -253,7 +283,7 @@ function StepThree({
     <div className="grid gap-3 sm:grid-cols-2">
       {PATHWAY_PRESETS[draft.pathway].map((preset) => {
         const selected = draft.preset === preset.id
-        const subjects = presetSubjectIds(draft.pathway!, preset.id)
+        const subjects = presetSubjectIds(draft.pathway!, preset.id, draft.grade)
           .map(subjectById)
           .filter((subject): subject is CurriculumSubject => Boolean(subject))
         return (
@@ -307,11 +337,11 @@ function StepFour({
         <Languages className="size-4" />
         <AlertTitle>Choose the required primary language</AlertTitle>
         <AlertDescription>
-          Under the current scheme, Subject 1 must be English or Hindi at Core or Elective level. You can add another Group-L language in the next step.
+          Subject 1 must be English Core, Hindi Core, or French. These are the only language subjects in Recall+.
         </AlertDescription>
       </Alert>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        {requiredLanguages.map((subject) => {
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        {languagesForGrade(draft.grade).map((subject) => {
           const checked = draft.subjectIds.includes(subject.id)
           return (
             <button
@@ -319,13 +349,13 @@ function StepFour({
               type="button"
               aria-pressed={checked}
               onClick={() => selectLanguage(subject.id)}
-              className={`flex min-h-16 items-center gap-3 rounded-2xl border p-4 text-left transition ${
+              className={`flex min-h-16 items-start gap-3 rounded-2xl border p-4 text-left transition ${
                 checked
                   ? 'border-primary bg-secondary'
                   : 'border-border bg-card hover:border-primary/35'
               }`}
             >
-              <span className={`grid size-7 shrink-0 place-items-center rounded-full border ${
+              <span className={`mt-0.5 grid size-7 shrink-0 place-items-center rounded-full border ${
                 checked
                   ? 'border-primary bg-primary text-white'
                   : 'border-input bg-white text-transparent'
@@ -333,8 +363,8 @@ function StepFour({
                 <Check className="size-4" />
               </span>
               <span className="min-w-0 flex-1">
-                <strong className="block text-sm">{subject.name}</strong>
-                <span className="mt-1 block text-xs text-muted-foreground">
+                <strong className="block text-sm leading-5">{subject.name}</strong>
+                <span className="mt-1 block text-xs leading-5 text-muted-foreground">
                   Official code {subject.subjectCode}
                 </span>
               </span>
@@ -342,21 +372,6 @@ function StepFour({
           )
         })}
       </div>
-      <details className="mt-5 rounded-2xl border border-border bg-card p-4">
-        <summary className="min-h-11 cursor-pointer py-2 text-sm font-semibold">
-          View all {allLanguages.length} official Group-L languages
-        </summary>
-        <p className="mt-2 text-xs leading-5 text-muted-foreground">
-          Every current Group-L language is available under “More CBSE subjects” in the next step.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {allLanguages.map((subject) => (
-            <span key={subject.id} className="rounded-lg bg-muted px-2.5 py-1.5 text-xs">
-              {subject.name} · {subject.subjectCode}
-            </span>
-          ))}
-        </div>
-      </details>
     </div>
   )
 }
@@ -372,13 +387,14 @@ function StepFive({
   const [query, setQuery] = useState('')
   const recommended = useMemo(
     () => draft.pathway
-      ? recommendedSubjects(draft.pathway)
+      ? recommendedSubjects(draft.pathway, draft.grade)
         .filter((subject) => subject.subjectGroup !== 'L')
       : [],
-    [draft.pathway],
+    [draft.grade, draft.pathway],
   )
+  const catalogue = academicSubjectCatalogueFor(draft.grade)
   const visibleSubjects = useMemo(() => {
-    const source = showAll ? academicSubjectCatalogue : recommended
+    const source = showAll ? catalogue : recommended
     const normalizedQuery = query.trim().toLowerCase()
     if (!normalizedQuery) return source
     return source.filter((subject) => (
@@ -386,7 +402,7 @@ function StepFive({
       || subject.shortName.toLowerCase().includes(normalizedQuery)
       || subject.subjectCode?.includes(normalizedQuery)
     ))
-  }, [query, recommended, showAll])
+  }, [catalogue, query, recommended, showAll])
 
   return (
     <div>
@@ -452,22 +468,8 @@ function StepFive({
         <ChevronDown className={`size-4 transition ${showAll ? 'rotate-180' : ''}`} />
       </Button>
       <p className="mt-3 text-xs leading-5 text-muted-foreground">
-        “More CBSE subjects” includes all {academicSubjectCatalogue.length} selectable Group-L, Group-A and Group-S subjects in this curriculum version. Cross-disciplinary choices remain available where the official scheme permits them.
+        “More CBSE subjects” includes all {catalogue.length} approved Class {draft.grade} subjects in this Recall+ catalogue.
       </p>
-
-      <div className="mt-5 rounded-2xl border border-border bg-muted/20 p-4">
-        <p className="text-sm font-semibold">Compulsory internal assessment areas</p>
-        <p className="mt-1 text-xs leading-5 text-muted-foreground">
-          These are recorded as internal assessment subjects and do not occupy one of your five or six selectable positions.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {internalAssessmentAreas.map((subject) => (
-            <span key={subject.id} className="rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs">
-              {subject.name}
-            </span>
-          ))}
-        </div>
-      </div>
     </div>
   )
 }
@@ -494,18 +496,22 @@ function StepSix({
   )
   return (
     <div>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-border bg-muted/20 p-4">
-          <p className="text-xs text-muted-foreground">Pathway</p>
-          <p className="mt-1 capitalize font-semibold">{draft.pathway}</p>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="flex min-h-[5.5rem] flex-col justify-between rounded-2xl border border-border bg-muted/20 p-4">
+          <p className="text-xs leading-5 text-muted-foreground">Class</p>
+          <p className="mt-2 text-sm font-semibold leading-5">{draft.grade}</p>
         </div>
-        <div className="rounded-2xl border border-border bg-muted/20 p-4">
-          <p className="text-xs text-muted-foreground">Main subjects</p>
-          <p className="mt-1 font-semibold">{main.length}</p>
+        <div className="flex min-h-[5.5rem] flex-col justify-between rounded-2xl border border-border bg-muted/20 p-4">
+          <p className="text-xs leading-5 text-muted-foreground">Pathway</p>
+          <p className="mt-2 text-sm font-semibold capitalize leading-5">{draft.pathway}</p>
         </div>
-        <div className="rounded-2xl border border-border bg-muted/20 p-4">
-          <p className="text-xs text-muted-foreground">Additional subject</p>
-          <p className="mt-1 font-semibold">{additional ? '1' : 'None'}</p>
+        <div className="flex min-h-[5.5rem] flex-col justify-between rounded-2xl border border-border bg-muted/20 p-4">
+          <p className="text-xs leading-5 text-muted-foreground">Main subjects</p>
+          <p className="mt-2 text-sm font-semibold leading-5">{main.length}</p>
+        </div>
+        <div className="flex min-h-[5.5rem] flex-col justify-between rounded-2xl border border-border bg-muted/20 p-4">
+          <p className="text-xs leading-5 text-muted-foreground">Additional</p>
+          <p className="mt-2 text-sm font-semibold leading-5">{additional ? '1' : 'None'}</p>
         </div>
       </div>
 
@@ -516,18 +522,20 @@ function StepSix({
           return (
             <div
               key={selection.curriculumSubjectId}
-              className="flex min-h-16 items-center gap-3 border-b border-border p-4 last:border-b-0"
+              className="flex min-h-16 items-start gap-3 border-b border-border p-4 last:border-b-0"
             >
-              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-secondary text-xs font-bold text-primary">
+              <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-secondary text-xs font-bold text-primary">
                 {selection.subjectPosition}
               </span>
               <span className="min-w-0 flex-1">
-                <strong className="block break-words text-sm">{subject.name}</strong>
-                <span className="mt-1 block text-xs text-muted-foreground">
+                <strong className="block break-words text-sm leading-5">{subject.name}</strong>
+                <span className="mt-1 block text-xs leading-5 text-muted-foreground">
                   {selection.selectionType === 'main' ? 'Main subject' : 'Additional subject'} · {subjectCategoryLabel(subject)}
                 </span>
               </span>
-              <SubjectCode subject={subject} />
+              <span className="mt-0.5 shrink-0">
+                <SubjectCode subject={subject} />
+              </span>
             </div>
           )
         })}
@@ -584,7 +592,7 @@ function StepSix({
 const stepCopy = [
   {
     title: 'Set up your academic year',
-    description: 'Confirm the fixed CBSE Class XI curriculum details for this Recall+ release.',
+    description: 'Choose your class and confirm the academic details Recall+ will save to your profile.',
   },
   {
     title: 'Choose your pathway',
@@ -612,7 +620,7 @@ export default function Onboarding() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const editing = searchParams.get('mode') === 'edit'
-  const { profile: accountProfile, signOut, user } = useAuth()
+  const { profile: accountProfile, signOut, updateProfileName, user } = useAuth()
   const {
     completeProfile,
     saveProgress,
@@ -632,13 +640,17 @@ export default function Onboarding() {
       workspace?.profile.pathway ?? null,
       workspace?.profile.schoolName ?? '',
       initialSubjectIds,
+      workspace?.profile.grade === 'XII' ? 'XII' : 'XI',
     )
   })
   const [error, setError] = useState('')
   const [confirmed, setConfirmed] = useState(false)
+  const [displayName, setDisplayName] = useState(
+    () => accountProfile?.displayName || '',
+  )
   const selections = useMemo(
-    () => arrangeSubjectSelections(draft.subjectIds),
-    [draft.subjectIds],
+    () => arrangeSubjectSelections(draft.subjectIds, draft.grade),
+    [draft.grade, draft.subjectIds],
   )
   const removedSubjects = useMemo(() => {
     if (!editing || !workspace) return []
@@ -677,7 +689,7 @@ export default function Onboarding() {
       preset,
       subjectIds: [...new Set([
         ...languageIds,
-        ...presetSubjectIds(draft.pathway, preset),
+        ...presetSubjectIds(draft.pathway, preset, draft.grade),
       ])].slice(0, 6),
     })
   }
@@ -705,11 +717,14 @@ export default function Onboarding() {
   }
 
   function validationForStep(): string {
-    if (
-      draft.step === 1
-      && draft.schoolName.trim()
-      && draft.schoolName.trim().length < 2
-    ) return 'Enter at least 2 characters for the school name, or leave it blank.'
+    if (draft.step === 1) {
+      const nameError = validateProfileName(displayName)
+      if (nameError) return nameError
+      if (
+        draft.schoolName.trim()
+        && draft.schoolName.trim().length < 2
+      ) return 'Enter at least 2 characters for the school name, or leave it blank.'
+    }
     if (draft.step === 2 && !draft.pathway) return 'Choose a pathway to continue.'
     if (
       draft.step === 3
@@ -741,8 +756,16 @@ export default function Onboarding() {
     }
     if (draft.step >= ONBOARDING_STEP_COUNT) return
 
+    if (draft.step === 1 && displayName.trim() !== (accountProfile?.displayName || '').trim()) {
+      const { error: nameSaveError } = await updateProfileName(displayName)
+      if (nameSaveError) {
+        setError(nameSaveError)
+        return
+      }
+    }
+
     if (shouldPersistOnboardingProgress(editing)) {
-      const saveError = await saveProgress(draft.pathway, draft.schoolName)
+      const saveError = await saveProgress(draft.pathway, draft.schoolName, draft.grade)
       if (saveError) {
         setError(saveError)
         return
@@ -795,6 +818,7 @@ export default function Onboarding() {
       draft.pathway,
       draft.schoolName,
       selections,
+      draft.grade,
     )
     if (saveError) {
       setError(saveError)
@@ -844,7 +868,7 @@ export default function Onboarding() {
             </span>
             <div>
               <p className="text-sm font-semibold">Academic setup</p>
-              <p className="mt-0.5 text-xs text-white/60">CBSE · XI · 2026–27</p>
+              <p className="mt-0.5 text-xs text-white/60">CBSE · {draft.grade} · 2026–27</p>
             </div>
           </div>
           <ol className="mt-6 grid grid-cols-6 gap-1 lg:grid-cols-1 lg:gap-2" aria-label="Onboarding progress">
@@ -894,13 +918,29 @@ export default function Onboarding() {
           className="min-w-0 rounded-3xl border border-border bg-white p-5 shadow-soft sm:p-8 lg:p-10"
           onKeyDown={handleStepKeyDown}
         >
-          <span className="grid size-12 place-items-center rounded-2xl bg-secondary text-primary">
-            {draft.step === 4
-              ? <Languages className="size-5" />
-              : draft.step === 6
-                ? <CheckCircle2 className="size-5" />
-                : <Sparkles className="size-5" />}
-          </span>
+          <div className="flex items-start justify-between gap-4">
+            <span className="grid size-12 place-items-center rounded-2xl bg-secondary text-primary">
+              {draft.step === 4
+                ? <Languages className="size-5" />
+                : draft.step === 6
+                  ? <CheckCircle2 className="size-5" />
+                  : <Sparkles className="size-5" />}
+            </span>
+            {(draft.step > 1 || editing) ? (
+              <Button
+                type="button"
+                nativeButton
+                render={undefined}
+                variant="outline"
+                className="shrink-0"
+                onClick={goBack}
+                disabled={saving}
+              >
+                <ArrowLeft data-icon="inline-start" />
+                {draft.step === 1 && editing ? 'Back to settings' : 'Back'}
+              </Button>
+            ) : null}
+          </div>
           <h1
             ref={headingRef}
             tabIndex={-1}
@@ -936,8 +976,9 @@ export default function Onboarding() {
             {draft.step === 1 ? (
               <StepOne
                 draft={draft}
-                name={accountProfile?.displayName || 'Recall+ student'}
+                displayName={displayName}
                 email={accountProfile?.email || user?.email || ''}
+                onDisplayNameChange={setDisplayName}
                 update={update}
               />
             ) : null}
@@ -962,18 +1003,7 @@ export default function Onboarding() {
             ) : null}
           </div>
 
-          <div className="mt-8 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
-            <Button
-              type="button"
-              nativeButton
-              render={undefined}
-              variant="outline"
-              onClick={goBack}
-              disabled={saving || (draft.step === 1 && !editing)}
-            >
-              <ArrowLeft data-icon="inline-start" />
-              {draft.step === 1 && editing ? 'Back to settings' : 'Back'}
-            </Button>
+          <div className="mt-8 flex justify-end border-t border-border pt-6">
             {draft.step < ONBOARDING_STEP_COUNT ? (
               <Button
                 type="button"

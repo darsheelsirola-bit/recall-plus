@@ -11,10 +11,12 @@ import {
 } from 'react'
 import type {
   AcademicPathway,
+  CurriculumGrade,
   CurriculumNode,
   SubjectSelection,
 } from '../data/curriculum/types.ts'
-import { loadClientCurriculumNodes } from '../data/curriculum/cbse/2026-27/class-11/clientNodes.ts'
+import { loadClientCurriculumNodes } from '../data/curriculum/loadClientNodes.ts'
+import { CURRICULUM_VERSION_ID_BY_GRADE } from '../data/curriculum/registry.ts'
 import { useAuth } from '../auth/AuthProvider.tsx'
 import {
   type AcademicWorkspace,
@@ -36,11 +38,13 @@ interface AcademicProfileContextValue {
   saveProgress: (
     pathway: AcademicPathway | null,
     schoolName: string,
+    grade?: CurriculumGrade,
   ) => Promise<string>
   completeProfile: (
     pathway: AcademicPathway,
     schoolName: string,
     selections: readonly SubjectSelection[],
+    grade?: CurriculumGrade,
   ) => Promise<string>
 }
 
@@ -169,19 +173,22 @@ export function AcademicProfileProvider({ children }: PropsWithChildren) {
   const saveProgress = useCallback(async (
     pathway: AcademicPathway | null,
     schoolName: string,
+    grade: CurriculumGrade = 'XI',
   ): Promise<string> => {
     if (!userId || ownerId !== userId) {
       return 'Your signed-in account changed. Reload Recall+ and try again.'
     }
     setSaving(true)
     try {
-      await saveAcademicOnboardingProgress(userId, pathway, schoolName)
+      await saveAcademicOnboardingProgress(userId, pathway, schoolName, grade)
       setWorkspace((current) => ownerId === userId && current ? {
         ...current,
         profile: {
           ...current.profile,
           pathway,
           schoolName: schoolName.trim() || null,
+          grade,
+          curriculumVersionId: CURRICULUM_VERSION_ID_BY_GRADE[grade],
         },
       } : current)
       return ''
@@ -196,13 +203,14 @@ export function AcademicProfileProvider({ children }: PropsWithChildren) {
     pathway: AcademicPathway,
     schoolName: string,
     selections: readonly SubjectSelection[],
+    grade: CurriculumGrade = 'XI',
   ): Promise<string> => {
     if (!userId || ownerId !== userId) {
       return 'Your signed-in account changed. Reload Recall+ and try again.'
     }
     setSaving(true)
     try {
-      await saveAcademicProfile(userId, pathway, schoolName, selections)
+      await saveAcademicProfile(userId, pathway, schoolName, selections, grade)
       const nextWorkspace = await loadAcademicWorkspace(userId)
       setCurriculumError('')
       setCurriculumLoadingSubjectIds([])

@@ -9,9 +9,18 @@ import {
   CBSE_2026_27_XI_SUBJECTS,
   CBSE_2026_27_XI_SUBJECTS_BY_CODE,
   CBSE_2026_27_XI_VERSION,
+  CBSE_2026_27_XII_NODES,
+  CBSE_2026_27_XII_SELECTABLE_SUBJECTS,
+  CBSE_2026_27_XII_SUBJECTS_BY_CODE,
+  CBSE_2026_27_XII_VERSION,
+  RECALL_XI_ALLOWLIST_CODES,
+  RECALL_XI_LANGUAGE_CODES,
+  RECALL_XII_ALLOWLIST_CODES,
   resolveLegacySubject,
   subjectIdsForPreset,
+  subjectIdsForXiiPreset,
   validateCbse2026ClassXiCombination,
+  validateCbse2026ClassXiiCombination,
   validateCurriculumCatalog,
 } from '../src/data/curriculum/index.ts'
 
@@ -28,50 +37,35 @@ function selections(codes) {
 }
 
 describe('CBSE 2026-27 Class XI curriculum catalogue', () => {
-  it('contains every official selectable code and internal-assessment area', () => {
+  it('contains exactly the Recall+ allowlist subjects', () => {
     assert.deepEqual(CBSE_2026_27_XI_GROUP_COUNTS, {
-      L: 39,
-      A: 39,
-      S: 43,
-      IA: 3,
+      L: 3,
+      A: 19,
+      S: 2,
+      IA: 0,
     })
-    assert.equal(CBSE_2026_27_XI_SELECTABLE_SUBJECTS.length, 121)
-    assert.equal(CBSE_2026_27_XI_SUBJECTS.length, 124)
-
-    const codesFor = (group) => CBSE_2026_27_XI_SELECTABLE_SUBJECTS
-      .filter((subject) => subject.subjectGroup === group)
-      .map((subject) => subject.subjectCode)
-    assert.deepEqual(codesFor('L'), [
-      '001', '301', '002', '302', '003', '303', '022', '322', '104', '105',
-      '106', '107', '189', '108', '109', '110', '111', '112', '113', '114',
-      '115', '116', '117', '118', '120', '121', '123', '124', '125', '126',
-      '188', '191', '192', '193', '194', '195', '196', '197', '198',
-    ])
-    assert.deepEqual(codesFor('A'), [
-      '027', '028', '029', '030', '031', '032', '033', '034', '035', '036',
-      '037', '039', '041', '241', '042', '043', '044', '045', '046', '048',
-      '049', '050', '051', '052', '054', '055', '056', '057', '058', '059',
-      '060', '061', '064', '065', '083', '066', '073', '074', '076',
-    ])
-    assert.deepEqual(codesFor('S'), [
-      '801', '802', '803', '804', '805', '806', '807', '808', '809', '810',
-      '811', '812', '813', '814', '816', '817', '818', '819', '820', '821',
-      '822', '823', '824', '825', '826', '827', '828', '829', '830', '831',
-      '833', '834', '835', '836', '837', '841', '842', '843', '844', '845',
-      '846', '847', '848',
-    ])
+    assert.equal(CBSE_2026_27_XI_SELECTABLE_SUBJECTS.length, 24)
+    assert.equal(CBSE_2026_27_XI_SUBJECTS.length, 24)
+    assert.deepEqual(
+      CBSE_2026_27_XI_SELECTABLE_SUBJECTS.map((subject) => subject.subjectCode).sort(),
+      [...RECALL_XI_ALLOWLIST_CODES].sort(),
+    )
   })
 
-  it('contains the cross-stream and major subject codes required by the product', () => {
-    const requiredCodes = [
-      '001', '301', '002', '302',
-      '041', '241', '042', '043', '044',
-      '027', '028', '029', '030', '037', '039',
-      '048', '054', '055', '065', '083', '074',
-      '801', '802', '833', '843',
-    ]
-    requiredCodes.forEach((code) => {
-      assert.ok(CBSE_2026_27_XI_SUBJECTS_BY_CODE.has(code), `Missing ${code}`)
+  it('exposes only English Core, Hindi Core, and French as languages', () => {
+    const languages = CBSE_2026_27_XI_SELECTABLE_SUBJECTS
+      .filter((subject) => subject.subjectGroup === 'L')
+      .map((subject) => subject.subjectCode)
+      .sort()
+    assert.deepEqual(languages, [...RECALL_XI_LANGUAGE_CODES].sort())
+    ;['001', '002', '003', '104', '105'].forEach((code) => {
+      assert.equal(CBSE_2026_27_XI_SUBJECTS_BY_CODE.has(code), false)
+    })
+  })
+
+  it('does not include removed electives or unapproved skill subjects', () => {
+    ;['065', '045', '064', '802', '801', '833', '031'].forEach((code) => {
+      assert.equal(CBSE_2026_27_XI_SUBJECTS_BY_CODE.has(code), false, code)
     })
   })
 
@@ -90,16 +84,60 @@ describe('CBSE 2026-27 Class XI curriculum catalogue', () => {
     })
   })
 
+  it('models English Hornbill and Snapshots as books with chapters', () => {
+    const englishNodes = CBSE_2026_27_XI_NODES.filter(
+      (node) => node.subjectId === 'cbse-2026-27-xi-301',
+    )
+    const hornbill = englishNodes.find((node) => node.title === 'Hornbill')
+    const snapshots = englishNodes.find((node) => node.title === 'Snapshots')
+    assert.ok(hornbill)
+    assert.ok(snapshots)
+    assert.equal(hornbill.nodeType, 'book')
+    assert.equal(snapshots.nodeType, 'book')
+    assert.equal(hornbill.parentId, null)
+    assert.equal(snapshots.parentId, null)
+
+    const portrait = englishNodes.find((node) => node.title === 'The Portrait of a Lady')
+    assert.ok(portrait)
+    assert.equal(portrait.nodeType, 'chapter')
+    assert.equal(portrait.parentId, hornbill.id)
+
+    const summer = englishNodes.find(
+      (node) => node.title === 'The Summer of the Beautiful White Horse',
+    )
+    assert.ok(summer)
+    assert.equal(summer.nodeType, 'chapter')
+    assert.equal(summer.parentId, snapshots.id)
+
+    assert.equal(
+      englishNodes.some((node) =>
+        node.nodeType === 'topic' && (node.title === 'Hornbill' || node.title === 'Snapshots')),
+      false,
+    )
+  })
+
+  it('keeps Geography textbooks as separate books', () => {
+    const geographyNodes = CBSE_2026_27_XI_NODES.filter(
+      (node) => node.subjectId === 'cbse-2026-27-xi-029',
+    )
+    const books = geographyNodes.filter((node) => node.nodeType === 'book')
+    assert.ok(books.length >= 3)
+    assert.ok(books.every((book) => book.parentId === null))
+    books.forEach((book) => {
+      assert.ok(geographyNodes.some((node) =>
+        node.parentId === book.id && (node.nodeType === 'chapter' || node.nodeType === 'practical')))
+    })
+  })
+
   it('passes the structural catalogue validator', () => {
     const result = validateCurriculumCatalog({
       version: CBSE_2026_27_XI_VERSION,
       subjects: CBSE_2026_27_XI_SUBJECTS,
       nodes: CBSE_2026_27_XI_NODES,
       reviewedSubjectCodes: CBSE_2026_27_XI_REVIEWED_SUBJECT_CODES,
-      expectedGroupCounts: { L: 39, A: 39, S: 43, IA: 3 },
+      expectedGroupCounts: { L: 3, A: 19, S: 2, IA: 0 },
     })
     assert.equal(result.valid, true, JSON.stringify(result.issues))
-    assert.equal(result.counts.reviewedSubjects, 24)
   })
 
   it('detects duplicate catalogue subject IDs', () => {
@@ -108,7 +146,7 @@ describe('CBSE 2026-27 Class XI curriculum catalogue', () => {
       subjects: [...CBSE_2026_27_XI_SUBJECTS, CBSE_2026_27_XI_SUBJECTS[0]],
       nodes: CBSE_2026_27_XI_NODES,
       reviewedSubjectCodes: CBSE_2026_27_XI_REVIEWED_SUBJECT_CODES,
-      expectedGroupCounts: { L: 40, A: 39, S: 43, IA: 3 },
+      expectedGroupCounts: { L: 4, A: 19, S: 2, IA: 0 },
     })
     assert.equal(result.valid, false)
     assert.ok(result.issues.some((issue) => issue.code === 'DUPLICATE_SUBJECT_ID'))
@@ -121,7 +159,7 @@ describe('CBSE Class XI subject-combination rules', () => {
       ['301', '042', '043', '044', '041'],
       ['301', '055', '054', '030', '241'],
       ['301', '027', '028', '037', '039'],
-      ['301', '042', '843', '043', '041', '118'],
+      ['118', '042', '843', '043', '041', '302'],
     ]
     combinations.forEach((codes) => {
       const result = validateCbse2026ClassXiCombination(selections(codes))
@@ -142,17 +180,11 @@ describe('CBSE Class XI subject-combination rules', () => {
     assert.ok(skillAtFive.errors.some((error) => error.code === 'SUBJECT_FIVE_GROUP'))
   })
 
-  it('rejects official mutually exclusive subject combinations', () => {
-    const cases = [
-      { codes: ['301', '042', '043', '041', '241'], error: 'MATH_CONFLICT' },
-      { codes: ['301', '042', '083', '065', '041'], error: 'COMPUTER_CONFLICT' },
-      { codes: ['301', '054', '833', '030', '041'], error: 'BUSINESS_CONFLICT' },
-      { codes: ['301', '001', '042', '043', '041'], error: 'LANGUAGE_LEVEL_CONFLICT' },
-    ]
-    cases.forEach(({ codes, error }) => {
-      const result = validateCbse2026ClassXiCombination(selections(codes))
-      assert.ok(result.errors.some((entry) => entry.code === error), error)
-    })
+  it('rejects mutually exclusive mathematics selections', () => {
+    const result = validateCbse2026ClassXiCombination(
+      selections(['301', '042', '043', '041', '241']),
+    )
+    assert.ok(result.errors.some((entry) => entry.code === 'MATH_CONFLICT'))
   })
 
   it('exposes stable pathway presets without restricting custom choices', () => {
@@ -162,6 +194,60 @@ describe('CBSE Class XI subject-combination rules', () => {
     assert.deepEqual(
       subjectIdsForPreset('science', 'pcb'),
       ['cbse-2026-27-xi-042', 'cbse-2026-27-xi-043', 'cbse-2026-27-xi-044'],
+    )
+  })
+})
+
+describe('CBSE 2026-27 Class XII curriculum catalogue', () => {
+  it('mirrors the Class XI allowlist with XII subject IDs', () => {
+    assert.equal(CBSE_2026_27_XII_VERSION.grade, 'XII')
+    assert.equal(CBSE_2026_27_XII_SELECTABLE_SUBJECTS.length, 24)
+    assert.deepEqual(
+      CBSE_2026_27_XII_SELECTABLE_SUBJECTS.map((subject) => subject.subjectCode).sort(),
+      [...RECALL_XII_ALLOWLIST_CODES].sort(),
+    )
+    assert.deepEqual(
+      [...RECALL_XII_ALLOWLIST_CODES].sort(),
+      [...RECALL_XI_ALLOWLIST_CODES].sort(),
+    )
+  })
+
+  it('models English Flamingo and Vistas as books with Class XII chapters', () => {
+    const englishNodes = CBSE_2026_27_XII_NODES.filter(
+      (node) => node.subjectId === 'cbse-2026-27-xii-301',
+    )
+    const flamingo = englishNodes.find((node) => node.title === 'Flamingo')
+    const vistas = englishNodes.find((node) => node.title === 'Vistas')
+    assert.ok(flamingo)
+    assert.ok(vistas)
+    assert.equal(flamingo.nodeType, 'book')
+    assert.equal(vistas.nodeType, 'book')
+
+    const lastLesson = englishNodes.find((node) => node.title === 'The Last Lesson')
+    assert.ok(lastLesson)
+    assert.equal(lastLesson.parentId, flamingo.id)
+
+    const thirdLevel = englishNodes.find((node) => node.title === 'The Third Level')
+    assert.ok(thirdLevel)
+    assert.equal(thirdLevel.parentId, vistas.id)
+  })
+
+  it('accepts a valid Class XII science combination', () => {
+    const codes = ['301', '042', '043', '843', '041']
+    const picks = codes.map((code, index) => {
+      const subject = CBSE_2026_27_XII_SUBJECTS_BY_CODE.get(code)
+      assert.ok(subject)
+      return {
+        curriculumSubjectId: subject.id,
+        subjectPosition: index + 1,
+        selectionType: 'main',
+      }
+    })
+    const result = validateCbse2026ClassXiiCombination(picks)
+    assert.equal(result.valid, true)
+    assert.deepEqual(
+      subjectIdsForXiiPreset('science', 'pcm'),
+      ['cbse-2026-27-xii-042', 'cbse-2026-27-xii-043', 'cbse-2026-27-xii-041'],
     )
   })
 })

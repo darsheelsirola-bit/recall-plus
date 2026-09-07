@@ -1,7 +1,14 @@
 import { AppError, ERROR_CODES } from './errors.js'
 import { getUserScopedSupabaseClient } from './supabase.js'
 
-const CHAPTER_NODE_TYPES = new Set(['unit', 'chapter'])
+const CHAPTER_NODE_TYPES = new Set([
+  'book',
+  'unit',
+  'chapter',
+  'assessment_area',
+  'practical',
+  'project',
+])
 
 function unavailable(cause) {
   return new AppError('Your curriculum could not be verified right now. Please try again.', {
@@ -91,7 +98,8 @@ export async function loadAuthorizedCurriculum(
       client
         .from('curriculum_subjects')
         .select('id, curriculum_version_id, name, short_name, subject_code')
-        .in('id', subjectIds),
+        .in('id', subjectIds)
+        .eq('active', true),
       includeNodes && requestedNodeSubjectIds.length
         ? client
           .from('curriculum_nodes')

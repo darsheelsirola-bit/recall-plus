@@ -4,6 +4,26 @@ function descendants(node, byParent) {
   return children.flatMap((child) => descendants(child, byParent))
 }
 
+function buildChapter(node, byParent) {
+  const topicNodes = descendants(node, byParent)
+    .filter((descendant) => descendant.id !== node.id)
+    .map((descendant) => ({
+      id: descendant.id,
+      name: descendant.title,
+      nodeType: descendant.nodeType,
+    }))
+  return {
+    id: node.id,
+    name: node.title,
+    nodeType: node.nodeType,
+    sourceUrl: node.sourceUrl,
+    bookId: null,
+    bookName: null,
+    topics: topicNodes.map((topic) => topic.name),
+    topicNodes,
+  }
+}
+
 function subjectSyllabus(selection, nodesBySubject) {
   const { subject } = selection
   const nodes = nodesBySubject.get(subject.id) || []
@@ -15,6 +35,36 @@ function subjectSyllabus(selection, nodesBySubject) {
   })
   const topLevel = (byParent.get('') || [])
     .sort((left, right) => left.officialOrder - right.officialOrder)
+
+  const bookNodes = topLevel.filter((node) => node.nodeType === 'book')
+  const otherTopLevel = topLevel.filter((node) => node.nodeType !== 'book')
+
+  const books = bookNodes.map((bookNode) => {
+    const childChapters = (byParent.get(bookNode.id) || [])
+      .filter((child) => child.nodeType === 'chapter' || child.nodeType === 'practical')
+      .sort((left, right) => left.officialOrder - right.officialOrder)
+      .map((chapterNode) => {
+        const built = buildChapter(chapterNode, byParent)
+        return {
+          ...built,
+          bookId: bookNode.id,
+          bookName: bookNode.title,
+        }
+      })
+    return {
+      id: bookNode.id,
+      name: bookNode.title,
+      nodeType: 'book',
+      sourceUrl: bookNode.sourceUrl,
+      chapters: childChapters,
+    }
+  })
+
+  const chapters = [
+    ...books.flatMap((book) => book.chapters),
+    ...otherTopLevel.map((node) => buildChapter(node, byParent)),
+  ]
+
   return {
     id: subject.id,
     subjectId: subject.id,
@@ -25,23 +75,8 @@ function subjectSyllabus(selection, nodesBySubject) {
     contentStatus: subject.contentStatus,
     selectionType: selection.selectionType,
     subjectPosition: selection.subjectPosition,
-    chapters: topLevel.map((node) => {
-      const topicNodes = descendants(node, byParent)
-        .filter((descendant) => descendant.id !== node.id)
-        .map((descendant) => ({
-          id: descendant.id,
-          name: descendant.title,
-          nodeType: descendant.nodeType,
-        }))
-      return {
-        id: node.id,
-        name: node.title,
-        nodeType: node.nodeType,
-        sourceUrl: node.sourceUrl,
-        topics: topicNodes.map((topic) => topic.name),
-        topicNodes,
-      }
-    }),
+    books,
+    chapters,
   }
 }
 
@@ -54,9 +89,13 @@ export function curriculumRequestSelection(syllabus, subjectName, chapterNames, 
   const topicNodes = chapters.flatMap((chapter) => chapter.topicNodes || [])
     .filter((topic) => requestedTopics.has(topic.name))
   if (!chapters.length || !topicNodes.length) return null
+  const bookIds = chapters.map((chapter) => chapter.bookId).filter(Boolean)
   return {
     curriculumSubjectId: subject.subjectId,
-    chapterNodeIds: [...new Set(chapters.map((chapter) => chapter.id))],
+    chapterNodeIds: [...new Set([
+      ...bookIds,
+      ...chapters.map((chapter) => chapter.id),
+    ])],
     topicNodeIds: [...new Set(topicNodes.map((topic) => topic.id))],
   }
 }

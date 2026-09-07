@@ -24,13 +24,16 @@
     "curriculum:validate": "node scripts/validate-cbse-curriculum.ts",
     "curriculum:report": "node scripts/generate-curriculum-report.ts",
     "curriculum:sql": "node scripts/generate-curriculum-sql.ts",
-    "curriculum:sql:check": "node scripts/generate-curriculum-sql.ts --check",
+    "curriculum:sql:check": "node scripts/check-frozen-curriculum-sql.ts",
+    "curriculum:allowlist:sql": "node scripts/generate-allowlist-migration.ts",
+    "curriculum:xii:sql": "node scripts/generate-class-12-migration.ts",
     "curriculum:client": "node scripts/generate-client-curriculum-nodes.ts",
     "curriculum:client:check": "node scripts/generate-client-curriculum-nodes.ts --check",
+    "curriculum:coverage": "node scripts/generate-curriculum-coverage-doc.ts",
     "test:db:smoke": "node scripts/smoke-test-curriculum-db.mjs",
     "audit:prod": "node scripts/audit-policy.mjs --omit=dev",
     "audit:all": "node scripts/audit-policy.mjs",
-    "test": "node --test test/*.test.js",
+    "test": "node --import ./test/providerEnv.mjs --test test/*.test.js",
     "typecheck": "tsc --noEmit",
     "check": "npm run verify:router && npm run curriculum:validate && npm run curriculum:sql:check && npm run curriculum:client:check && npm run test:db:smoke && npm run typecheck && npm run lint && npm test && npm run build && npm run scan:secrets && npm run scan:history",
     "vercel:build": "npm run validate:vercel-env && npm run check && npm run audit:all && node scripts/smoke-test-live-api.mjs"
@@ -68,5 +71,9 @@
     "tailwindcss": "^3.4.19",
     "typescript": "6.0.3",
     "typescript-eslint": "8.65.0"
+  },
+  "overrides": {
+    "brace-expansion": "5.0.9",
+    "nanoid": "3.3.18"
   }
 }
