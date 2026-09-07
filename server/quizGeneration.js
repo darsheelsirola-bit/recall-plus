@@ -317,7 +317,8 @@ export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', 
     } catch (error) {
       lastError = error
       if ([400, 401, 403, 404, 422].includes(error?.upstreamStatus)) throw error
-      if (error?.quizVerificationFailed) throw error
+      // Discard an unverified quiz and generate afresh within the same bounded
+      // attempt/deadline budget. Never return a question that failed either audit.
     }
     if (attempt + 1 < MAX_PROVIDER_ATTEMPTS && lastError?.upstreamStatus !== 404) {
       await waitBeforeProviderRetry(lastError, attempt + 1, deadlineAt)

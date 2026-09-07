@@ -105,8 +105,8 @@ export default function Home() {
                 <span className="grid size-11 place-items-center rounded-xl bg-primary"><Brain className="size-5" /></span>
                 <div><p className="text-sm font-semibold">{primary?.label || 'Start studying'}</p><p className="mt-0.5 text-xs text-white/50">{primary?.meta || 'Pick from your syllabus'}</p></div>
               </div>
-              <Button render={<Link to={primary?.to || '/syllabus'} />} className="bg-primary text-white hover:bg-[#514AE7]">
-                {primary ? 'Start session' : 'Choose a topic'} <ArrowRight data-icon="inline-end" />
+              <Button render={<Link to="/add-log" />} className="bg-primary text-white hover:bg-[#514AE7]">
+                Start study log <ArrowRight data-icon="inline-end" />
               </Button>
             </div>
           </CardContent>

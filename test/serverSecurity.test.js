@@ -559,7 +559,7 @@ test('answer verification rejects the two incorrect physics keys reported by the
   process.env.NVIDIA_API_KEY = 'test-only-key'
   globalThis.fetch = async () => {
     providerCalls += 1
-    if (providerCalls === 1) return providerQuizResponse({ questions })
+    if (providerCalls % 2 === 1) return providerQuizResponse({ questions })
     return providerQuizResponse({
       verifications: verificationEntries(questions, {
         q1: '10√3 m/s',
@@ -583,7 +583,30 @@ test('answer verification rejects the two incorrect physics keys reported by the
         && /could not be verified for answer accuracy/i.test(error.message)
       ),
     )
-    assert.equal(providerCalls, 2)
+    assert.equal(providerCalls, 6)
+  } finally {
+    globalThis.fetch = originalFetch
+    if (originalKey === undefined) delete process.env.NVIDIA_API_KEY
+    else process.env.NVIDIA_API_KEY = originalKey
+  }
+})
+
+test('a failed answer audit regenerates and still requires two successful audits', async () => {
+  const originalFetch = globalThis.fetch
+  const originalKey = process.env.NVIDIA_API_KEY
+  process.env.NVIDIA_API_KEY = 'retry-test-key'
+  const questions = mixedPhysicsQuiz()
+  let calls = 0
+  globalThis.fetch = async () => {
+    calls += 1
+    if (calls === 1 || calls === 3) return providerQuizResponse({ questions })
+    if (calls === 2) return providerQuizResponse({ verifications: [] })
+    return providerQuizResponse({ verifications: verificationEntries(questions) })
+  }
+  try {
+    const result = await requestQuiz({ subject: 'Physics', chapter: 'Motion', topic: 'Velocity', count: 5, level: 'mixed' })
+    assert.equal(calls, 5)
+    assert.equal(validateVerifiedQuizQuestions(result, 5), true)
   } finally {
     globalThis.fetch = originalFetch
     if (originalKey === undefined) delete process.env.NVIDIA_API_KEY
