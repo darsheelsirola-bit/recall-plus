@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, unlink, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { CBSE_2026_27_XI_NODES_BY_SUBJECT } from '../src/data/curriculum/cbse/2026-27/class-11/outlines.ts'
@@ -26,8 +26,6 @@ const expectedFiles = new Map(
     ]),
 )
 
-await mkdir(outputDirectory, { recursive: true })
-
 if (checking) {
   const actualFiles = (await readdir(outputDirectory))
     .filter((name) => name.endsWith('.json'))
@@ -46,8 +44,15 @@ if (checking) {
   }
   console.log(`Verified ${expectedFiles.size} subject-specific client curriculum modules.`)
 } else {
+  await mkdir(outputDirectory, { recursive: true })
+  const expectedNames = new Set(expectedFiles.keys())
+  const staleFiles = (await readdir(outputDirectory))
+    .filter((name) => name.endsWith('.json') && !expectedNames.has(name))
+  await Promise.all(staleFiles.map((name) => unlink(join(outputDirectory, name))))
   for (const [name, content] of expectedFiles) {
     await writeFile(join(outputDirectory, name), content, 'utf8')
   }
-  console.log(`Generated ${expectedFiles.size} subject-specific client curriculum modules.`)
+  console.log(
+    `Generated ${expectedFiles.size} subject-specific client curriculum modules and removed ${staleFiles.length} stale module(s).`,
+  )
 }

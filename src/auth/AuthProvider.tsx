@@ -318,6 +318,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
       email: email.trim(),
       password,
       options: {
+        emailRedirectTo: typeof window === 'undefined'
+          ? undefined
+          : new URL('/auth/callback', window.location.origin).toString(),
         data: {
           display_name: displayName,
           full_name: displayName,

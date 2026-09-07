@@ -7,10 +7,12 @@ import {
   migrateLegacyDataForUser,
   replaceScopedDataSnapshot,
   saveDataForUser,
+  saveDataForUserOrThrow,
   setDataSyncRemoteBaseline,
   STORAGE_KEYS,
   validateScopedDataSnapshot,
 } from '../utils/storage'
+import { migrateStudyLogCurriculum } from '../utils/studyLogCurriculumMigration.js'
 import {
   assertExpectedSessionUser,
   runForExpectedSessionUser,
@@ -121,6 +123,12 @@ export async function syncUserSnapshot(userId: string): Promise<void> {
   if (existing) return existing
 
   const operation = (async () => {
+    const beforeMigration = getScopedDataSnapshot(userId)
+    const logs = beforeMigration.recall_plus_study_logs
+    const migratedLogs = migrateStudyLogCurriculum(logs)
+    if (migratedLogs !== logs) {
+      saveDataForUserOrThrow(userId, STORAGE_KEYS.logs, migratedLogs)
+    }
     const syncState = getDataSyncState(userId)
     if (!syncState.dirty) return
 

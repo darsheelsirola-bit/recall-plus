@@ -1,10 +1,14 @@
 import { useEffect, useMemo } from 'react'
 import { useAcademicProfile } from './AcademicProfileProvider'
-import { buildActiveSyllabus } from './activeCurriculumData'
+import {
+  buildActiveSyllabus,
+  curriculumSubjectIdsForNames,
+} from './activeCurriculumData'
 
 export {
   activeSubjectNameSet,
   buildActiveSyllabus,
+  curriculumSubjectIdsForNames,
   curriculumRequestSelection,
   filterActiveSubjectRecords,
   isActiveSubjectRecord,
@@ -52,9 +56,7 @@ export function useCurriculumSubjects(subjectNames = []) {
     .join('\u0000')
   const subjectIds = useMemo(() => {
     const names = new Set(nameKey ? nameKey.split('\u0000') : [])
-    return (workspace?.subjects || [])
-      .filter((selection) => names.has(selection.subject.name))
-      .map((selection) => selection.curriculumSubjectId)
+    return curriculumSubjectIdsForNames(workspace?.subjects, [...names])
   }, [nameKey, workspace?.subjects])
   const subjectIdKey = subjectIds.join('\u0000')
 

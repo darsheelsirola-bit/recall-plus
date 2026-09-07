@@ -16,7 +16,7 @@ import {
 } from './requestValidation.js'
 
 const GROQ_CHAT_COMPLETIONS_URL = 'https://api.groq.com/openai/v1/chat/completions'
-const DEFAULT_GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']
+const DEFAULT_GROQ_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b']
 const MAX_CHAPTERS = 3
 const INSIGHTS_OUTPUT_TOKENS = 3_500
 

@@ -4,7 +4,7 @@ import { extname, join, relative } from 'node:path'
 
 const projectRoot = process.cwd()
 const allowedAdvisoryId = 'GHSA-qwww-vcr4-c8h2'
-const expectedRouterVersion = '7.18.1'
+const expectedRouterVersion = '7.18.3'
 const allowedAffectedPackages = new Set(['react-router', 'react-router-dom'])
 const runtimeExtensions = new Set(['.js', '.jsx', '.mjs', '.ts', '.tsx'])
 const acceptedArguments = new Set(['--omit=dev'])
