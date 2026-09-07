@@ -8,7 +8,8 @@ import {
   AI_FEATURES,
   NVIDIA_CHAT_COMPLETIONS_URL,
   featureConfig,
-  getNvidiaApiKey,
+  getFeatureApiKey,
+  usesGroq,
   modelCandidates,
 } from './config.js'
 import { logAiCall } from './log.js'
@@ -29,24 +30,25 @@ function unavailable(feature) {
   })
 }
 
-export function requireNvidiaKey(feature) {
-  const key = getNvidiaApiKey()
+export function requireAiKey(feature) {
+  const key = getFeatureApiKey(feature)
   if (!key) throw unavailable(feature)
   return key
 }
 
 export async function createChatCompletion({
   feature,
+  credentialFeature = feature,
   model,
   messages,
   temperature,
   maxTokens,
   deadlineAt,
 }) {
-  const key = requireNvidiaKey(feature)
+  const key = requireAiKey(credentialFeature)
   const config = featureConfig(feature)
   const started = Date.now()
-  const response = await fetchProvider(NVIDIA_CHAT_COMPLETIONS_URL, {
+  const response = await fetchProvider(usesGroq() ? 'https://api.groq.com/openai/v1/chat/completions' : NVIDIA_CHAT_COMPLETIONS_URL, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${key}`,
@@ -55,9 +57,7 @@ export async function createChatCompletion({
     body: JSON.stringify({
       model,
       temperature: temperature ?? config.temperature,
-      max_tokens: maxTokens ?? config.maxTokens,
-      reasoning_effort: config.reasoningEffort,
-      reasoning_budget: config.reasoningBudget,
+      ...(usesGroq() ? { max_completion_tokens: maxTokens ?? config.maxTokens, response_format: { type: 'json_object' } } : { max_tokens: maxTokens ?? config.maxTokens, reasoning_effort: config.reasoningEffort, reasoning_budget: config.reasoningBudget }),
       messages,
     }),
   }, { deadlineAt })
@@ -88,6 +88,7 @@ export async function createChatCompletion({
 
 export async function generateStructured({
   feature,
+  credentialFeature = feature,
   model,
   messages,
   temperature,
@@ -96,6 +97,7 @@ export async function generateStructured({
 }) {
   const payload = await createChatCompletion({
     feature,
+    credentialFeature,
     model,
     messages,
     temperature,

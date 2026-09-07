@@ -3,7 +3,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { extname, join, relative } from 'node:path'
 
 const projectRoot = process.cwd()
-const expectedRouterVersion = '7.18.2'
+const expectedRouterVersion = '7.18.3'
 const runtimeExtensions = new Set(['.js', '.jsx', '.mjs', '.ts', '.tsx'])
 const acceptedArguments = new Set(['--omit=dev'])
 

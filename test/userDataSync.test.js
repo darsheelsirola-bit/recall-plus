@@ -67,6 +67,28 @@ function sessionResult(userId) {
   }
 }
 
+for (const rejectLegacy of [false, true]) {
+  test(`curriculum sync ${rejectLegacy ? 'repairs rejected legacy references once' : 'preserves references accepted by the current database'}`, async (t) => {
+    const { storage, supabase, sync } = await createHarness(t)
+    const userId = 'account-a'
+    const log = { id: 'english-log', subject: 'English Core', book: 'Hornbill', curriculumSubjectId: 'cbse-2026-27-xi-301', curriculumVersionId: 'cbse-2026-27-xi-v1', curriculumNodeIds: ['node-cbse-2026-27-xi-301:book:03:hornbill'] }
+    storage.setStorageUser(userId)
+    storage.saveDataForUser(userId, storage.STORAGE_KEYS.logs, [log])
+    t.mock.method(supabase.auth, 'getSession', async () => sessionResult(userId))
+    const calls = []
+    t.mock.method(supabase, 'rpc', async (_name, args) => {
+      calls.push(args)
+      if (rejectLegacy && calls.length === 1) return { data: null, error: { message: 'INVALID_STUDY_LOG_CURRICULUM' } }
+      return { data: { version: 1, updatedAt: '2026-09-07T00:00:00Z' }, error: null }
+    })
+    await sync.syncUserSnapshot(userId)
+    assert.equal(calls.length, rejectLegacy ? 2 : 1)
+    assert.deepEqual(calls[0].p_data.recall_plus_study_logs, [log])
+    if (rejectLegacy) assert.deepEqual(calls[1].p_data.recall_plus_study_logs[0].legacyCurriculumNodeIds, log.curriculumNodeIds)
+    assert.equal(storage.getDataSyncState(userId).dirty, false)
+  })
+}
+
 test('stale hydration cannot restore the previous account as storage owner', async (t) => {
   const { storage, supabase, sync } = await createHarness(t)
   let subject = 'account-a'

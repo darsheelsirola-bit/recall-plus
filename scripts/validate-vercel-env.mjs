@@ -42,24 +42,10 @@ requireOneOf(browserSupabaseKeyNames)
 const serverSupabaseUrl = requireValue('SUPABASE_URL')
 const serverAnonKey = requireValue('SUPABASE_ANON_KEY')
 const serviceRoleKey = requireValue('SUPABASE_SERVICE_ROLE_KEY')
-const nvidiaKey = requireValue('NVIDIA_API_KEY')
-const nvidiaModel = requireValue('NVIDIA_MODEL')
-const requiredNvidiaModel = 'z-ai/glm-5.2'
-if (nvidiaModel && nvidiaModel !== requiredNvidiaModel) {
-  failures.push(`NVIDIA_MODEL must be ${requiredNvidiaModel}`)
-}
-for (const name of [
-  'NVIDIA_MODEL_QUIZ',
-  'NVIDIA_MODEL_TIMETABLE',
-  'NVIDIA_MODEL_INSIGHT',
-  'NVIDIA_MODEL_RECALL',
-  'NVIDIA_MODEL_VERIFIER',
-]) {
-  const value = String(process.env[name] || '').trim()
-  if (value && value !== requiredNvidiaModel) {
-    failures.push(`${name} must be empty or match NVIDIA_MODEL`)
-  }
-}
+const quizKey = requireValue('GROQ_QUIZ_API_KEY')
+const recallKey = requireValue('GROQ_RECALL_API_KEY')
+const insightsKey = requireValue('GROQ_INSIGHTS_API_KEY')
+const timetableKey = requireValue('GROQ_TIMETABLE_API_KEY')
 
 validateHttpsUrl('VITE_SUPABASE_URL', browserSupabaseUrl)
 validateHttpsUrl('SUPABASE_URL', serverSupabaseUrl)
@@ -70,7 +56,10 @@ if (browserSupabaseUrl && serverSupabaseUrl
 }
 const serverSecrets = [
   ['SUPABASE_SERVICE_ROLE_KEY', serviceRoleKey],
-  ['NVIDIA_API_KEY', nvidiaKey],
+  ['GROQ_QUIZ_API_KEY', quizKey],
+  ['GROQ_RECALL_API_KEY', recallKey],
+  ['GROQ_INSIGHTS_API_KEY', insightsKey],
+  ['GROQ_TIMETABLE_API_KEY', timetableKey],
 ]
 for (const publicName of browserSupabaseKeyNames) {
   const publicValue = String(process.env[publicName] || '').trim()
@@ -89,10 +78,28 @@ for (const publicName of browserSupabaseKeyNames) {
 if (serverAnonKey && serviceRoleKey && serverAnonKey === serviceRoleKey) {
   failures.push('SUPABASE_ANON_KEY must not contain the service-role key')
 }
+if (quizKey && timetableKey && quizKey === timetableKey) {
+  failures.push('GROQ_QUIZ_API_KEY and GROQ_TIMETABLE_API_KEY must use separate credentials')
+}
+if (recallKey && quizKey && recallKey === quizKey) {
+  failures.push('GROQ_RECALL_API_KEY and GROQ_QUIZ_API_KEY must use separate credentials')
+}
+if (recallKey && insightsKey && recallKey === insightsKey) {
+  failures.push('GROQ_RECALL_API_KEY and GROQ_INSIGHTS_API_KEY must use separate credentials')
+}
+if (recallKey && timetableKey && recallKey === timetableKey) {
+  failures.push('GROQ_RECALL_API_KEY and GROQ_TIMETABLE_API_KEY must use separate credentials')
+}
+if (insightsKey && quizKey && insightsKey === quizKey) {
+  failures.push('GROQ_INSIGHTS_API_KEY and GROQ_QUIZ_API_KEY must use separate credentials')
+}
+if (insightsKey && timetableKey && insightsKey === timetableKey) {
+  failures.push('GROQ_INSIGHTS_API_KEY and GROQ_TIMETABLE_API_KEY must use separate credentials')
+}
 
-const timeout = String(process.env.NVIDIA_REQUEST_TIMEOUT_MS || '').trim()
+const timeout = String(process.env.GROQ_REQUEST_TIMEOUT_MS || '').trim()
 if (timeout && (!/^\d+$/.test(timeout) || Number(timeout) < 5000 || Number(timeout) > 30000)) {
-  failures.push('NVIDIA_REQUEST_TIMEOUT_MS must be an integer from 5000 through 30000')
+  failures.push('GROQ_REQUEST_TIMEOUT_MS must be an integer from 5000 through 30000')
 }
 
 const oauthFeatureFlags = [
@@ -128,5 +135,5 @@ if (failures.length > 0) {
 
 console.log(`Vercel ${environment} environment validation passed; required values are present and remain in their intended exposure scope.`)
 if (environment === 'preview') {
-  console.log('Preview validation cannot compare dashboard scopes; use isolated Preview Supabase and NVIDIA credentials as documented.')
+  console.log('Preview validation cannot compare dashboard scopes; use isolated Preview Supabase and Groq credentials as documented.')
 }

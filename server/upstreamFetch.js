@@ -1,3 +1,4 @@
+import { usesGroq } from './ai/config.js'
 import { AppError, ERROR_CODES } from './errors.js'
 
 const DEFAULT_TIMEOUT_MS = 20_000
@@ -11,7 +12,7 @@ export const MAX_PROVIDER_ATTEMPTS = 3
 export const PROVIDER_TOTAL_DEADLINE_MS = 45_000
 
 function configuredTimeout() {
-  const requested = Number(process.env.NVIDIA_REQUEST_TIMEOUT_MS)
+  const requested = Number(usesGroq() ? process.env.GROQ_REQUEST_TIMEOUT_MS : process.env.NVIDIA_REQUEST_TIMEOUT_MS)
   if (!Number.isFinite(requested)) return DEFAULT_TIMEOUT_MS
   return Math.min(MAX_TIMEOUT_MS, Math.max(MIN_TIMEOUT_MS, Math.trunc(requested)))
 }

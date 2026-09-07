@@ -8,7 +8,7 @@ import { AppError, ERROR_CODES } from './errors.js'
 import {
   generateStructured,
   modelCandidates,
-  requireNvidiaKey,
+  requireAiKey,
 } from './ai/client.js'
 import { AI_FEATURES } from './ai/config.js'
 import { deterministicNumericalAnswer } from './ai/numericalVerification.js'
@@ -244,12 +244,14 @@ async function generateOnce({
 }
 
 async function verifyOnce({
+  credentialFeature,
   model,
   questions,
   deadlineAt,
 }) {
   const parsed = await generateStructured({
     feature: AI_FEATURES.VERIFIER,
+    credentialFeature,
     model,
     temperature: 0,
     deadlineAt,
@@ -269,7 +271,7 @@ async function verifyOnce({
 
 export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', curriculumSubjectId = 'test-subject', chapterNodeIds = ['test-chapter'], topicNodeIds = ['test-topic'], subject, chapter, topic, count, level = 'mixed', purpose = 'practice' }) {
   const feature = purpose === 'recall' ? AI_FEATURES.RECALL : AI_FEATURES.QUIZ
-  requireNvidiaKey(feature)
+  requireAiKey(feature)
 
   const safeCount = clampCount(count)
   const safeLevel = ['mixed', 'easy', 'medium', 'hard'].includes(level) ? level : 'mixed'
@@ -300,6 +302,7 @@ export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', 
         for (let pass = 0; pass < QUIZ_VERIFICATION_PASSES; pass += 1) {
           const verifierModel = verifierModels[(attempt + pass) % verifierModels.length]
           const verifiedAnswers = await verifyOnce({
+            credentialFeature: feature,
             model: verifierModel,
             questions,
             deadlineAt,

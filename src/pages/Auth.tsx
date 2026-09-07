@@ -17,7 +17,7 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import Logo from '../components/Logo'
@@ -86,7 +86,18 @@ export default function Auth() {
     signUp,
     updatePassword,
   } = useAuth()
-  const [mode, setMode] = useState<AuthMode>('signin')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const mode: AuthMode = searchParams.get('mode') === 'signup'
+    ? 'signup'
+    : searchParams.get('mode') === 'forgot' ? 'forgot' : 'signin'
+  function setMode(nextMode: AuthMode) {
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous)
+      if (nextMode === 'signin') next.delete('mode')
+      else next.set('mode', nextMode)
+      return next
+    }, { replace: true })
+  }
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

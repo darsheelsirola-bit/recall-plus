@@ -77,6 +77,7 @@ function featureModelEnv(feature) {
 }
 
 export function modelCandidates(feature) {
+  if (usesGroq()) return [...new Set([trimmedEnv('GROQ_MODEL') || 'openai/gpt-oss-120b', 'openai/gpt-oss-20b'])]
   const override = featureModelEnv(feature)
   const configured = trimmedEnv('NVIDIA_MODEL')
   return [override || configured || DEFAULT_NVIDIA_MODEL]
@@ -84,4 +85,15 @@ export function modelCandidates(feature) {
 
 export function featureConfig(feature) {
   return AI_CONFIG[feature] || AI_CONFIG.quiz
+}
+
+const GROQ_KEYS = { quiz: 'GROQ_QUIZ_API_KEY', recall: 'GROQ_RECALL_API_KEY', insight: 'GROQ_INSIGHTS_API_KEY', timetable: 'GROQ_TIMETABLE_API_KEY', verifier: 'GROQ_QUIZ_API_KEY' }
+export function usesGroq() {
+  return Object.values(GROQ_KEYS).some((name) => Boolean(trimmedEnv(name)))
+}
+export function getFeatureApiKey(feature) {
+  return usesGroq() ? trimmedEnv(GROQ_KEYS[feature] || GROQ_KEYS.quiz) : getNvidiaApiKey()
+}
+export function isAiConfigured() {
+  return usesGroq() ? ['quiz', 'recall', 'insight', 'timetable'].every((feature) => Boolean(getFeatureApiKey(feature))) : isNvidiaConfigured()
 }

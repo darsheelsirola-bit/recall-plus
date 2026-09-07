@@ -283,6 +283,8 @@ test('OAuth configuration accepts exact provider ids and keeps Google sign-in av
     true,
   )
   assert.equal(isOAuthProviderFeatureEnabled('google', {}), true)
+  assert.equal(isOAuthProviderFeatureEnabled('github', {}), true)
+  assert.equal(isOAuthProviderFeatureEnabled('github', { VITE_AUTH_GITHUB_ENABLED: 'false' }), true)
   assert.equal(isOAuthProviderFeatureEnabled('apple', {}), false)
 })
 

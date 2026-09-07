@@ -20,7 +20,7 @@ import {
   authorizeQuizRequest,
   authorizeTimetableRequest,
 } from './curriculumAuthorization.js'
-import { isNvidiaConfigured } from './ai/config.js'
+import { isAiConfigured, usesGroq } from './ai/config.js'
 import {
   publicQuizQuestions,
   validateVerifiedQuizQuestions,
@@ -39,8 +39,8 @@ export function handleAiStatus(request, response) {
   if (request.method !== 'GET') return sendMethodNotAllowed(response, ['GET'])
   setPrivateNoStore(response)
   return response.status(200).json({
-    configured: Boolean(isNvidiaConfigured() && isSupabaseConfigured()),
-    provider: 'NVIDIA',
+    configured: Boolean(isAiConfigured() && isSupabaseConfigured()),
+    provider: usesGroq() ? 'Groq' : 'NVIDIA',
   })
 }
 

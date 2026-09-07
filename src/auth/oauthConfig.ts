@@ -28,9 +28,9 @@ export function isOAuthProviderFeatureEnabled(
   provider: RecallOAuthProvider,
   environment: PublicEnvironment = runtimeEnvironment,
 ): boolean {
-  // Google is Recall+'s primary social sign-in and is always presented.
+  // Google and GitHub are the supported social sign-in options.
   // Supabase's live provider-settings gate still prevents a broken redirect
   // if the project-side Google credentials are unavailable.
-  if (provider === 'google') return true
+  if (provider === 'google' || provider === 'github') return true
   return environment[providerFlags[provider]]?.trim().toLowerCase() === 'true'
 }

@@ -78,15 +78,15 @@ export default function PublicLanding() {
               progress insights, and a timetable that follows your real routine.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link className="btn-primary min-h-12 px-5" to="/auth">
-                Start with Recall+ <ArrowRight className="size-4" aria-hidden="true" />
+              <Link className="btn-primary min-h-12 px-5" to="/auth?mode=signup">
+                Create an account <ArrowRight className="size-4" aria-hidden="true" />
               </Link>
               <a className="btn-secondary min-h-12 px-5" href="#features">
                 See how it works
               </a>
             </div>
             <p className="mt-5 text-sm leading-6 text-muted-foreground">
-              Use email and password or optional Google sign-in. Your Google password is
+              Use email and password, Google, or GitHub. Your provider password is
               never shared with Recall+.
             </p>
           </div>

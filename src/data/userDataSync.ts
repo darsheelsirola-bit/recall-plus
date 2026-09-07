@@ -7,10 +7,12 @@ import {
   migrateLegacyDataForUser,
   replaceScopedDataSnapshot,
   saveDataForUser,
+  saveDataForUserOrThrow,
   setDataSyncRemoteBaseline,
   STORAGE_KEYS,
   validateScopedDataSnapshot,
 } from '../utils/storage'
+import { migrateStudyLogCurriculum } from '../utils/studyLogCurriculumMigration.js'
 import {
   AuthSessionChangedError,
   assertExpectedSessionUser,
@@ -191,11 +193,11 @@ export async function syncUserSnapshot(userId: string): Promise<void> {
   if (existing) return existing
 
   const operation = (async () => {
-    const syncState = getDataSyncState(userId)
+    let syncState = getDataSyncState(userId)
     if (!syncState.dirty) return
 
     const snapshot = getScopedDataSnapshot(userId)
-    const { data, error } = await runForExpectedSessionUser(
+    let { data, error } = await runForExpectedSessionUser(
       supabase.auth,
       userId,
       () => supabase.rpc(
@@ -203,6 +205,22 @@ export async function syncUserSnapshot(userId: string): Promise<void> {
         buildUserDataUpsertRpcArgs(userId, snapshot, syncState.remoteVersion),
       ),
     )
+
+    if (error?.message?.includes('INVALID_STUDY_LOG_CURRICULUM')) {
+      await assertExpectedSessionUser(supabase.auth, userId)
+      const current = getScopedDataSnapshot(userId)
+      const migratedLogs = migrateStudyLogCurriculum(current.recall_plus_study_logs)
+      if (migratedLogs !== current.recall_plus_study_logs) {
+        saveDataForUserOrThrow(userId, STORAGE_KEYS.logs, migratedLogs)
+        syncState = getDataSyncState(userId)
+        const retry = await runForExpectedSessionUser(supabase.auth, userId, () => supabase.rpc(
+          'upsert_recall_app_data',
+          buildUserDataUpsertRpcArgs(userId, getScopedDataSnapshot(userId), syncState.remoteVersion),
+        ))
+        data = retry.data
+        error = retry.error
+      }
+    }
 
     if (error) {
       if (isDataVersionConflictError(error)) throw new DataSyncConflictError()

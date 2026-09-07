@@ -1,6 +1,6 @@
 import { buildBasedOnLine, buildFallbackChapterInsight, buildFallbackInsights } from './insightFallbacks.js'
-import { generateStructured, modelCandidates, requireNvidiaKey } from './ai/client.js'
-import { AI_FEATURES, NVIDIA_PROVIDER } from './ai/config.js'
+import { generateStructured, modelCandidates, requireAiKey } from './ai/client.js'
+import { AI_FEATURES, NVIDIA_PROVIDER, usesGroq } from './ai/config.js'
 import {
   MAX_PROVIDER_ATTEMPTS,
   PROVIDER_TOTAL_DEADLINE_MS,
@@ -265,7 +265,7 @@ export function normalizeInsightsPayload(parsed, chapterContexts) {
     headline: isString(parsed?.headline, 300) ? parsed.headline : buildFallbackInsights(chapterContexts).headline,
     summary: isString(parsed?.summary, 2000) ? parsed.summary : 'Personalised study guidance from your quiz scores and study logs.',
     chapters,
-    source: NVIDIA_PROVIDER,
+    source: usesGroq() ? 'groq' : NVIDIA_PROVIDER,
   }
 }
 
@@ -339,7 +339,7 @@ export function validateInsightsRequest(body) {
 }
 
 export async function requestInsights(chapterContexts) {
-  requireNvidiaKey(AI_FEATURES.INSIGHT)
+  requireAiKey(AI_FEATURES.INSIGHT)
 
   const safeContexts = chapterContexts.slice(0, MAX_CHAPTERS)
   const models = modelCandidates(AI_FEATURES.INSIGHT)

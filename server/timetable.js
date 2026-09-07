@@ -3,7 +3,7 @@ import {
   validateGeneratedTimetable,
 } from '../shared/timetableValidation.js'
 import { AppError, ERROR_CODES } from './errors.js'
-import { generateStructured, modelCandidates, requireNvidiaKey } from './ai/client.js'
+import { generateStructured, modelCandidates, requireAiKey } from './ai/client.js'
 import { AI_FEATURES } from './ai/config.js'
 import {
   MAX_PROVIDER_ATTEMPTS,
@@ -119,7 +119,7 @@ export async function requestTimetable(profile, subjects = [], curriculumVersion
       details: { retryable: true },
     })
   }
-  requireNvidiaKey(AI_FEATURES.TIMETABLE)
+  requireAiKey(AI_FEATURES.TIMETABLE)
   const models = modelCandidates(AI_FEATURES.TIMETABLE)
   const deadlineAt = Date.now() + PROVIDER_TOTAL_DEADLINE_MS
   let lastError

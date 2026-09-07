@@ -1,4 +1,4 @@
-import { NVIDIA_PROVIDER } from './config.js'
+import { NVIDIA_PROVIDER, usesGroq } from './config.js'
 
 function errorCategory(error) {
   if (typeof error?.providerCategory === 'string') return error.providerCategory
@@ -25,13 +25,13 @@ export function logAiCall({
 }) {
   const entry = {
     event: 'ai_call',
-    provider: NVIDIA_PROVIDER,
+    provider: usesGroq() ? 'groq' : NVIDIA_PROVIDER,
     feature,
     model,
     latencyMs,
     success: Boolean(success),
   }
-  if (!success) entry.errorCategory = errorCategory(error)
+  if (!success) entry.errorCategory = usesGroq() ? errorCategory(error).replace('nvidia', 'groq') : errorCategory(error)
   if (Number.isFinite(usage?.prompt_tokens)) entry.promptTokens = usage.prompt_tokens
   if (Number.isFinite(usage?.completion_tokens)) entry.completionTokens = usage.completion_tokens
   if (Number.isFinite(usage?.total_tokens)) entry.totalTokens = usage.total_tokens
