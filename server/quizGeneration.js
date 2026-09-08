@@ -78,6 +78,8 @@ Rules:
 - options must contain exactly 4 unique strings
 - answer must exactly match one option
 - Cover the selected chapters and topics fairly
+- Make each question self-contained: identify its chapter, poem, story, or author where needed
+- For literature, prefer unambiguous facts and clearly supported themes; avoid subjective interpretations or quotations you cannot verify
 - No markdown or text outside the JSON
 - Solve every question independently before choosing its answer
 - For numerical questions, substitute the given values and check the arithmetic twice
@@ -88,7 +90,7 @@ JSON format:
 {"questions":[{"id":"q1","difficulty":"${level === 'mixed' ? 'easy' : level}","questionType":"theory","question":"Question text","options":["A","B","C","D"],"answer":"Correct option text","explanation":"Short explanation","sourceReference":"topic-node-id","calculation":null}]}`
 }
 
-export function buildQuizVerificationPrompt(questions) {
+export function buildQuizVerificationPrompt(questions, context = {}) {
   const grade = questions.some((question) => question.sourceReference.includes('-xii-')) ? '12' : '11'
   const answerBlindQuestions = questions.map(({ id, question, options }) => ({
     id,
@@ -96,6 +98,9 @@ export function buildQuizVerificationPrompt(questions) {
     options,
   }))
   return `Independently solve every NCERT Class ${grade} multiple-choice question below.
+Subject: ${context.subject || 'Not specified'}
+Selected chapters: ${context.chapter || 'Not specified'}
+Selected topics: ${context.topic || 'Not specified'}
 
 Rules:
 - The generator's answer key is intentionally hidden from you
@@ -250,6 +255,7 @@ async function generateOnce({
 async function verifyOnce({
   credentialFeature,
   model,
+  context,
   questions,
   deadlineAt,
   strictOutput,
@@ -268,7 +274,7 @@ async function verifyOnce({
       },
       {
         role: 'user',
-        content: buildQuizVerificationPrompt(questions),
+        content: buildQuizVerificationPrompt(questions, context),
       },
     ],
   })
@@ -311,6 +317,7 @@ export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', 
           const verifierModel = verifierModels[(attempt + pass) % verifierModels.length]
           const verifiedAnswers = await verifyOnce({
             credentialFeature: feature,
+            context: { subject, chapter, topic },
             model: verifierModel,
             questions,
             deadlineAt,

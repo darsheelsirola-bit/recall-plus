@@ -84,6 +84,8 @@ test('Groq format fallback returns ten questions only after two answer audits', 
     const result = await requestQuiz({ subject: 'English', chapter: 'Two chapters', topic: 'Themes', count: 10, level: 'medium' })
     assert.equal(result.length, 10)
     assert.equal(bodies.length, 4)
+    assert.ok(bodies[2].messages[1].content.includes('Selected chapters: Two chapters'))
+    assert.ok(!bodies[2].messages[1].content.includes('The passage describes friendship.'))
     assert.ok(bodies.slice(1).every(body => body.response_format.type === 'json_object'))
     assert.ok(result.every(question => question.verification))
   } finally {
