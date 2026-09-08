@@ -57,7 +57,35 @@ test('Groq retries only recoverable structured-output failures and scales the qu
       await assert.rejects(requestQuiz({ subject: 'English', chapter: 'Two chapters', topic: 'Themes', count: 10, level: 'medium' }))
       assert.equal(bodies.length, code === 'json_validate_failed' ? 3 : 1)
       assert.equal(bodies[0].max_completion_tokens, 12096)
+      assert.equal(bodies[0].response_format.type, 'json_schema')
+      if (code === 'json_validate_failed') assert.equal(bodies[1].response_format.type, 'json_object')
     }
+  } finally {
+    globalThis.fetch = originalFetch
+    if (saved === undefined) delete process.env.GROQ_QUIZ_API_KEY
+    else process.env.GROQ_QUIZ_API_KEY = saved
+  }
+})
+
+test('Groq format fallback returns ten questions only after two answer audits', async () => {
+  const { requestQuiz } = await import('../server/quizGeneration.js')
+  const saved = process.env.GROQ_QUIZ_API_KEY
+  const originalFetch = globalThis.fetch
+  process.env.GROQ_QUIZ_API_KEY = 'test-only-key'
+  const questions = Array.from({ length: 10 }, (_, i) => ({ id: `q${i + 1}`, difficulty: 'medium', questionType: 'theory', question: `What is the theme in passage ${i + 1}?`, options: ['Companionship', 'War', 'Commerce', 'Politics'], answer: 'Companionship', explanation: 'The passage describes friendship.', sourceReference: 'test-topic', calculation: null }))
+  const bodies = []
+  globalThis.fetch = async (_url, init) => {
+    bodies.push(JSON.parse(init.body))
+    if (bodies.length === 1) return new Response(JSON.stringify({ error: { code: 'json_validate_failed' } }), { status: 400 })
+    const content = bodies.length === 2 ? { questions } : { verifications: questions.map(({ id, answer }) => ({ id, answer })) }
+    return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(content) } }] }))
+  }
+  try {
+    const result = await requestQuiz({ subject: 'English', chapter: 'Two chapters', topic: 'Themes', count: 10, level: 'medium' })
+    assert.equal(result.length, 10)
+    assert.equal(bodies.length, 4)
+    assert.ok(bodies.slice(1).every(body => body.response_format.type === 'json_object'))
+    assert.ok(result.every(question => question.verification))
   } finally {
     globalThis.fetch = originalFetch
     if (saved === undefined) delete process.env.GROQ_QUIZ_API_KEY

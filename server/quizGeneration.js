@@ -218,11 +218,12 @@ async function generateOnce({
   level,
   purpose,
   deadlineAt,
+  strictOutput,
 }) {
   const parsed = await generateStructured({
     feature,
     maxTokens: Math.min(32_768, 4_096 + count * 800),
-    schema: quizSchema([...chapterNodeIds, ...topicNodeIds]),
+    schema: strictOutput ? quizSchema([...chapterNodeIds, ...topicNodeIds]) : undefined,
     model,
     temperature: 0.2,
     deadlineAt,
@@ -251,10 +252,11 @@ async function verifyOnce({
   model,
   questions,
   deadlineAt,
+  strictOutput,
 }) {
   const parsed = await generateStructured({
     feature: AI_FEATURES.VERIFIER,
-    schema: verificationSchema,
+    schema: strictOutput ? verificationSchema : undefined,
     credentialFeature,
     model,
     temperature: 0,
@@ -283,6 +285,7 @@ export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', 
   const verifierModels = modelCandidates(AI_FEATURES.VERIFIER)
   const deadlineAt = Date.now() + PROVIDER_TOTAL_DEADLINE_MS
   let lastError
+  let strictOutput = true
 
   for (let attempt = 0; attempt < MAX_PROVIDER_ATTEMPTS && Date.now() < deadlineAt; attempt += 1) {
     const model = models[attempt % models.length]
@@ -301,6 +304,7 @@ export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', 
         level: safeLevel,
         purpose,
         deadlineAt,
+        strictOutput,
       })
       if (questions) {
         for (let pass = 0; pass < QUIZ_VERIFICATION_PASSES; pass += 1) {
@@ -310,6 +314,7 @@ export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', 
             model: verifierModel,
             questions,
             deadlineAt,
+            strictOutput,
           })
           if (!verificationMatchesAnswerKey(questions, verifiedAnswers)) {
             throw quizVerificationFailed()
@@ -320,6 +325,7 @@ export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', 
       lastError = providerResponseInvalid()
     } catch (error) {
       lastError = error
+      if (error?.retryableGenerationFailure) strictOutput = false
       if ([400, 401, 403, 404, 422].includes(error?.upstreamStatus) && !error?.retryableGenerationFailure) throw error
       // Discard an unverified quiz and generate afresh within the same bounded
       // attempt/deadline budget. Never return a question that failed either audit.
