@@ -221,6 +221,7 @@ async function generateOnce({
 }) {
   const parsed = await generateStructured({
     feature,
+    maxTokens: Math.min(32_768, 4_096 + count * 800),
     schema: quizSchema([...chapterNodeIds, ...topicNodeIds]),
     model,
     temperature: 0.2,
@@ -319,7 +320,7 @@ export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', 
       lastError = providerResponseInvalid()
     } catch (error) {
       lastError = error
-      if ([400, 401, 403, 404, 422].includes(error?.upstreamStatus)) throw error
+      if ([400, 401, 403, 404, 422].includes(error?.upstreamStatus) && !error?.retryableGenerationFailure) throw error
       // Discard an unverified quiz and generate afresh within the same bounded
       // attempt/deadline budget. Never return a question that failed either audit.
     }

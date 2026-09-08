@@ -64,7 +64,18 @@ export async function createChatCompletion({
   }, { deadlineAt })
 
   if (!response.ok) {
+    let generationFailure = false
+    if (response.status === 400) {
+      try {
+        const body = await readProviderJson(response)
+        generationFailure = ['json_validate_failed', 'failed_generation'].includes(body?.error?.code)
+      } catch { /* Preserve the bounded, public-safe upstream error. */ }
+    }
     const error = providerHttpError(response)
+    if (generationFailure) {
+      error.retryableGenerationFailure = true
+      error.providerCategory = 'structured_output_failure'
+    }
     logAiCall({
       feature,
       model,
@@ -83,6 +94,7 @@ export async function createChatCompletion({
     success: true,
     usage: payload?.usage,
     requestId: typeof payload?.id === 'string' ? payload.id : undefined,
+    finishReason: payload?.choices?.[0]?.finish_reason,
   })
   return payload
 }

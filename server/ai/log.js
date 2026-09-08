@@ -22,6 +22,7 @@ export function logAiCall({
   error,
   usage,
   requestId,
+  finishReason,
 }) {
   const entry = {
     event: 'ai_call',
@@ -32,6 +33,8 @@ export function logAiCall({
     success: Boolean(success),
   }
   if (!success) entry.errorCategory = usesGroq() ? errorCategory(error).replace('nvidia', 'groq') : errorCategory(error)
+  if (!success && Number.isInteger(error?.upstreamStatus)) entry.upstreamStatus = error.upstreamStatus
+  if (['stop', 'length', 'content_filter'].includes(finishReason)) entry.finishReason = finishReason
   if (Number.isFinite(usage?.prompt_tokens)) entry.promptTokens = usage.prompt_tokens
   if (Number.isFinite(usage?.completion_tokens)) entry.completionTokens = usage.completion_tokens
   if (Number.isFinite(usage?.total_tokens)) entry.totalTokens = usage.total_tokens

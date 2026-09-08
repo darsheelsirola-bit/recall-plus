@@ -40,3 +40,27 @@ test('Groq routes each task and its verification to the dedicated key without NV
     })
   }
 })
+
+test('Groq retries only recoverable structured-output failures and scales the question budget', async () => {
+  const { requestQuiz } = await import('../server/quizGeneration.js')
+  const saved = process.env.GROQ_QUIZ_API_KEY
+  const originalFetch = globalThis.fetch
+  process.env.GROQ_QUIZ_API_KEY = 'test-only-key'
+  const bodies = []
+  try {
+    for (const code of ['json_validate_failed', 'invalid_api_key', 'invalid_request_error']) {
+      bodies.length = 0
+      globalThis.fetch = async (_url, init) => {
+        bodies.push(JSON.parse(init.body))
+        return new Response(JSON.stringify({ error: { code } }), { status: 400 })
+      }
+      await assert.rejects(requestQuiz({ subject: 'English', chapter: 'Two chapters', topic: 'Themes', count: 10, level: 'medium' }))
+      assert.equal(bodies.length, code === 'json_validate_failed' ? 3 : 1)
+      assert.equal(bodies[0].max_completion_tokens, 12096)
+    }
+  } finally {
+    globalThis.fetch = originalFetch
+    if (saved === undefined) delete process.env.GROQ_QUIZ_API_KEY
+    else process.env.GROQ_QUIZ_API_KEY = saved
+  }
+})
