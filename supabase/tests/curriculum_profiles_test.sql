@@ -3,7 +3,16 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_catalog;
 
-select plan(42);
+select plan(43);
+
+select is(
+  (select count(*)::integer from public.curriculum_nodes topic
+   join public.curriculum_nodes parent on parent.id = topic.parent_id
+   where topic.id like 'node-topic-%' and topic.node_type = 'topic'
+     and topic.subject_id = parent.subject_id and topic.active and parent.active),
+  1969,
+  'all added study topics retain an active parent in the same subject'
+);
 
 create function pg_temp.curriculum_selections(p_codes text[])
 returns jsonb
@@ -61,8 +70,8 @@ select is(
 
 select is(
   (select count(*)::integer from public.curriculum_nodes where active),
-  734,
-  'the reviewed Class XI and XII outlines seed 734 active curriculum nodes'
+  2713,
+  'the reviewed Class XI and XII outlines and chapter topics seed 2713 active curriculum nodes'
 );
 
 select ok(
