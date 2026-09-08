@@ -69,7 +69,7 @@ Rules:
 - Return only a valid JSON object with a single key "questions" containing exactly ${count} questions
 - ${difficultyRule(count, level)}
 - Each question must have: id, difficulty, questionType, question, options, answer, explanation, sourceReference, calculation
-- questionType must be "theory" or "numerical"
+- ${/\benglish\b/i.test(subject) ? 'All questions must be English literature or language questions with questionType "theory" and calculation null. Do not invent arithmetic word problems or unrelated content.' : 'questionType must be "theory" or "numerical"'}
 - sourceReference must cite one supplied chapter or topic node ID
 - For theory questions, calculation must be null
 - Numerical questions are limited to one controlled two-operand operation: add, subtract, multiply, or divide
@@ -228,7 +228,7 @@ async function generateOnce({
   const parsed = await generateStructured({
     feature,
     maxTokens: Math.min(32_768, 4_096 + count * 800),
-    schema: strictOutput ? quizSchema([...chapterNodeIds, ...topicNodeIds]) : undefined,
+    schema: strictOutput ? quizSchema([...chapterNodeIds, ...topicNodeIds], { theoryOnly: /\benglish\b/i.test(subject) }) : undefined,
     model,
     temperature: 0.2,
     deadlineAt,
@@ -244,6 +244,7 @@ async function generateOnce({
     ],
   })
   const questions = Array.isArray(parsed) ? parsed : parsed?.questions
+  if (/\benglish\b/i.test(subject) && Array.isArray(questions) && questions.some(question => question?.questionType !== 'theory')) return null
   return normalizeQuizQuestions(
     questions,
     count,

@@ -3,17 +3,17 @@ const object = (properties) => ({ type: 'object', additionalProperties: false, p
 
 // Constrained decoding keeps generated output aligned with the validator.
 // Answer accuracy is still checked independently after generation.
-export function quizSchema(sourceRefs) {
+export function quizSchema(sourceRefs, { theoryOnly = false } = {}) {
   return object({ questions: { type: 'array', items: object({
     id: text,
     difficulty: { type: 'string', enum: ['easy', 'medium', 'hard'] },
-    questionType: { type: 'string', enum: ['theory', 'numerical'] },
+    questionType: { type: 'string', enum: theoryOnly ? ['theory'] : ['theory', 'numerical'] },
     question: text,
     options: { type: 'array', items: text },
     answer: text,
     explanation: text,
     sourceReference: { type: 'string', enum: sourceRefs },
-    calculation: { anyOf: [{ type: 'null' }, object({
+    calculation: theoryOnly ? { type: 'null' } : { anyOf: [{ type: 'null' }, object({
       operation: { type: 'string', enum: ['add', 'subtract', 'multiply', 'divide'] },
       operands: { type: 'array', items: { type: 'number' } },
       unit: text,

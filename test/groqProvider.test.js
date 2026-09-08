@@ -83,11 +83,35 @@ test('Groq format fallback returns ten questions only after two answer audits', 
   try {
     const result = await requestQuiz({ subject: 'English', chapter: 'Two chapters', topic: 'Themes', count: 10, level: 'medium' })
     assert.equal(result.length, 10)
+    const schema = bodies[0].response_format.json_schema.schema
+    assert.deepEqual(schema.properties.questions.items.properties.questionType.enum, ['theory'])
+    assert.deepEqual(schema.properties.questions.items.properties.calculation, { type: 'null' })
     assert.equal(bodies.length, 4)
     assert.ok(bodies[2].messages[1].content.includes('Selected chapters: Two chapters'))
     assert.ok(!bodies[2].messages[1].content.includes('The passage describes friendship.'))
     assert.ok(bodies.slice(1).every(body => body.response_format.type === 'json_object'))
     assert.ok(result.every(question => question.verification))
+  } finally {
+    globalThis.fetch = originalFetch
+    if (saved === undefined) delete process.env.GROQ_QUIZ_API_KEY
+    else process.env.GROQ_QUIZ_API_KEY = saved
+  }
+})
+
+test('English generation rejects numerical questions even in the JSON fallback', async () => {
+  const { requestQuiz } = await import('../server/quizGeneration.js')
+  const saved = process.env.GROQ_QUIZ_API_KEY
+  const originalFetch = globalThis.fetch
+  process.env.GROQ_QUIZ_API_KEY = 'test-only-key'
+  let calls = 0
+  globalThis.fetch = async () => {
+    calls += 1
+    if (calls === 1) return new Response(JSON.stringify({ error: { code: 'json_validate_failed' } }), { status: 400 })
+    return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ questions: [{ questionType: 'numerical' }] }) } }] }))
+  }
+  try {
+    await assert.rejects(requestQuiz({ subject: 'English Core', chapter: 'Silk Road', topic: 'Travel', count: 10 }), { code: 'AI_PROVIDER_RESPONSE_INVALID' })
+    assert.equal(calls, 3)
   } finally {
     globalThis.fetch = originalFetch
     if (saved === undefined) delete process.env.GROQ_QUIZ_API_KEY
