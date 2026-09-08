@@ -79,7 +79,7 @@ describe('CBSE 2026-27 Class XI curriculum catalogue', () => {
       CBSE_2026_27_XI_NODES.length,
     )
     CBSE_2026_27_XI_NODES.forEach((node) => {
-      assert.match(node.sourceUrl, /^https:\/\/cbseacademic\.nic\.in\//)
+      assert.match(node.sourceUrl, /^https:\/\/(?:cbseacademic\.nic\.in\/|(?:www\.)?ncert\.nic\.in\/textbook\/pdf\/)/)
       assert.ok(node.sourcePage === null || node.sourcePage > 0)
     })
   })

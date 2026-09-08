@@ -3,6 +3,7 @@ import type {
   CurriculumNodeType,
 } from '../../../types.ts'
 import { CBSE_2026_27_XII_SUBJECTS_BY_CODE } from './catalogue.ts'
+import { withChapterTopics } from '../chapterTopics.ts'
 
 interface OutlineNode {
   type: CurriculumNodeType
@@ -427,12 +428,16 @@ const reviewedOutlines: Readonly<Record<string, readonly OutlineNode[]>> =
       practical('Practical Work', 7),
     ],
     '843': [
-      unit('Capstone Project', 3),
-      unit('Model Lifecycle', 4),
-      unit('AI Ethics and Values', 5),
-      unit('Storytelling through Data', 6),
-      practical('Practical Work', 7),
-      project('Project Work', 8),
+      unit('Python Programming - II (practical assessment)', 3),
+      unit('Data Science Methodology: An Analytic Approach to Capstone Project', 4),
+      unit('Making Machines See', 4),
+      unit('AI with Orange Data Mining Tool (practical assessment)', 5),
+      unit('Introduction to Big Data and Data Analytics', 5),
+      unit('Understanding Neural Networks', 6),
+      unit('Generative AI', 6),
+      unit('Data Storytelling', 7),
+      practical('Practical Work', 2),
+      project('Capstone Project and Documentation', 2),
     ],
     '118': [
       assessment('Comprehension / Reading', 2, 20),
@@ -565,7 +570,7 @@ function flattenOutline(
 }
 
 export const CBSE_2026_27_XII_NODES: readonly CurriculumNode[] =
-  Object.freeze(
+  withChapterTopics(
     Object.entries(reviewedOutlines).flatMap(([subjectCode, nodes]) => {
       const subject = CBSE_2026_27_XII_SUBJECTS_BY_CODE.get(subjectCode)
       if (!subject) {

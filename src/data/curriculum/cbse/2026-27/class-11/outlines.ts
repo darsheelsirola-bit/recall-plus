@@ -3,6 +3,7 @@ import type {
   CurriculumNodeType,
 } from '../../../types.ts'
 import { CBSE_2026_27_XI_SUBJECTS_BY_CODE } from './catalogue.ts'
+import { withChapterTopics } from '../chapterTopics.ts'
 
 interface OutlineNode {
   type: CurriculumNodeType
@@ -554,7 +555,7 @@ function flattenOutline(
 }
 
 export const CBSE_2026_27_XI_NODES: readonly CurriculumNode[] =
-  Object.freeze(
+  withChapterTopics(
     Object.entries(reviewedOutlines).flatMap(([subjectCode, nodes]) => {
       const subject = CBSE_2026_27_XI_SUBJECTS_BY_CODE.get(subjectCode)
       if (!subject) {

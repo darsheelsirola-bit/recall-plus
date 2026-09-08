@@ -10,7 +10,7 @@ export const CBSE_2026_27_XII_SKILL_PAGE =
 export const CBSE_2026_27_XII_SKILL_LIST_URL =
   'https://cbseacademic.nic.in/web_material/Curriculum24/SkillSubjects_SrSec2023.pdf'
 export const CBSE_2026_27_XII_AI_URL =
-  'https://cbseacademic.nic.in/web_material/Curriculum26/SrSec/843-AI-XII.pdf'
+  'https://cbseacademic.nic.in/web_material/Curriculum27/SrSec/843-AI-XII.pdf'
 
 export const CBSE_2026_27_XII_VERSION: CurriculumVersion = Object.freeze({
   id: CBSE_2026_27_XII_VERSION_ID,

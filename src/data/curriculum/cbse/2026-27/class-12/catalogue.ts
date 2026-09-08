@@ -146,13 +146,13 @@ const reviewedSources: Readonly<Record<string, CurriculumSource>> = Object.freez
     sha256: null,
   },
   '837': {
-    url: 'https://cbseacademic.nic.in/web_material/Curriculum26/SrSec/837-FASHION_STUDIES-XII.pdf',
-    title: 'Fashion Studies (837), Class XII, 2025-26',
+    url: 'https://cbseacademic.nic.in/web_material/Curriculum27/SrSec/837-FASHION_STUDIES-XII.pdf',
+    title: 'Fashion Studies (837), Class XII, 2026-27',
     sha256: null,
   },
   '843': {
     url: CBSE_2026_27_XII_AI_URL,
-    title: 'Artificial Intelligence (843), Class XII, 2025-26',
+    title: 'Artificial Intelligence (843), Class XII, 2026-27',
     sha256: null,
   },
 })

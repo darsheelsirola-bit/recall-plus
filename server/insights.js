@@ -132,8 +132,8 @@ function normalizeChapterContext(ctx) {
   ])) return null
 
   const curriculumSubjectId = normalizedRequiredText(ctx.curriculumSubjectId, 160)
-  const chapterNodeId = normalizedRequiredText(ctx.chapterNodeId, 160)
-  const topicNodeIds = normalizeStringArray(ctx.topicNodeIds, 40, 160, { required: true })
+  const chapterNodeId = normalizedRequiredText(ctx.chapterNodeId, 512)
+  const topicNodeIds = normalizeStringArray(ctx.topicNodeIds, 40, 512, { required: true })
 
   const subject = normalizedRequiredText(ctx.subject, 80)
   const chapter = normalizedRequiredText(ctx.chapter, 200)

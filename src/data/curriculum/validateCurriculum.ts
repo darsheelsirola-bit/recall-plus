@@ -134,8 +134,8 @@ export function validateCurriculumCatalog({
     if (!subject) {
       add('UNKNOWN_NODE_SUBJECT', `${node.id} references unknown subject ${node.subjectId}.`)
     }
-    if (!isOfficialSource(node.sourceUrl)) {
-      add('NODE_SOURCE', `${node.id} does not use an official CBSE Academic source URL.`)
+    if (!isOfficialSource(node.sourceUrl) && !/^https:\/\/(?:www\.)?ncert\.nic\.in\/textbook\/pdf\/[a-z0-9]+\.pdf$/.test(node.sourceUrl)) {
+      add('NODE_SOURCE', `${node.id} does not use an official CBSE Academic or NCERT textbook source URL.`)
     }
     if (!Number.isInteger(node.officialOrder) || node.officialOrder < 1) {
       add('NODE_ORDER', `${node.id} has an invalid official order.`)

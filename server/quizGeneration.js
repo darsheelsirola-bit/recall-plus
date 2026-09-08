@@ -176,7 +176,7 @@ function normalizeQuizQuestions(questions, count, level, allowedSourceRefs) {
     const prompt = normalizedRequiredText(question.question, 1_200)
     const answer = normalizedRequiredText(question.answer, 500)
     const explanation = normalizedRequiredText(question.explanation, 1_500)
-    const sourceReference = normalizedRequiredText(question.sourceReference, 200)
+    const sourceReference = normalizedRequiredText(question.sourceReference, 512)
     if (!id || !prompt || !answer || !explanation || !sourceReference) return null
     if (!allowedSourceRefs.has(sourceReference)) return null
     if (!['theory', 'numerical'].includes(question.questionType)) return null
@@ -333,7 +333,7 @@ export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', 
 
 function normalizeNodeIds(value, maxItems) {
   if (!Array.isArray(value) || !value.length || value.length > maxItems) return null
-  const ids = value.map((id) => normalizedRequiredText(id, 160))
+  const ids = value.map((id) => normalizedRequiredText(id, 512))
   if (ids.some((id) => !id) || new Set(ids).size !== ids.length) return null
   return ids
 }
