@@ -44,6 +44,7 @@ export async function createChatCompletion({
   temperature,
   maxTokens,
   deadlineAt,
+  schema,
 }) {
   const key = requireAiKey(credentialFeature)
   const config = featureConfig(feature)
@@ -57,7 +58,7 @@ export async function createChatCompletion({
     body: JSON.stringify({
       model,
       temperature: temperature ?? config.temperature,
-      ...(usesGroq() ? { max_completion_tokens: maxTokens ?? config.maxTokens, response_format: { type: 'json_object' } } : { max_tokens: maxTokens ?? config.maxTokens, reasoning_effort: config.reasoningEffort, reasoning_budget: config.reasoningBudget }),
+      ...(usesGroq() ? { max_completion_tokens: maxTokens ?? config.maxTokens, response_format: schema ? { type: 'json_schema', json_schema: { name: 'recall_response', strict: true, schema } } : { type: 'json_object' } } : { max_tokens: maxTokens ?? config.maxTokens, reasoning_effort: config.reasoningEffort, reasoning_budget: config.reasoningBudget }),
       messages,
     }),
   }, { deadlineAt })
@@ -94,6 +95,7 @@ export async function generateStructured({
   temperature,
   maxTokens,
   deadlineAt,
+  schema,
 }) {
   const payload = await createChatCompletion({
     feature,
@@ -103,6 +105,7 @@ export async function generateStructured({
     temperature,
     maxTokens,
     deadlineAt,
+    schema,
   })
   return parseStructuredContent(payload)
 }

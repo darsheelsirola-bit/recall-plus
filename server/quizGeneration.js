@@ -11,6 +11,7 @@ import {
   requireAiKey,
 } from './ai/client.js'
 import { AI_FEATURES } from './ai/config.js'
+import { quizSchema, verificationSchema } from './ai/quizSchema.js'
 import { deterministicNumericalAnswer } from './ai/numericalVerification.js'
 import {
   MAX_PROVIDER_ATTEMPTS,
@@ -220,6 +221,7 @@ async function generateOnce({
 }) {
   const parsed = await generateStructured({
     feature,
+    schema: quizSchema([...chapterNodeIds, ...topicNodeIds]),
     model,
     temperature: 0.2,
     deadlineAt,
@@ -251,6 +253,7 @@ async function verifyOnce({
 }) {
   const parsed = await generateStructured({
     feature: AI_FEATURES.VERIFIER,
+    schema: verificationSchema,
     credentialFeature,
     model,
     temperature: 0,

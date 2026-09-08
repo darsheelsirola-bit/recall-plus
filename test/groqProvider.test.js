@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createChatCompletion } from '../server/ai/client.js'
 import { modelCandidates } from '../server/ai/config.js'
+import { quizSchema, verificationSchema } from '../server/ai/quizSchema.js'
 
 test('Groq routes each task and its verification to the dedicated key without NVIDIA fallback', async () => {
   const names = ['GROQ_QUIZ_API_KEY', 'GROQ_RECALL_API_KEY', 'GROQ_INSIGHTS_API_KEY', 'GROQ_TIMETABLE_API_KEY', 'NVIDIA_API_KEY']
@@ -15,13 +16,19 @@ test('Groq routes each task and its verification to the dedicated key without NV
   }
   try {
     for (const [index, feature] of ['quiz', 'recall', 'insight', 'timetable'].entries()) {
-      await createChatCompletion({ feature, model: modelCandidates(feature)[0], messages: [] })
+      await createChatCompletion({ feature, model: modelCandidates(feature)[0], messages: [], schema: feature === 'quiz' ? quizSchema(['selected-topic']) : undefined })
       assert.equal(calls.at(-1).key, `Bearer test-credential-${index}`)
       assert.equal(calls.at(-1).url, 'https://api.groq.com/openai/v1/chat/completions')
       assert.equal(calls.at(-1).body.reasoning_budget, undefined)
+      if (feature === 'quiz') {
+        const format = calls.at(-1).body.response_format
+        assert.equal(format.json_schema.strict, true)
+        assert.deepEqual(format.json_schema.schema.properties.questions.items.properties.sourceReference.enum, ['selected-topic'])
+      }
     }
-    await createChatCompletion({ feature: 'verifier', credentialFeature: 'recall', model: modelCandidates('recall')[0], messages: [] })
+    await createChatCompletion({ feature: 'verifier', credentialFeature: 'recall', model: modelCandidates('recall')[0], messages: [], schema: verificationSchema })
     assert.equal(calls.at(-1).key, 'Bearer test-credential-1')
+    assert.deepEqual(calls.at(-1).body.response_format.json_schema.schema, verificationSchema)
     delete process.env.GROQ_RECALL_API_KEY
     await assert.rejects(createChatCompletion({ feature: 'recall', messages: [] }), { code: 'AI_PROVIDER_UNAVAILABLE' })
     assert.equal(calls.length, 5)
