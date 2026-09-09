@@ -23,3 +23,12 @@ export function quizSchema(sourceRefs, { theoryOnly = false } = {}) {
 }
 
 export const verificationSchema = object({ verifications: { type: 'array', items: object({ id: text, answer: text }) } })
+
+// English questions need a semantic scope decision as well as an independently
+// solved answer. Keep this separate so existing non-English verification output
+// remains backward compatible.
+export const scopedVerificationSchema = object({ verifications: { type: 'array', items: object({
+  id: text,
+  inScope: { type: 'boolean' },
+  answer: text,
+}) } })

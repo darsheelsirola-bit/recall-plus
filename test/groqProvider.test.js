@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createChatCompletion } from '../server/ai/client.js'
 import { modelCandidates } from '../server/ai/config.js'
-import { quizSchema, verificationSchema } from '../server/ai/quizSchema.js'
+import { quizSchema, scopedVerificationSchema, verificationSchema } from '../server/ai/quizSchema.js'
 
 test('Groq routes each task and its verification to the dedicated key without NVIDIA fallback', async () => {
   const names = ['GROQ_QUIZ_API_KEY', 'GROQ_RECALL_API_KEY', 'GROQ_INSIGHTS_API_KEY', 'GROQ_TIMETABLE_API_KEY', 'NVIDIA_API_KEY']
@@ -54,7 +54,7 @@ test('Groq retries only recoverable structured-output failures and scales the qu
         bodies.push(JSON.parse(init.body))
         return new Response(JSON.stringify({ error: { code } }), { status: 400 })
       }
-      await assert.rejects(requestQuiz({ subject: 'English', chapter: 'Two chapters', topic: 'Themes', count: 10, level: 'medium' }))
+      await assert.rejects(requestQuiz({ subject: 'English', chapter: 'Two chapters', topic: 'Themes', count: 10, level: 'mixed' }))
       assert.equal(bodies.length, code === 'json_validate_failed' ? 3 : 1)
       assert.equal(bodies[0].max_completion_tokens, 12096)
       assert.equal(bodies[0].response_format.type, 'json_schema')
@@ -77,7 +77,9 @@ test('Groq format fallback returns ten questions only after two answer audits', 
   globalThis.fetch = async (_url, init) => {
     bodies.push(JSON.parse(init.body))
     if (bodies.length === 1) return new Response(JSON.stringify({ error: { code: 'json_validate_failed' } }), { status: 400 })
-    const content = bodies.length === 2 ? { questions } : { verifications: questions.map(({ id, answer }) => ({ id, answer })) }
+    const content = bodies.length === 2
+      ? { questions }
+      : { verifications: questions.map(({ id, answer }) => ({ id, inScope: true, answer })) }
     return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(content) } }] }))
   }
   try {
@@ -89,7 +91,10 @@ test('Groq format fallback returns ten questions only after two answer audits', 
     assert.equal(bodies.length, 4)
     assert.ok(bodies[2].messages[1].content.includes('Selected chapters: Two chapters'))
     assert.ok(!bodies[2].messages[1].content.includes('The passage describes friendship.'))
-    assert.ok(bodies.slice(1).every(body => body.response_format.type === 'json_object'))
+    assert.equal(bodies[1].response_format.type, 'json_object')
+    assert.deepEqual(bodies[2].response_format.json_schema.schema, scopedVerificationSchema)
+    assert.deepEqual(bodies[3].response_format.json_schema.schema, scopedVerificationSchema)
+    assert.equal(bodies[0].model, bodies[1].model)
     assert.ok(result.every(question => question.verification))
   } finally {
     globalThis.fetch = originalFetch
