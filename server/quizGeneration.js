@@ -519,7 +519,12 @@ async function requestEnglishUniformQuiz({
     const rejected = { outOfScope: 0, answerMismatch: 0, duplicate: 0 }
     for (const question of candidates) {
       const decisions = audits.map((audit) => audit.get(question.id))
-      if (!decisions.every((decision) => decision?.inScope)) {
+      // The generator is already constrained to the selected curriculum IDs
+      // and English theory-only shape. Treat one positive semantic scope audit
+      // as sufficient, while still requiring both independent auditors to
+      // solve to the exact same answer key below. This avoids discarding valid
+      // chapter questions because one scope auditor is overly conservative.
+      if (!decisions.some((decision) => decision?.inScope)) {
         rejected.outOfScope += 1
         continue
       }

@@ -136,6 +136,20 @@ test('English content-repair rounds stay on Groq when NVIDIA fallback is configu
   assert.equal(urls.every((url) => url === 'https://api.groq.com/openai/v1/chat/completions'), true)
 })
 
+test('one conservative scope audit does not discard an answer-confirmed English question', async () => {
+  let calls = 0
+  const questions = Array.from({ length: 5 }, (_, index) => question(index + 1))
+  await withGroqMock(async () => {
+    calls += 1
+    if (calls === 1) return providerResponse({ questions })
+    return audit(['q1', 'q2', 'q3', 'q4', 'q5'], calls === 2 ? { q5: { inScope: false } } : {})
+  }, async () => {
+    const result = await requestQuiz({ ...request, count: 5 })
+    assert.equal(result.length, 5)
+  })
+  assert.equal(calls, 3)
+})
+
 test('a duplicate replacement is rejected and cannot displace a unique verified question', async () => {
   const bodies = []
   const initial = Array.from({ length: 5 }, (_, index) => question(index + 1))
