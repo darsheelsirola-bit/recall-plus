@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { requestQuiz } from '../server/quizGeneration.js'
+import { buildQuizPrompt, requestQuiz } from '../server/quizGeneration.js'
 
 function providerResponse(content) {
   return new Response(JSON.stringify({
@@ -57,6 +57,22 @@ const request = {
   count: 10,
   level: 'medium',
 }
+
+test('English generation requires self-identifying chapter-specific questions', () => {
+  const prompt = buildQuizPrompt({
+    curriculumVersionId: 'cbse-2026-27-xi-v1',
+    curriculumSubjectId: 'english-core',
+    chapterNodeIds: ['portrait'],
+    topicNodeIds: ['portrait-characters'],
+    subject: 'English Core',
+    chapter: 'The Portrait of a Lady',
+    topic: 'Character sketch and relationships',
+    count: 10,
+    level: 'medium',
+  })
+  assert.match(prompt, /Every question must identify its selected chapter or poem/)
+  assert.match(prompt, /Never use vague stand-ins/)
+})
 
 test('English recovery retains eight twice-audited questions and requests only two replacements', async () => {
   const bodies = []

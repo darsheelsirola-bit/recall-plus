@@ -71,7 +71,7 @@ Rules:
 - Return only a valid JSON object with a single key "questions" containing exactly ${count} questions
 - ${difficultyRule(count, level)}
 - Each question must have: id, difficulty, questionType, question, options, answer, explanation, sourceReference, calculation
-- ${/\benglish\b/i.test(subject) ? 'All questions must be English literature or language questions with questionType "theory" and calculation null. Do not invent arithmetic word problems or unrelated content.' : 'questionType must be "theory" or "numerical"'}
+- ${/\benglish\b/i.test(subject) ? 'All questions must be English literature or language questions with questionType "theory" and calculation null. Do not invent arithmetic word problems or unrelated content. Every question must identify its selected chapter or poem through a specific title, author, character, event, relationship, quoted phrase, or theme that appears in the question itself. Never use vague stand-ins such as "the selected passage", "the text", "the narrator", or "the character" when the stem would otherwise be untraceable.' : 'questionType must be "theory" or "numerical"'}
 - sourceReference must cite one supplied chapter or topic node ID
 - For theory questions, calculation must be null
 - Numerical questions are limited to one controlled two-operand operation: add, subtract, multiply, or divide
@@ -139,6 +139,7 @@ For each question, make two independent decisions:
 Rules:
 - A declared theory type or supplied source ID is not evidence that a question is relevant
 - Reject arithmetic, science, general knowledge, and content from an unselected chapter, even when it is labelled as English or theory
+- Treat a question as in scope when its named author, character, event, relationship, quotation, or theme clearly belongs to a selected chapter, even when its wording does not repeat the selected topic label
 - Numbers and dates are allowed when they test a relevant literary or language fact; do not reject a question merely because it contains a number
 - If scope is uncertain, set "inScope" to false
 - If the question is ambiguous, flawed, or has no defensible option, use an empty answer
