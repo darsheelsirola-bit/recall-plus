@@ -354,7 +354,20 @@ test('AI insights authenticate only with NVIDIA_API_KEY', async () => {
     return providerQuizResponse({
       headline: 'Focus on motion',
       summary: 'Use the saved scores to revise.',
-      chapters: [],
+      chapters: [{
+        subject: 'Physics',
+        chapter: 'Motion',
+        observedData: 'The saved data includes the Physics Motion chapter.',
+        recommendation: 'Review Velocity and answer five focused questions.',
+        basedOn: 'The selected syllabus topic is Velocity.',
+        prioritizedTopics: [{ topic: 'Velocity', reason: 'It is the selected topic.' }],
+        studyFrom: {
+          primary: 'NCERT Physics Class 11 Part 1',
+          sections: ['Review the velocity definition'],
+          secondary: 'NCERT Physics Class 11 Part 1',
+        },
+        focusArea: 'conceptual understanding',
+      }],
     })
   }
   const normalized = normalizeInsightsRequest({
@@ -455,10 +468,12 @@ test('quiz generation is accepted only after two answer-blind verification passe
     })
     assert.equal(providerCalls, 3)
     assert.equal(providerUrls.every((url) => url === 'https://integrate.api.nvidia.com/v1/chat/completions'), true)
-    assert.equal(providerBodies.every((body) => body.model === 'z-ai/glm-5.2'), true)
+    assert.equal(providerBodies.every((body) => body.model === 'openai/gpt-oss-20b'), true)
     assert.equal(providerBodies[0].reasoning_effort, 'medium')
     assert.equal(providerBodies[1].reasoning_effort, 'high')
     assert.equal(providerBodies[2].reasoning_effort, 'high')
+    assert.equal(providerBodies.every((body) => body.max_tokens === 4096), true)
+    assert.equal(providerBodies.every((body) => body.reasoning_budget === undefined), true)
     assert.equal(providerBodies.every((body) => body.response_format === undefined), true)
     assert.equal(validateVerifiedQuizQuestions(verified, 5), true)
     assert.equal(

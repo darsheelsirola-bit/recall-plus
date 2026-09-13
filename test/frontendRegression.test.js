@@ -12,6 +12,10 @@ import {
   shouldAttemptPasswordSignInAfterSignUp,
 } from '../src/auth/passwordSignUp.ts'
 import {
+  isJwtIssuedAtFutureError,
+  runWithJwtClockSkewRecovery,
+} from '../src/auth/sessionRecovery.ts'
+import {
   AUTH_SESSION_CHANGED_CODE,
   assertExpectedSessionUser,
   runForExpectedSessionUser,
@@ -33,6 +37,7 @@ import {
   clearOAuthContext,
   authReturnToFromLocation,
   clearOAuthReturnTo,
+  consumeOAuthReturnTo,
   DEFAULT_POST_LOGIN_PATH,
   OAUTH_PROVIDER_KEY,
   readOAuthCallbackParameters,
@@ -185,6 +190,67 @@ test('expected-subject guard rejects an account switch before follow-up mutation
   assert.equal(followUpMutations, 0)
 })
 
+test('JWT issued-at-future hydration recovers before showing a workspace error', async () => {
+  let attempts = 0
+  let refreshes = 0
+  const waits = []
+  const result = await runWithJwtClockSkewRecovery({
+    expectedUserId: 'account-a',
+    operation: async () => {
+      attempts += 1
+      if (attempts < 3) throw new Error('JWT issued at future')
+      return { profile: 'ready' }
+    },
+    refreshSession: async () => {
+      refreshes += 1
+      return { data: { session: { user: { id: 'account-a' } } }, error: null }
+    },
+    wait: async (milliseconds) => { waits.push(milliseconds) },
+  })
+
+  assert.deepEqual(result, { profile: 'ready' })
+  assert.equal(attempts, 3)
+  assert.equal(refreshes, 1)
+  assert.deepEqual(waits, [1000, 1000])
+  assert.equal(isJwtIssuedAtFutureError({ message: 'JWT issued at future' }), true)
+  assert.equal(isJwtIssuedAtFutureError(new Error('JWT expiry must be in the future')), false)
+})
+
+test('session recovery does not retry unrelated auth failures or cross accounts', async () => {
+  let unrelatedCalls = 0
+  await assert.rejects(
+    () => runWithJwtClockSkewRecovery({
+      expectedUserId: 'account-a',
+      operation: async () => {
+        unrelatedCalls += 1
+        throw new Error('permission denied')
+      },
+      refreshSession: async () => ({ data: { session: null }, error: null }),
+      wait: async () => {},
+    }),
+    /permission denied/,
+  )
+  assert.equal(unrelatedCalls, 1)
+
+  let skewCalls = 0
+  await assert.rejects(
+    () => runWithJwtClockSkewRecovery({
+      expectedUserId: 'account-a',
+      operation: async () => {
+        skewCalls += 1
+        throw new Error('JWT issued at future')
+      },
+      refreshSession: async () => ({
+        data: { session: { user: { id: 'account-b' } } },
+        error: null,
+      }),
+      wait: async () => {},
+    }),
+    /signed-in account changed/,
+  )
+  assert.equal(skewCalls, 2)
+})
+
 test('user-data RPC contracts bind every write to the intended authenticated user', () => {
   const snapshot = { recall_plus_study_logs: [{ id: 'log-a' }] }
   assert.deepEqual(
@@ -252,6 +318,23 @@ test('OAuth destination storage contains navigation only and is explicitly clear
   assert.equal(readOAuthReturnTo(storage), '/progress?range=month')
   assert.equal(values.size, 1)
   clearOAuthReturnTo(storage)
+  assert.equal(values.size, 0)
+})
+
+test('OAuth callback consumes a safe deep link and rejects unsafe return targets', () => {
+  const values = new Map()
+  const storage = {
+    getItem(key) { return values.get(key) ?? null },
+    setItem(key, value) { values.set(key, String(value)) },
+    removeItem(key) { values.delete(key) },
+  }
+
+  rememberOAuthReturnTo(storage, '/quiz?chapter=Motion#question-2')
+  assert.equal(consumeOAuthReturnTo(storage), '/quiz?chapter=Motion#question-2')
+  assert.equal(values.size, 0)
+
+  values.set('recall-plus-oauth-return-to', '//attacker.example')
+  assert.equal(consumeOAuthReturnTo(storage), DEFAULT_POST_LOGIN_PATH)
   assert.equal(values.size, 0)
 })
 
@@ -647,6 +730,21 @@ test('successful sync records the CAS version and later changes retain it', () =
   saveData('cas_test', { value: 2 })
   assert.equal(getDataSyncState(userId).dirty, true)
   assert.equal(getDataSyncState(userId).remoteVersion, 4)
+  setStorageUser(null)
+})
+
+test('derived AI insight cache writes do not create a cloud sync revision', () => {
+  const userId = 'frontend-derived-insight-cache'
+  setStorageUser(userId)
+  const before = getDataSyncState(userId)
+
+  saveData(STORAGE_KEYS.insightCache, { generatedAt: '2026-09-09', insights: [] })
+  saveData(STORAGE_KEYS.insightQuoteState, { currentId: 'quote-1', lastDate: '2026-09-09' })
+  assert.deepEqual(getDataSyncState(userId), before)
+
+  saveData('study_log_change', { value: 1 })
+  assert.equal(getDataSyncState(userId).dirty, true)
+  assert.equal(getDataSyncState(userId).revision, before.revision + 1)
   setStorageUser(null)
 })
 

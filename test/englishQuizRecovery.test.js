@@ -134,6 +134,31 @@ test('a duplicate replacement is rejected and cannot displace a unique verified 
   )
 })
 
+test('English recovery has one final bounded replacement round for a ten-question verification miss', async () => {
+  const bodies = []
+  const initial = Array.from({ length: 10 }, (_, index) => question(index + 1))
+  await withGroqMock(async (_url, init) => {
+    const body = JSON.parse(init.body)
+    bodies.push(body)
+    if (bodies.length === 1) return providerResponse({ questions: initial })
+    if (bodies.length === 2 || bodies.length === 3) {
+      return audit(Array.from({ length: 10 }, (_, index) => `q${index + 1}`), { q10: { answer: '' } })
+    }
+    if ([4, 7].includes(bodies.length)) return providerResponse({ questions: [question(bodies.length)] })
+    if ([5, 6, 8, 9].includes(bodies.length)) return audit([bodies.length < 7 ? 'q11' : 'q12'], { [bodies.length < 7 ? 'q11' : 'q12']: { answer: '' } })
+    if (bodies.length === 10) return providerResponse({ questions: [question(13)] })
+    if (bodies.length === 11 || bodies.length === 12) return audit(['q13'])
+    return new Response('{}', { status: 500 })
+  }, async () => {
+    const result = await requestQuiz(request)
+    assert.equal(result.length, 10)
+    assert.ok(result.some(({ id }) => id === 'q13'))
+  })
+
+  assert.equal(bodies.length, 12)
+  assert.equal(bodies.filter((body) => body.messages[0].content.includes('You generate accurate')).length, 4)
+})
+
 test('structured-output failures fall back on the same generator or auditor model without regenerating', async () => {
   const bodies = []
   const questions = Array.from({ length: 5 }, (_, index) => question(index + 1))
@@ -158,6 +183,26 @@ test('structured-output failures fall back on the same generator or auditor mode
   assert.equal(bodies[2].response_format.type, 'json_schema')
   assert.equal(bodies[3].response_format.type, 'json_object')
   assert.equal(bodies.filter((body) => body.messages[0].content.includes('You generate accurate')).length, 2)
+})
+
+test('an invalid strict audit shape retries in JSON-object mode without weakening two-pass verification', async () => {
+  const bodies = []
+  const questions = Array.from({ length: 5 }, (_, index) => question(index + 1))
+  await withGroqMock(async (_url, init) => {
+    const body = JSON.parse(init.body)
+    bodies.push(body)
+    if (bodies.length === 1) return providerResponse({ questions })
+    if (bodies.length === 2) return providerResponse({ verifications: [] })
+    return audit(['q1', 'q2', 'q3', 'q4', 'q5'])
+  }, async () => {
+    const result = await requestQuiz({ ...request, count: 5 })
+    assert.equal(result.length, 5)
+  })
+
+  assert.equal(bodies.length, 4)
+  assert.equal(bodies[1].response_format.type, 'json_schema')
+  assert.equal(bodies[2].response_format.type, 'json_object')
+  assert.equal(bodies[3].response_format.type, 'json_schema')
 })
 
 test('repeated auditor rate limits fail boundedly without regenerating or returning a partial quiz', async () => {

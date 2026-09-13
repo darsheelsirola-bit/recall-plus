@@ -6,7 +6,14 @@ import { Card } from '@/components/ui/card'
 import BackButton from '../components/BackButton'
 import PageHeader from '../components/PageHeader'
 import { curriculumRequestSelection, useActiveCurriculum, useCurriculumSubjects } from '../academic/activeCurriculum'
-import { getBooks, getChapters, getTopics, selectionFromParams } from '../components/SelectionFields'
+import {
+  getBooks,
+  getChapters,
+  getOtherCurriculumSections,
+  getTopics,
+  OTHER_CURRICULUM_SECTIONS,
+  selectionFromParams,
+} from '../components/SelectionFields'
 import { getTodayDate } from '../utils/dateUtils'
 import { formatStudyMinutes, getLogTopics } from '../utils/logUtils'
 import { createId } from '../utils/quizUtils'
@@ -76,6 +83,7 @@ export default function AddLog() {
   const { loading: curriculumLoading, error: curriculumError } = useCurriculumSubjects([subject])
 
   const books = getBooks(subject, syllabus)
+  const otherSections = getOtherCurriculumSections(subject, syllabus)
   const hasBooks = books.length > 0
   const chapters = getChapters(subject, syllabus, hasBooks ? (book || null) : null)
   const subjectData = syllabus.find((item) => item.subject === subject)
@@ -87,7 +95,11 @@ export default function AddLog() {
 
   useEffect(() => {
     const nextBook = hasBooks
-      ? (books.some((item) => item.name === book) ? book : books[0]?.name || '')
+      ? (books.some((item) => item.name === book) || book === OTHER_CURRICULUM_SECTIONS
+        ? book
+        : (otherSections.some((item) => item.name === chapter)
+          ? OTHER_CURRICULUM_SECTIONS
+          : books[0]?.name || ''))
       : ''
     const nextChapters = getChapters(subject, syllabus, nextBook || null)
     if (nextChapters.some((item) => item.name === chapter) && nextBook === book) return
@@ -105,7 +117,7 @@ export default function AddLog() {
       setTopics(requestedTopics.filter((topic) => availableTopics.includes(topic)))
     }, 0)
     return () => window.clearTimeout(timer)
-  }, [book, books, chapter, editingLog, hasBooks, searchParams, subject, syllabus])
+  }, [book, books, chapter, editingLog, hasBooks, otherSections, searchParams, subject, syllabus])
 
   function changeSubject(nextSubject) {
     const nextBooks = getBooks(nextSubject, syllabus)
@@ -258,6 +270,7 @@ export default function AddLog() {
             <label className="field-label mt-5">Book
               <select className="field" value={book} onChange={(event) => changeBook(event.target.value)}>
                 {books.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}
+                {otherSections.length ? <option value={OTHER_CURRICULUM_SECTIONS}>Other curriculum sections</option> : null}
               </select>
             </label>
           ) : null}
@@ -287,6 +300,7 @@ export default function AddLog() {
             <div className="mt-3 flex flex-wrap gap-3">
               {chapterTopics.map((topic) => { const active = topics.includes(topic); return <button type="button" key={topic} aria-pressed={active} onClick={() => toggleTopic(topic)} className={`min-h-11 rounded-full border px-3 py-2 text-sm font-medium transition ${active ? 'border-primary bg-secondary text-primary' : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-primary'}`}>{active ? '✓ ' : '+ '}{topic}</button> })}
             </div>
+            {book === OTHER_CURRICULUM_SECTIONS && !chapterTopics.length ? <p className="mt-3 text-sm text-muted-foreground">This official section has no verified individual topics yet. Recall+ will not invent a study-log topic for it.</p> : null}
           </div>
 
           <div className="mt-6 grid gap-5 sm:grid-cols-2">

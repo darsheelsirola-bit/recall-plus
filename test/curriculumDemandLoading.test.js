@@ -18,6 +18,10 @@ const syllabusSource = await readFile(
   new URL('../src/pages/Syllabus.jsx', import.meta.url),
   'utf8',
 )
+const quizSource = await readFile(
+  new URL('../src/pages/Quiz.jsx', import.meta.url),
+  'utf8',
+)
 
 test('authenticated workspace startup remains curriculum-tree free', () => {
   assert.doesNotMatch(academicProfileSource, /loadClientCurriculumNodes/)
@@ -28,4 +32,7 @@ test('authenticated workspace startup remains curriculum-tree free', () => {
 test('curriculum modules are requested per opened subject', () => {
   assert.match(providerSource, /loadClientCurriculumNodes\(\[subjectId\]\)/)
   assert.match(syllabusSource, /useCurriculumSubjects\(\[activeSubject\]\)/)
+  assert.match(syllabusSource, /Other curriculum sections/)
+  assert.match(quizSource, /getEligibleChapters/)
+  assert.match(quizSource, /filter\(\(chapter\) => chapter\.topics\.length\)/)
 })

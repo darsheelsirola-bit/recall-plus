@@ -108,6 +108,24 @@ test('English Hornbill chapters resolve through book hierarchy', () => {
   assert.deepEqual(resolved.topicNodeIds, [topic.id])
 })
 
+test('English keeps official non-book curriculum sections visible without inventing topics', () => {
+  const syllabus = buildActiveSyllabus([selection('301', 1)], CBSE_2026_27_XI_NODES)
+  const english = syllabus[0]
+  const sections = english.chapters.filter((chapter) => !chapter.bookId)
+
+  assert.deepEqual(sections.map((chapter) => chapter.name), [
+    'Reading Skills',
+    'Grammar and Creative Writing Skills',
+    'Assessment of Listening and Speaking Skills',
+    'Project Work',
+  ])
+  assert.deepEqual(sections.map((chapter) => chapter.topics), [[], [], [], []])
+  assert.equal(
+    curriculumRequestSelection(syllabus, 'English Core', [sections[0].name], ['invented topic']),
+    null,
+  )
+})
+
 test('active subject filters exclude removed subjects without deleting history', () => {
   const selected = [
     selection('301', 1),

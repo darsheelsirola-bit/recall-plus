@@ -80,14 +80,14 @@ function ChapterList({
         </button>
         {expanded ? (
           <div className="border-t border-border px-4 sm:px-5">
-            {chapter.topics.map((topic) => (
+            {chapter.topics.length ? chapter.topics.map((topic) => (
               <TopicCard
                 key={topic}
                 topic={topic}
                 status={statusFor(chapter.name, topic)}
                 onQuiz={() => onQuiz(chapter, topic)}
               />
-            ))}
+            )) : <p className="py-4 text-sm text-muted-foreground">This official section has no verified individual topics yet.</p>}
           </div>
         ) : null}
       </article>
@@ -116,6 +116,11 @@ export default function Syllabus() {
   )
   const subjectData = results.find((item) => item.subject === activeSubject)
   const hasBooks = Boolean(subjectData?.books?.length)
+  const otherSections = (subjectData?.chapters || []).filter((chapter) => !chapter.bookId)
+  const bookChapterCount = (subjectData?.books || []).reduce(
+    (count, book) => count + book.chapters.length,
+    0,
+  )
 
   function statusFor(chapter, topic) {
     return statuses[`${activeSubject}|${chapter}|${topic}`] || 'Not Started'
@@ -169,7 +174,7 @@ export default function Syllabus() {
               <CardTitle>{activeSubject}</CardTitle>
               <Badge variant="secondary" className="rounded-full">
                 {hasBooks
-                  ? `${subjectData.books.length} books · ${subjectData?.chapters.length || 0} chapters`
+                  ? `${subjectData.books.length} books · ${bookChapterCount} chapters${otherSections.length ? ` · ${otherSections.length} other sections` : ''}`
                   : `${subjectData?.chapters.length || 0} chapters`}
               </Badge>
             </div>
@@ -240,6 +245,23 @@ export default function Syllabus() {
               onQuiz={quizFor}
             />
           )}
+          {hasBooks && otherSections.length ? (
+            <section className="rounded-2xl border border-border bg-muted/15 p-3 sm:p-4">
+              <div className="mb-3">
+                <h2 className="text-base font-semibold">Other curriculum sections</h2>
+                <p className="mt-0.5 text-sm text-muted-foreground">Official areas outside Hornbill and Snapshots.</p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <ChapterList
+                  chapters={otherSections}
+                  openChapter={openChapter}
+                  setOpenChapter={setOpenChapter}
+                  statusFor={statusFor}
+                  onQuiz={quizFor}
+                />
+              </div>
+            </section>
+          ) : null}
           {curriculumLoading ? (
             <p role="status" className="rounded-xl border border-border bg-secondary/35 p-4 text-sm text-muted-foreground">
               Loading {activeSubject} curriculum…

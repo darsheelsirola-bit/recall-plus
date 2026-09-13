@@ -34,6 +34,7 @@ import {
   passwordSignInAfterSignUpResult,
   shouldAttemptPasswordSignInAfterSignUp,
 } from './passwordSignUp'
+import { runWithJwtClockSkewRecovery } from './sessionRecovery'
 
 interface AuthResult {
   error: string
@@ -158,8 +159,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     void supabase.auth.getSession().then(({ data, error }) => {
       if (!active) return
       if (error) {
-        setDataError(`Could not restore your session: ${error.message}`)
         applySession(null)
+        setDataError(`Could not restore your session: ${error.message}`)
       } else {
         applySession(data.session)
       }
@@ -194,7 +195,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
       syncRetryCountRef.current = 0
 
       try {
-        const result = await hydrateUserData(activeHydrationUser)
+        const result = await runWithJwtClockSkewRecovery({
+          expectedUserId: activeHydrationUser.id,
+          operation: () => hydrateUserData(activeHydrationUser),
+          refreshSession: () => supabase.auth.refreshSession(),
+        })
         if (!isCurrent()) return
         setProfile(result.profile)
         setDataOwnerId(activeHydrationUser.id)

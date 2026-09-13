@@ -11,7 +11,7 @@ import { supabase } from '../lib/supabase'
 import {
   AUTH_CALLBACK_PATH,
   clearOAuthContext,
-  DEFAULT_POST_LOGIN_PATH,
+  consumeOAuthReturnTo,
   readOAuthProvider,
 } from '../utils/oauthRedirect'
 
@@ -82,8 +82,9 @@ export default function AuthCallback() {
       || !user
       || !dataReady
     ) return
+    const returnTo = consumeOAuthReturnTo(window.sessionStorage)
     clearOAuthContext(window.sessionStorage)
-    navigate(DEFAULT_POST_LOGIN_PATH, { replace: true })
+    navigate(returnTo, { replace: true })
   }, [
     callbackError,
     dataReady,

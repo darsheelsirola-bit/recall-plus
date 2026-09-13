@@ -2,13 +2,23 @@
 import { useEffect, useMemo } from 'react'
 import { useActiveCurriculum, useCurriculumSubjects } from '../academic/activeCurriculum'
 
+export const OTHER_CURRICULUM_SECTIONS = '__other_curriculum_sections__'
+
 export function getBooks(subject, syllabus = []) {
   return syllabus.find((item) => item.subject === subject)?.books || []
+}
+
+export function getOtherCurriculumSections(subject, syllabus = []) {
+  return (syllabus.find((item) => item.subject === subject)?.chapters || [])
+    .filter((chapter) => !chapter.bookId)
 }
 
 export function getChapters(subject, syllabus = [], bookName = null) {
   const subjectData = syllabus.find((item) => item.subject === subject)
   if (!subjectData) return []
+  if (bookName === OTHER_CURRICULUM_SECTIONS) {
+    return getOtherCurriculumSections(subject, syllabus)
+  }
   if (bookName) {
     return subjectData.books?.find((book) => book.name === bookName)?.chapters || []
   }
@@ -42,11 +52,16 @@ export function selectionFromParams(searchParams, syllabus = []) {
     : fallback.subject
   const subjectData = syllabus.find((item) => item.subject === subject)
   const bookCandidate = searchParams.get('book')
-  const books = getBooks(subject, syllabus)
-  const book = books.length
-    ? (books.some((item) => item.name === bookCandidate) ? bookCandidate : defaultBook(subjectData))
-    : ''
   const chapterCandidate = searchParams.get('chapter')
+  const books = getBooks(subject, syllabus)
+  const otherSections = getOtherCurriculumSections(subject, syllabus)
+  const book = books.length
+    ? (books.some((item) => item.name === bookCandidate)
+      ? bookCandidate
+      : (otherSections.some((item) => item.name === chapterCandidate)
+        ? OTHER_CURRICULUM_SECTIONS
+        : defaultBook(subjectData)))
+    : ''
   const chapters = getChapters(subject, syllabus, book || null)
   const chapter = chapters.some((item) => item.name === chapterCandidate)
     ? chapterCandidate
@@ -69,13 +84,21 @@ export default function SelectionFields({ value, onChange, className = '' }) {
   const { loading, error } = useCurriculumSubjects([value.subject])
   const subjectData = syllabus.find((item) => item.subject === value.subject)
   const books = useMemo(() => getBooks(value.subject, syllabus), [syllabus, value.subject])
+  const otherSections = useMemo(
+    () => getOtherCurriculumSections(value.subject, syllabus),
+    [syllabus, value.subject],
+  )
   const hasBooks = books.length > 0
   const chapters = getChapters(value.subject, syllabus, hasBooks ? (value.book || null) : null)
   const topics = getTopics(value.subject, value.chapter, syllabus, hasBooks ? (value.book || null) : null)
 
   useEffect(() => {
     const nextBook = hasBooks
-      ? (books.some((item) => item.name === value.book) ? value.book : defaultBook(subjectData))
+      ? (books.some((item) => item.name === value.book) || value.book === OTHER_CURRICULUM_SECTIONS
+        ? value.book
+        : (otherSections.some((item) => item.name === value.chapter)
+          ? OTHER_CURRICULUM_SECTIONS
+          : defaultBook(subjectData)))
       : ''
     const nextChapters = getChapters(value.subject, syllabus, nextBook || null)
     if (!nextChapters.length && !hasBooks) return
@@ -89,7 +112,7 @@ export default function SelectionFields({ value, onChange, className = '' }) {
     if (nextBook !== (value.book || '') || chapter !== value.chapter || topic !== value.topic) {
       onChange({ ...value, book: nextBook, chapter, topic })
     }
-  }, [books, hasBooks, syllabus, subjectData, value, onChange])
+  }, [books, hasBooks, otherSections, syllabus, subjectData, value, onChange])
 
   function changeSubject(subject) {
     const next = syllabus.find((item) => item.subject === subject)
@@ -141,6 +164,7 @@ export default function SelectionFields({ value, onChange, className = '' }) {
             {books.map((book) => (
               <option key={book.id} value={book.name}>{book.name}</option>
             ))}
+            {otherSections.length ? <option value={OTHER_CURRICULUM_SECTIONS}>Other curriculum sections</option> : null}
           </select>
         </label>
       ) : null}
@@ -154,6 +178,11 @@ export default function SelectionFields({ value, onChange, className = '' }) {
           ))}
         </select>
       </label>
+      {value.book === OTHER_CURRICULUM_SECTIONS && !topics.length ? (
+        <p className="text-sm text-muted-foreground md:col-span-full">
+          This official section has no verified individual topics yet, so Recall+ cannot create a study log or test for it.
+        </p>
+      ) : null}
       <label className="field-label">
         Topic
         <select className="field" value={value.topic} onChange={(event) => onChange({ ...value, topic: event.target.value })}>

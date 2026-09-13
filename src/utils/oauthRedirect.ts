@@ -91,6 +91,12 @@ export function clearOAuthReturnTo(storage: StorageLike): void {
   }
 }
 
+export function consumeOAuthReturnTo(storage: StorageLike): string {
+  const returnTo = readOAuthReturnTo(storage)
+  clearOAuthReturnTo(storage)
+  return returnTo
+}
+
 export function readOAuthProvider(storage: StorageLike): RecallOAuthProvider | null {
   try {
     const provider = storage.getItem(OAUTH_PROVIDER_KEY)

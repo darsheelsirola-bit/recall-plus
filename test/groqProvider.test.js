@@ -4,7 +4,7 @@ import { createChatCompletion } from '../server/ai/client.js'
 import { modelCandidates } from '../server/ai/config.js'
 import { quizSchema, scopedVerificationSchema, verificationSchema } from '../server/ai/quizSchema.js'
 
-test('Groq routes each task and its verification to the dedicated key without NVIDIA fallback', async () => {
+test('Groq routes each task and its verification to the dedicated key, with feature-scoped NVIDIA fallback', async () => {
   const names = ['GROQ_QUIZ_API_KEY', 'GROQ_RECALL_API_KEY', 'GROQ_INSIGHTS_API_KEY', 'GROQ_TIMETABLE_API_KEY', 'NVIDIA_API_KEY']
   const saved = names.map((name) => process.env[name])
   const originalFetch = globalThis.fetch
@@ -30,8 +30,125 @@ test('Groq routes each task and its verification to the dedicated key without NV
     assert.equal(calls.at(-1).key, 'Bearer test-credential-1')
     assert.deepEqual(calls.at(-1).body.response_format.json_schema.schema, verificationSchema)
     delete process.env.GROQ_RECALL_API_KEY
-    await assert.rejects(createChatCompletion({ feature: 'recall', messages: [] }), { code: 'AI_PROVIDER_UNAVAILABLE' })
-    assert.equal(calls.length, 5)
+    await createChatCompletion({ feature: 'recall', model: modelCandidates('recall')[0], messages: [] })
+    assert.equal(calls.at(-1).key, 'Bearer test-credential-4')
+    assert.equal(calls.at(-1).url, 'https://integrate.api.nvidia.com/v1/chat/completions')
+    assert.equal(calls.at(-1).body.max_tokens, 4096)
+    assert.equal(calls.length, 6)
+  } finally {
+    globalThis.fetch = originalFetch
+    names.forEach((name, index) => {
+      if (saved[index] === undefined) delete process.env[name]
+      else process.env[name] = saved[index]
+    })
+  }
+})
+
+test('a busy Groq quiz call fails over once to the configured NVIDIA provider', async () => {
+  const names = ['GROQ_QUIZ_API_KEY', 'NVIDIA_API_KEY', 'NVIDIA_MODEL_QUIZ']
+  const saved = names.map((name) => process.env[name])
+  const originalFetch = globalThis.fetch
+  const calls = []
+  process.env.GROQ_QUIZ_API_KEY = 'quiz-groq-key'
+  process.env.NVIDIA_API_KEY = 'quiz-nvidia-key'
+  process.env.NVIDIA_MODEL_QUIZ = 'openai/gpt-oss-20b'
+  globalThis.fetch = async (url, init) => {
+    calls.push({ url, key: init.headers.Authorization, body: JSON.parse(init.body) })
+    if (calls.length === 1) return new Response('{}', { status: 429, headers: { 'retry-after': '0' } })
+    return new Response(JSON.stringify({ choices: [{ message: { content: '{}' } }] }), { status: 200 })
+  }
+
+  try {
+    await createChatCompletion({
+      feature: 'quiz',
+      model: 'openai/gpt-oss-120b',
+      messages: [{ role: 'user', content: 'Return JSON.' }],
+      schema: quizSchema(['selected-topic']),
+    })
+    assert.equal(calls.length, 2)
+    assert.equal(calls[0].url, 'https://api.groq.com/openai/v1/chat/completions')
+    assert.equal(calls[0].key, 'Bearer quiz-groq-key')
+    assert.equal(calls[1].url, 'https://integrate.api.nvidia.com/v1/chat/completions')
+    assert.equal(calls[1].key, 'Bearer quiz-nvidia-key')
+    assert.equal(calls[1].body.model, 'openai/gpt-oss-20b')
+    assert.equal(calls[1].body.max_tokens, 4096)
+    assert.equal(calls[1].body.response_format, undefined)
+  } finally {
+    globalThis.fetch = originalFetch
+    names.forEach((name, index) => {
+      if (saved[index] === undefined) delete process.env[name]
+      else process.env[name] = saved[index]
+    })
+  }
+})
+
+test('a Groq constrained-decoding failure falls back to NVIDIA', async () => {
+  const names = ['GROQ_QUIZ_API_KEY', 'NVIDIA_API_KEY']
+  const saved = names.map((name) => process.env[name])
+  const originalFetch = globalThis.fetch
+  const calls = []
+  process.env.GROQ_QUIZ_API_KEY = 'quiz-groq-key'
+  process.env.NVIDIA_API_KEY = 'quiz-nvidia-key'
+  globalThis.fetch = async (url) => {
+    calls.push(url)
+    if (calls.length === 1) {
+      return new Response(JSON.stringify({ error: { code: 'json_validate_failed' } }), { status: 400 })
+    }
+    return new Response(JSON.stringify({ choices: [{ message: { content: '{}' } }] }), { status: 200 })
+  }
+
+  try {
+    await createChatCompletion({
+      feature: 'quiz',
+      model: 'openai/gpt-oss-120b',
+      messages: [],
+      schema: quizSchema(['selected-topic']),
+    })
+    assert.deepEqual(calls, [
+      'https://api.groq.com/openai/v1/chat/completions',
+      'https://integrate.api.nvidia.com/v1/chat/completions',
+    ])
+  } finally {
+    globalThis.fetch = originalFetch
+    names.forEach((name, index) => {
+      if (saved[index] === undefined) delete process.env[name]
+      else process.env[name] = saved[index]
+    })
+  }
+})
+
+test('permanent Groq errors fail closed and are not marked retryable', async () => {
+  const names = ['GROQ_QUIZ_API_KEY', 'NVIDIA_API_KEY']
+  const saved = names.map((name) => process.env[name])
+  const originalFetch = globalThis.fetch
+  let calls = 0
+  let responseStatus = 401
+  process.env.GROQ_QUIZ_API_KEY = 'invalid-groq-key'
+  process.env.NVIDIA_API_KEY = 'nvidia-key'
+  globalThis.fetch = async () => {
+    calls += 1
+    return new Response('{}', { status: responseStatus })
+  }
+
+  try {
+    for (const [status, category] of [
+      [400, 'groq_unavailable'],
+      [401, 'groq_authentication_error'],
+      [403, 'groq_authentication_error'],
+      [404, 'invalid_groq_model'],
+      [422, 'invalid_groq_model'],
+    ]) {
+      responseStatus = status
+      const before = calls
+      await assert.rejects(
+        createChatCompletion({ feature: 'quiz', model: 'openai/gpt-oss-120b', messages: [] }),
+        (error) => error.upstreamStatus === status
+          && error.providerCategory === category
+          && error.details?.retryable === false
+          && /configuration could not be verified/i.test(error.message),
+      )
+      assert.equal(calls, before + 1)
+    }
   } finally {
     globalThis.fetch = originalFetch
     names.forEach((name, index) => {

@@ -84,3 +84,30 @@ test('empty, malformed, and truncated NVIDIA structured output fail closed', asy
     )
   })
 })
+
+test('NVIDIA requests clamp all generation features to 4096 tokens and omit reasoning_budget', async () => {
+  const calls = []
+  await withProvider(async (_url, init) => {
+    calls.push(JSON.parse(init.body))
+    return providerResponse('{}')
+  }, async () => {
+    for (const feature of [
+      AI_FEATURES.QUIZ,
+      AI_FEATURES.RECALL,
+      AI_FEATURES.INSIGHT,
+      AI_FEATURES.TIMETABLE,
+      AI_FEATURES.VERIFIER,
+    ]) {
+      await createChatCompletion({
+        feature,
+        model: DEFAULT_NVIDIA_MODEL,
+        messages: [{ role: 'user', content: 'Return JSON.' }],
+        maxTokens: 99_999,
+      })
+    }
+  })
+
+  assert.deepEqual(calls.map((body) => body.max_tokens), Array(5).fill(4096))
+  assert.deepEqual(calls.map((body) => body.reasoning_effort), ['medium', 'medium', 'medium', 'medium', 'high'])
+  assert.equal(calls.every((body) => body.reasoning_budget === undefined), true)
+})

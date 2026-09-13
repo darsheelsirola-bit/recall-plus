@@ -1,4 +1,4 @@
-import { inspectContentForSecrets, isPlaceholderValue } from './secret-patterns.mjs'
+import { inspectContentForSecrets, isPlaceholderValue, normalizeEnvironmentValue } from './secret-patterns.mjs'
 
 if (process.env.VERCEL !== '1') {
   console.log('Vercel environment validation skipped outside a Vercel build.')
@@ -23,6 +23,11 @@ function requireOneOf(names) {
   return { name: names[0], value: '' }
 }
 
+function optionalSecretValue(name) {
+  const value = normalizeEnvironmentValue(process.env[name] || '')
+  return value && !isPlaceholderValue(value) ? value : ''
+}
+
 function validateHttpsUrl(name, value) {
   if (!value) return
   try {
@@ -42,10 +47,22 @@ requireOneOf(browserSupabaseKeyNames)
 const serverSupabaseUrl = requireValue('SUPABASE_URL')
 const serverAnonKey = requireValue('SUPABASE_ANON_KEY')
 const serviceRoleKey = requireValue('SUPABASE_SERVICE_ROLE_KEY')
-const quizKey = requireValue('GROQ_QUIZ_API_KEY')
-const recallKey = requireValue('GROQ_RECALL_API_KEY')
-const insightsKey = requireValue('GROQ_INSIGHTS_API_KEY')
-const timetableKey = requireValue('GROQ_TIMETABLE_API_KEY')
+const quizKey = optionalSecretValue('GROQ_QUIZ_API_KEY')
+const recallKey = optionalSecretValue('GROQ_RECALL_API_KEY')
+const insightsKey = optionalSecretValue('GROQ_INSIGHTS_API_KEY')
+const timetableKey = optionalSecretValue('GROQ_TIMETABLE_API_KEY')
+const nvidiaKey = optionalSecretValue('NVIDIA_API_KEY')
+const featureCredentials = [
+  ['quiz', quizKey],
+  ['recall', recallKey],
+  ['insight', insightsKey],
+  ['timetable', timetableKey],
+]
+for (const [feature, groqKey] of featureCredentials) {
+  if (!groqKey && !nvidiaKey) {
+    failures.push(`${feature} generation requires its GROQ_*_API_KEY or NVIDIA_API_KEY`)
+  }
+}
 
 validateHttpsUrl('VITE_SUPABASE_URL', browserSupabaseUrl)
 validateHttpsUrl('SUPABASE_URL', serverSupabaseUrl)
@@ -60,6 +77,7 @@ const serverSecrets = [
   ['GROQ_RECALL_API_KEY', recallKey],
   ['GROQ_INSIGHTS_API_KEY', insightsKey],
   ['GROQ_TIMETABLE_API_KEY', timetableKey],
+  ['NVIDIA_API_KEY', nvidiaKey],
 ]
 for (const publicName of browserSupabaseKeyNames) {
   const publicValue = String(process.env[publicName] || '').trim()
@@ -97,9 +115,11 @@ if (insightsKey && timetableKey && insightsKey === timetableKey) {
   failures.push('GROQ_INSIGHTS_API_KEY and GROQ_TIMETABLE_API_KEY must use separate credentials')
 }
 
-const timeout = String(process.env.GROQ_REQUEST_TIMEOUT_MS || '').trim()
-if (timeout && (!/^\d+$/.test(timeout) || Number(timeout) < 5000 || Number(timeout) > 30000)) {
-  failures.push('GROQ_REQUEST_TIMEOUT_MS must be an integer from 5000 through 30000')
+for (const name of ['GROQ_REQUEST_TIMEOUT_MS', 'NVIDIA_REQUEST_TIMEOUT_MS']) {
+  const timeout = String(process.env[name] || '').trim()
+  if (timeout && (!/^\d+$/.test(timeout) || Number(timeout) < 5000 || Number(timeout) > 30000)) {
+    failures.push(`${name} must be an integer from 5000 through 30000`)
+  }
 }
 
 const oauthFeatureFlags = [
@@ -133,7 +153,7 @@ if (failures.length > 0) {
   process.exit(1)
 }
 
-console.log(`Vercel ${environment} environment validation passed; required values are present and remain in their intended exposure scope.`)
+console.log(`Vercel ${environment} environment validation passed; every AI feature has a server-only provider credential.`)
 if (environment === 'preview') {
-  console.log('Preview validation cannot compare dashboard scopes; use isolated Preview Supabase and Groq credentials as documented.')
+  console.log('Preview validation cannot compare dashboard scopes; use isolated Preview provider credentials as documented.')
 }

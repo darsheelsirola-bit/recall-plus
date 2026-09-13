@@ -14,13 +14,14 @@ export async function generateQuizQuestions(curriculumSelection, {
   count = 5,
   level = 'mixed',
   purpose = 'practice',
+  onProgress,
 } = {}) {
   const payload = { ...curriculumSelection, count, level, purpose }
   const payloadKey = JSON.stringify(payload)
   return runGenerationSingleFlight('quiz', payloadKey, async (identity) => {
     const requestId = getGenerationRequestId('quiz', payloadKey, identity.userId)
     try {
-      const response = await authenticatedFetch('/api/generate-quiz', {
+      const responsePromise = authenticatedFetch('/api/generate-quiz', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -28,6 +29,8 @@ export async function generateQuizQuestions(curriculumSelection, {
         },
         body: payloadKey,
       }, identity)
+      onProgress?.({ value: 25, label: 'Secure request sent' })
+      const response = await responsePromise
       if (!response.ok) {
         const apiError = await readApiError(response, 'Quiz generation failed. Please try again.')
         if (apiError.code !== 'RATE_LIMIT_UNAVAILABLE') {
@@ -37,11 +40,13 @@ export async function generateQuizQuestions(curriculumSelection, {
         publishGenerationUsage('quiz', apiError)
         throw apiError
       }
+      onProgress?.({ value: 60, label: 'Quiz response received' })
 
       const data = await response.json().catch(() => ({}))
       if (typeof data.quizId !== 'string' || !validatePublicQuizQuestions(data.questions, count)) {
         throw new Error('The quiz service returned an invalid safe-question response. Please regenerate it.')
       }
+      onProgress?.({ value: 80, label: 'Safe question format confirmed' })
       clearGenerationRequestId('quiz', payloadKey, identity.userId, requestId)
       await assertCurrentIdentity(identity)
       publishGenerationUsage('quiz', data)

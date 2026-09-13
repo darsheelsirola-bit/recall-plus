@@ -1,6 +1,6 @@
 import { buildBasedOnLine, buildFallbackChapterInsight, buildFallbackInsights } from './insightFallbacks.js'
 import { generateStructured, modelCandidates, requireAiKey } from './ai/client.js'
-import { AI_FEATURES, NVIDIA_PROVIDER, usesGroq } from './ai/config.js'
+import { AI_FEATURES, fallbackProviderForFeature, getFeatureProvider } from './ai/config.js'
 import {
   MAX_PROVIDER_ATTEMPTS,
   PROVIDER_TOTAL_DEADLINE_MS,
@@ -199,7 +199,7 @@ function normalizeFocusArea(value) {
   return allowed.find((item) => item === text) || 'conceptual understanding'
 }
 
-export function normalizeInsightsPayload(parsed, chapterContexts) {
+export function normalizeInsightsPayload(parsed, chapterContexts, source = getFeatureProvider(AI_FEATURES.INSIGHT)) {
   const byKey = new Map((parsed?.chapters || []).map((chapter) => [`${chapter.subject}|${chapter.chapter}`, chapter]))
 
   const chapters = chapterContexts.map((ctx) => {
@@ -265,8 +265,40 @@ export function normalizeInsightsPayload(parsed, chapterContexts) {
     headline: isString(parsed?.headline, 300) ? parsed.headline : buildFallbackInsights(chapterContexts).headline,
     summary: isString(parsed?.summary, 2000) ? parsed.summary : 'Personalised study guidance from your quiz scores and study logs.',
     chapters,
-    source: usesGroq() ? 'groq' : NVIDIA_PROVIDER,
+    source,
   }
+}
+
+function isProviderInsightsShape(parsed, chapterContexts) {
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false
+  if (!isString(parsed.headline, 300) || !isString(parsed.summary, 2_000)) return false
+  if (!Array.isArray(parsed.chapters) || parsed.chapters.length !== chapterContexts.length) return false
+
+  return chapterContexts.every((ctx) => {
+    const matches = parsed.chapters.filter((chapter) => (
+      chapter?.subject === ctx.subject && chapter?.chapter === ctx.chapter
+    ))
+    if (matches.length !== 1) return false
+    const chapter = matches[0]
+    const hasObservation = isString(chapter.observedData, 2_000) || isString(chapter.insight, 2_000)
+    const hasRecommendation = isString(chapter.recommendation, 800) || isString(chapter.action, 800)
+    const prioritizedTopics = chapter.prioritizedTopics
+    const sections = chapter.studyFrom?.sections
+    return hasObservation
+      && hasRecommendation
+      && isString(chapter.basedOn, 500)
+      && Array.isArray(prioritizedTopics)
+      && prioritizedTopics.length > 0
+      && prioritizedTopics.length <= 4
+      && prioritizedTopics.every((item) => resolveTopicName(ctx, item?.topic) && isString(item?.reason, 400))
+      && isString(chapter.studyFrom?.primary, 400)
+      && isString(chapter.studyFrom?.secondary, 400)
+      && Array.isArray(sections)
+      && sections.length > 0
+      && sections.length <= 4
+      && sections.every((item) => isString(item, 300))
+      && ['problem-solving', 'definitions', 'formulas', 'conceptual understanding'].includes(String(chapter.focusArea || '').trim().toLowerCase())
+  })
 }
 
 export function buildInsightsPrompt(chapterContexts) {
@@ -306,8 +338,8 @@ JSON format:
 {"headline":"string","summary":"string","chapters":[{"subject":"Physics","chapter":"Motion in a Straight Line","observedData":"OBSERVED DATA only","recommendation":"AI RECOMMENDATION only","basedOn":"...","prioritizedTopics":[{"topic":"Kinematic Equations","order":1,"reason":"..."}],"studyFrom":{"primary":"NCERT Physics Class 11 Part 1 — Ch 3","sections":["Read §3.4","Solve Ex 3.5 Q1-5"],"secondary":"HC Verma Vol 1 — Ch 3"},"focusArea":"formulas"}]}`
 }
 
-async function generateOnce({ model, chapterContexts, deadlineAt }) {
-  const parsed = await generateStructured({
+async function generateOnce({ model, chapterContexts, deadlineAt, provider }) {
+  const generated = await generateStructured({
     feature: AI_FEATURES.INSIGHT,
     model,
     temperature: 0.3,
@@ -322,8 +354,12 @@ async function generateOnce({ model, chapterContexts, deadlineAt }) {
         content: buildInsightsPrompt(chapterContexts),
       },
     ],
+    provider,
+    includeProvider: true,
   })
-  return parsed ? normalizeInsightsPayload(parsed, chapterContexts) : null
+  return isProviderInsightsShape(generated.data, chapterContexts)
+    ? normalizeInsightsPayload(generated.data, chapterContexts, generated.provider)
+    : null
 }
 
 export function normalizeInsightsRequest(body) {
@@ -344,15 +380,18 @@ export async function requestInsights(chapterContexts) {
   const safeContexts = chapterContexts.slice(0, MAX_CHAPTERS)
   const models = modelCandidates(AI_FEATURES.INSIGHT)
   const deadlineAt = Date.now() + PROVIDER_TOTAL_DEADLINE_MS
+  const fallbackProvider = fallbackProviderForFeature(AI_FEATURES.INSIGHT)
   let lastError
 
   for (let attempt = 0; attempt < MAX_PROVIDER_ATTEMPTS && Date.now() < deadlineAt; attempt += 1) {
     const model = models[attempt % models.length]
+    const provider = attempt === 0 ? undefined : (fallbackProvider || undefined)
     try {
       const insights = await generateOnce({
         model,
         chapterContexts: safeContexts,
         deadlineAt,
+        provider,
       })
       if (insights) return insights
       lastError = providerResponseInvalid()

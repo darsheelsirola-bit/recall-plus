@@ -125,6 +125,11 @@ function markDirty(userId = activeUserId) {
   dispatchDirty(userId)
 }
 
+function isDerivedInsightCacheKey(key) {
+  const name = logicalKey(key)
+  return name === STORAGE_KEYS.insightCache || name === STORAGE_KEYS.insightQuoteState
+}
+
 /**
  * Selects the browser-local namespace for the authenticated user.
  * Protected pages are not mounted until this has been called, preventing one
@@ -209,12 +214,11 @@ export function saveDataForUser(userId, key, value) {
   const previousValue = storage.getItem(storageKey)
   try {
     storage.setItem(storageKey, JSON.stringify(value))
-    markDirty(userId)
-    // Skip remounting/refetching for derived cache-only keys.
+    // These values are derived locally and must not start a cloud sync cycle.
+    if (!isDerivedInsightCacheKey(key)) markDirty(userId)
     if (
       (!userId || activeUserId === userId)
-      && key !== STORAGE_KEYS.insightCache
-      && key !== STORAGE_KEYS.insightQuoteState
+      && !isDerivedInsightCacheKey(key)
     ) {
       dispatchDataChange(logicalKey(key))
     }

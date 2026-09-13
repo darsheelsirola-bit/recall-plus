@@ -1,10 +1,11 @@
 export const NVIDIA_PROVIDER = 'nvidia'
+export const GROQ_PROVIDER = 'groq'
 export const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com/v1'
 export const NVIDIA_CHAT_COMPLETIONS_URL = `${NVIDIA_BASE_URL}/chat/completions`
 
-// Exact hosted model ID from NVIDIA's GLM-5.2 API reference.
-// https://docs.api.nvidia.com/nim/reference/z-ai-glm-5.2
-export const DEFAULT_NVIDIA_MODEL = 'z-ai/glm-5.2'
+// NVIDIA's hosted free endpoint supports this OpenAI-compatible chat model.
+// https://build.nvidia.com/openai/gpt-oss-20b
+export const DEFAULT_NVIDIA_MODEL = 'openai/gpt-oss-20b'
 
 export const AI_FEATURES = Object.freeze({
   QUIZ: 'quiz',
@@ -48,11 +49,18 @@ export const AI_CONFIG = Object.freeze({
 })
 
 function trimmedEnv(name) {
-  return String(process.env[name] || '').trim()
+  return normalizeEnvironmentValue(process.env[name] || '')
+}
+
+// Match Vercel validation: a copied example value is not a usable credential
+// and must never change an otherwise usable feature's provider selection.
+function credentialEnv(name) {
+  const value = trimmedEnv(name)
+  return isPlaceholderValue(value) ? '' : value
 }
 
 export function getNvidiaApiKey() {
-  return trimmedEnv('NVIDIA_API_KEY')
+  return credentialEnv('NVIDIA_API_KEY')
 }
 
 export function isNvidiaConfigured() {
@@ -76,8 +84,17 @@ function featureModelEnv(feature) {
   }
 }
 
-export function modelCandidates(feature) {
-  if (usesGroq()) return [...new Set([trimmedEnv('GROQ_MODEL') || 'openai/gpt-oss-120b', 'openai/gpt-oss-20b'])]
+export function modelForProvider(feature, provider, requestedModel = '') {
+  if (provider === GROQ_PROVIDER) {
+    return requestedModel || trimmedEnv('GROQ_MODEL') || 'openai/gpt-oss-120b'
+  }
+  return featureModelEnv(feature) || trimmedEnv('NVIDIA_MODEL') || DEFAULT_NVIDIA_MODEL
+}
+
+export function modelCandidates(feature, credentialFeature = feature) {
+  if (getFeatureProvider(credentialFeature) === GROQ_PROVIDER) {
+    return [...new Set([trimmedEnv('GROQ_MODEL') || 'openai/gpt-oss-120b', 'openai/gpt-oss-20b'])]
+  }
   const override = featureModelEnv(feature)
   const configured = trimmedEnv('NVIDIA_MODEL')
   return [override || configured || DEFAULT_NVIDIA_MODEL]
@@ -88,12 +105,42 @@ export function featureConfig(feature) {
 }
 
 const GROQ_KEYS = { quiz: 'GROQ_QUIZ_API_KEY', recall: 'GROQ_RECALL_API_KEY', insight: 'GROQ_INSIGHTS_API_KEY', timetable: 'GROQ_TIMETABLE_API_KEY', verifier: 'GROQ_QUIZ_API_KEY' }
-export function usesGroq() {
-  return Object.values(GROQ_KEYS).some((name) => Boolean(trimmedEnv(name)))
+export function getFeatureProvider(feature) {
+  if (credentialEnv(GROQ_KEYS[feature] || GROQ_KEYS.quiz)) return GROQ_PROVIDER
+  if (isNvidiaConfigured()) return NVIDIA_PROVIDER
+  return null
+}
+
+export function featureProviderCandidates(feature) {
+  const providers = []
+  if (credentialEnv(GROQ_KEYS[feature] || GROQ_KEYS.quiz)) providers.push(GROQ_PROVIDER)
+  if (isNvidiaConfigured()) providers.push(NVIDIA_PROVIDER)
+  return providers
+}
+
+export function fallbackProviderForFeature(feature) {
+  const providers = featureProviderCandidates(feature)
+  return providers[0] === GROQ_PROVIDER && providers.includes(NVIDIA_PROVIDER)
+    ? NVIDIA_PROVIDER
+    : null
+}
+
+// Kept for callers that need a provider predicate. Never use this without a
+// feature: a credential for one feature must not route another feature.
+export function usesGroq(feature = AI_FEATURES.QUIZ) {
+  return getFeatureProvider(feature) === GROQ_PROVIDER
+}
+
+export function getProviderApiKey(feature, provider) {
+  if (provider === GROQ_PROVIDER) return credentialEnv(GROQ_KEYS[feature] || GROQ_KEYS.quiz)
+  if (provider === NVIDIA_PROVIDER) return getNvidiaApiKey()
+  return ''
 }
 export function getFeatureApiKey(feature) {
-  return usesGroq() ? trimmedEnv(GROQ_KEYS[feature] || GROQ_KEYS.quiz) : getNvidiaApiKey()
+  return getProviderApiKey(feature, getFeatureProvider(feature))
 }
-export function isAiConfigured() {
-  return usesGroq() ? ['quiz', 'recall', 'insight', 'timetable'].every((feature) => Boolean(getFeatureApiKey(feature))) : isNvidiaConfigured()
+export function isAiConfigured(feature) {
+  if (feature) return Boolean(getFeatureApiKey(feature))
+  return ['quiz', 'recall', 'insight', 'timetable'].every((name) => isAiConfigured(name))
 }
+import { isPlaceholderValue, normalizeEnvironmentValue } from '../../scripts/secret-patterns.mjs'

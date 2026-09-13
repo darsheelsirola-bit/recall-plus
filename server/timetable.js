@@ -4,7 +4,7 @@ import {
 } from '../shared/timetableValidation.js'
 import { AppError, ERROR_CODES } from './errors.js'
 import { generateStructured, modelCandidates, requireAiKey } from './ai/client.js'
-import { AI_FEATURES } from './ai/config.js'
+import { AI_FEATURES, fallbackProviderForFeature } from './ai/config.js'
 import {
   MAX_PROVIDER_ATTEMPTS,
   PROVIDER_TOTAL_DEADLINE_MS,
@@ -56,7 +56,7 @@ JSON format:
 {"blocks":[{"weekday":0,"startTime":"17:00","durationMinutes":60,"subject":"Physics","label":"Physics recall"}],"summary":"A short explanation of why this plan is optimal."}`
 }
 
-async function generateOnce({ model, profile, subjects, curriculumVersionId, deadlineAt }) {
+async function generateOnce({ model, profile, subjects, curriculumVersionId, deadlineAt, provider }) {
   const parsed = await generateStructured({
     feature: AI_FEATURES.TIMETABLE,
     model,
@@ -72,6 +72,7 @@ async function generateOnce({ model, profile, subjects, curriculumVersionId, dea
         content: buildTimetablePrompt(profile, subjects),
       },
     ],
+    provider,
   })
   const blocks = Array.isArray(parsed?.blocks)
     ? parsed.blocks.map((block) => ({
@@ -122,12 +123,14 @@ export async function requestTimetable(profile, subjects = [], curriculumVersion
   requireAiKey(AI_FEATURES.TIMETABLE)
   const models = modelCandidates(AI_FEATURES.TIMETABLE)
   const deadlineAt = Date.now() + PROVIDER_TOTAL_DEADLINE_MS
+  const fallbackProvider = fallbackProviderForFeature(AI_FEATURES.TIMETABLE)
   let lastError
 
   for (let attempt = 0; attempt < MAX_PROVIDER_ATTEMPTS && Date.now() < deadlineAt; attempt += 1) {
     const model = models[attempt % models.length]
+    const provider = attempt === 0 ? undefined : (fallbackProvider || undefined)
     try {
-      const generated = await generateOnce({ model, profile: safeProfile, subjects, curriculumVersionId, deadlineAt })
+      const generated = await generateOnce({ model, profile: safeProfile, subjects, curriculumVersionId, deadlineAt, provider })
       if (generated) return generated
       lastError = providerResponseInvalid()
     } catch (error) {

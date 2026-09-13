@@ -1,5 +1,6 @@
 import { AlarmClock, ArrowLeft, ArrowRight, Brain, Check, CheckCircle2, History, Layers3, Lightbulb, SlidersHorizontal, Timer, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -41,9 +42,22 @@ const STUDY_TIPS = [
 ]
 
 const TIP_ROTATION_MS = 4000
+const INITIAL_GENERATION_PROGRESS = Object.freeze({ value: 0, label: 'Waiting to start' })
+
+function waitForCompletedPreparationPaint() {
+  return new Promise((resolve) => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(resolve)
+    })
+  })
+}
 
 function getAvailableTopics(subject, chapters, syllabus) {
   return chapters.flatMap((chapter) => getTopics(subject, chapter, syllabus).map((topic) => ({ chapter, topic })))
+}
+
+function getEligibleChapters(subject, syllabus) {
+  return getChapters(subject, syllabus).filter((chapter) => chapter.topics.length)
 }
 
 function configStorageKey(subject, chapters, topics, difficulty, duration, questionCount) {
@@ -66,17 +80,51 @@ function loadCachedQuiz(key, expectedCount) {
     : { quizId: '', questions: [] }
 }
 
+export function QuizPreparation({ ready, questionCount, difficulty, topicCount, progress, tip }) {
+  return (
+    <section className="grid min-h-[calc(100vh-5rem)] place-items-center py-10" aria-live="polite" aria-label="Preparing your practice test">
+      <div className="w-full max-w-2xl rounded-3xl border border-border bg-card p-10 text-center shadow-lift">
+        <span className="relative mx-auto grid size-20 place-items-center rounded-3xl bg-secondary text-primary">
+          <Brain className="size-9" />
+          <span className="absolute inset-0 animate-ping rounded-3xl border border-primary/20" />
+        </span>
+        <p className="mt-7 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Preparing your practice test</p>
+        <h1 className="mt-3 text-3xl font-semibold">Building questions for you</h1>
+        <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-muted-foreground">{ready ? 'Loading your saved test and setting the timer.' : `Creating ${questionCount} ${difficulty} questions across ${topicCount} selected topic${topicCount === 1 ? '' : 's'}.`}</p>
+        <div className="mx-auto mt-8 max-w-md">
+          <div className="mb-2 flex items-center justify-between gap-4 text-sm font-medium"><span>{progress.label}</span><span className="tabular-nums text-primary">{progress.value}%</span></div>
+          <Progress value={progress.value} aria-label={`Quiz preparation ${progress.value}% complete`} />
+          <p className="mt-2 text-xs text-muted-foreground">Each milestone reflects confirmed work or the request currently in progress.</p>
+        </div>
+        <div className="mx-auto mt-8 flex max-w-lg items-start gap-3 rounded-2xl bg-amber-50 p-5 text-left text-amber-950">
+          <Lightbulb className="mt-0.5 size-5 shrink-0 text-amber-600" />
+          <div><p className="text-xs font-semibold uppercase tracking-wider text-amber-700">Quick study tip</p><p className="mt-1 min-h-12 text-sm font-medium leading-6">{tip}</p></div>
+        </div>
+        <p className="mt-6 text-xs text-muted-foreground">Your test will begin automatically when it is ready.</p>
+      </div>
+    </section>
+  )
+}
+
 export default function Quiz() {
   const { curriculumVersionId, syllabus } = useActiveCurriculum()
   const [searchParams] = useSearchParams()
   const initialSelection = selectionFromParams(searchParams, syllabus)
+  const initialChapters = getEligibleChapters(initialSelection.subject, syllabus)
+  const initialChapter = initialChapters.some((chapter) => chapter.name === initialSelection.chapter)
+    ? initialSelection.chapter
+    : initialChapters[0]?.name || ''
+  const initialTopic = getTopics(initialSelection.subject, initialChapter, syllabus)
+    .includes(initialSelection.topic)
+    ? initialSelection.topic
+    : getTopics(initialSelection.subject, initialChapter, syllabus)[0] || ''
   const [subject, setSubject] = useState(initialSelection.subject)
-  const [selectedChapters, setSelectedChapters] = useState([initialSelection.chapter])
-  const [selectedTopics, setSelectedTopics] = useState([initialSelection.topic])
+  const [selectedChapters, setSelectedChapters] = useState([initialChapter])
+  const [selectedTopics, setSelectedTopics] = useState([initialTopic])
   const [difficulty, setDifficulty] = useState('medium')
   const [duration, setDuration] = useState(30)
   const [questionCount, setQuestionCount] = useState(10)
-  const initialQuiz = loadCachedQuiz(configStorageKey(initialSelection.subject, [initialSelection.chapter], [initialSelection.topic], 'medium', 30, 10), 10)
+  const initialQuiz = loadCachedQuiz(configStorageKey(initialSelection.subject, [initialChapter], [initialTopic], 'medium', 30, 10), 10)
   const [questions, setQuestions] = useState(initialQuiz.questions)
   const [quizId, setQuizId] = useState(initialQuiz.quizId)
   const [mode, setMode] = useState('setup')
@@ -87,6 +135,7 @@ export default function Quiz() {
   const [result, setResult] = useState(null)
   const [remaining, setRemaining] = useState(0)
   const [tipIndex, setTipIndex] = useState(0)
+  const [generationProgress, setGenerationProgress] = useState(INITIAL_GENERATION_PROGRESS)
   const submitRef = useRef(() => {})
   const submissionGuardRef = useRef(createSubmissionGuard())
   const generationRef = useRef(false)
@@ -107,7 +156,7 @@ export default function Quiz() {
 
   useEffect(() => {
     if (selectedChapters.some(Boolean)) return
-    const chapters = getChapters(subject, syllabus)
+    const chapters = getEligibleChapters(subject, syllabus)
     if (!chapters.length) return
     const requested = selectionFromParams(searchParams, syllabus)
     const nextChapter = requested.subject === subject && requested.chapter
@@ -135,7 +184,7 @@ export default function Quiz() {
   }
 
   function changeSubject(nextSubject) {
-    const firstChapter = getChapters(nextSubject, syllabus)[0]?.name || ''
+    const firstChapter = getEligibleChapters(nextSubject, syllabus)[0]?.name || ''
     const firstTopic = getTopics(nextSubject, firstChapter, syllabus)[0] || ''
     setSubject(nextSubject)
     setSelectedChapters([firstChapter])
@@ -207,21 +256,28 @@ export default function Quiz() {
     setTipIndex(0)
     const ownerId = getStorageUser()
     try {
+      if (!ready && !curriculumSelection) throw new Error('The selected official curriculum nodes could not be verified.')
+      setGenerationProgress({ value: 10, label: ready ? 'Saved test confirmed' : 'Selections confirmed' })
       if (!ready) {
-        if (!curriculumSelection) throw new Error('The selected official curriculum nodes could not be verified.')
-        const generated = await generateQuizQuestions(curriculumSelection, { count: safeQuestionCount, level: difficulty })
+        const generated = await generateQuizQuestions(curriculumSelection, {
+          count: safeQuestionCount,
+          level: difficulty,
+          onProgress: setGenerationProgress,
+        })
         if (!ownerId || getStorageUser() !== ownerId) return
         saveDataForUserOrThrow(ownerId, storageKey, generated)
+        setGenerationProgress({ value: 90, label: 'Verified test saved' })
         setQuizId(generated.quizId)
         setQuestions(generated.questions)
-      } else {
-        await new Promise((resolve) => window.setTimeout(resolve, 900))
       }
       setAnswers({})
       submissionGuardRef.current.reset()
       setIndex(0)
       setResult(null)
       setRemaining(safeDuration * 60)
+      setGenerationProgress({ value: 95, label: 'Timer prepared' })
+      flushSync(() => setGenerationProgress({ value: 100, label: 'Your test is ready' }))
+      await waitForCompletedPreparationPaint()
       setMode('active')
     } catch (generationError) {
       setError(generationError.message)
@@ -318,23 +374,14 @@ export default function Quiz() {
 
   if (mode === 'preparing') {
     return (
-      <section className="grid min-h-[calc(100vh-5rem)] place-items-center py-10" aria-live="polite" aria-label="Preparing your practice test">
-        <div className="w-full max-w-2xl rounded-3xl border border-border bg-card p-10 text-center shadow-lift">
-          <span className="relative mx-auto grid size-20 place-items-center rounded-3xl bg-secondary text-primary">
-            <Brain className="size-9" />
-            <span className="absolute inset-0 animate-ping rounded-3xl border border-primary/20" />
-          </span>
-          <p className="mt-7 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Preparing your practice test</p>
-          <h1 className="mt-3 text-3xl font-semibold">Building questions for you</h1>
-          <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-muted-foreground">{ready ? 'Loading your saved test and setting the timer.' : `Creating ${safeQuestionCount} ${difficulty} questions across ${selectedTopics.length} selected topic${selectedTopics.length === 1 ? '' : 's'}.`}</p>
-          <div className="mx-auto mt-8 h-2 max-w-md overflow-hidden rounded-full bg-secondary"><div className="h-full w-1/3 animate-pulse rounded-full bg-primary" /></div>
-          <div className="mx-auto mt-8 flex max-w-lg items-start gap-3 rounded-2xl bg-amber-50 p-5 text-left text-amber-950">
-            <Lightbulb className="mt-0.5 size-5 shrink-0 text-amber-600" />
-            <div><p className="text-xs font-semibold uppercase tracking-wider text-amber-700">Quick study tip</p><p className="mt-1 min-h-12 text-sm font-medium leading-6">{STUDY_TIPS[tipIndex]}</p></div>
-          </div>
-          <p className="mt-6 text-xs text-muted-foreground">Your test will begin automatically when it is ready.</p>
-        </div>
-      </section>
+      <QuizPreparation
+        ready={ready}
+        questionCount={safeQuestionCount}
+        difficulty={difficulty}
+        topicCount={selectedTopics.length}
+        progress={generationProgress}
+        tip={STUDY_TIPS[tipIndex]}
+      />
     )
   }
 
@@ -397,7 +444,7 @@ export default function Quiz() {
           <CardContent>
             <label className="field-label">Subject<select className="field" value={subject} onChange={(event) => changeSubject(event.target.value)}>{syllabus.map((item) => <option key={item.subject}>{item.subject}</option>)}</select></label>
 
-            <div className="mt-6"><div className="flex items-center justify-between"><p className="field-label">Curriculum sections</p><span className="text-xs text-muted-foreground">{selectedChapters.filter(Boolean).length} selected</span></div><div className="mt-3 grid max-h-56 grid-cols-1 gap-3 overflow-y-auto pr-1 sm:grid-cols-2">{getChapters(subject, syllabus).map((chapter, chapterIndex) => { const active = selectedChapters.includes(chapter.name); return <button type="button" key={chapter.name} aria-pressed={active} onClick={() => toggleChapter(chapter.name)} className={`flex min-h-12 items-center gap-3 rounded-xl border p-3 text-left text-sm font-medium transition ${active ? 'border-primary bg-secondary text-primary' : 'border-border bg-background hover:border-primary/30'}`}><span className={`grid size-7 shrink-0 place-items-center rounded-lg text-xs ${active ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>{active ? <Check className="size-3.5" /> : chapterIndex + 1}</span><span className="line-clamp-2">{chapter.name}</span></button> })}</div></div>
+            <div className="mt-6"><div className="flex items-center justify-between"><p className="field-label">Curriculum sections</p><span className="text-xs text-muted-foreground">{selectedChapters.filter(Boolean).length} selected</span></div><div className="mt-3 grid max-h-56 grid-cols-1 gap-3 overflow-y-auto pr-1 sm:grid-cols-2">{getEligibleChapters(subject, syllabus).map((chapter, chapterIndex) => { const active = selectedChapters.includes(chapter.name); return <button type="button" key={chapter.name} aria-pressed={active} onClick={() => toggleChapter(chapter.name)} className={`flex min-h-12 items-center gap-3 rounded-xl border p-3 text-left text-sm font-medium transition ${active ? 'border-primary bg-secondary text-primary' : 'border-border bg-background hover:border-primary/30'}`}><span className={`grid size-7 shrink-0 place-items-center rounded-lg text-xs ${active ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>{active ? <Check className="size-3.5" /> : chapterIndex + 1}</span><span className="line-clamp-2">{chapter.name}</span></button> })}</div></div>
 
             <div className="mt-6"><div className="flex items-center justify-between"><p className="field-label">Topics</p><Button variant="link" size="sm" onClick={selectAllTopics}>Select all shown</Button></div><div className="mt-3 grid max-h-72 grid-cols-2 gap-3 overflow-y-auto pr-1">{availableTopics.map(({ chapter, topic }) => { const active = selectedTopics.includes(topic); return <button type="button" key={`${chapter}-${topic}`} aria-pressed={active} onClick={() => toggleTopic(topic)} className={`rounded-xl border p-3 text-left transition ${active ? 'border-primary bg-secondary' : 'border-border bg-background hover:border-primary/30'}`}><span className={`text-sm font-medium ${active ? 'text-primary' : 'text-foreground'}`}>{active ? '✓ ' : ''}{topic}</span><span className="mt-1 block truncate text-xs text-muted-foreground">{chapter}</span></button> })}</div></div>
           </CardContent>
