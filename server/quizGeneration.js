@@ -10,7 +10,7 @@ import {
   modelCandidates,
   requireAiKey,
 } from './ai/client.js'
-import { AI_FEATURES, fallbackProviderForFeature } from './ai/config.js'
+import { AI_FEATURES, GROQ_PROVIDER, fallbackProviderForFeature } from './ai/config.js'
 import { quizSchema, scopedVerificationSchema, verificationSchema } from './ai/quizSchema.js'
 import { deterministicNumericalAnswer } from './ai/numericalVerification.js'
 import {
@@ -429,7 +429,13 @@ async function requestEnglishUniformQuiz({
         provider,
       }
       try {
-        candidates = await generateOnce({ ...generationArgs, strictOutput: true })
+        candidates = await generateOnce({
+          ...generationArgs,
+          strictOutput: true,
+          // If Groq rejects constrained decoding, let the English recovery
+          // path retry Groq in JSON-object mode before invoking NVIDIA.
+          provider: fallbackProvider ? GROQ_PROVIDER : provider,
+        })
       } catch (error) {
         if (!error?.retryableGenerationFailure) throw error
         // A constrained-decoding failure is a formatting failure, not a failed

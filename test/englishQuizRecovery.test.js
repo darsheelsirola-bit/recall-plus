@@ -152,6 +152,36 @@ test('English content-repair rounds stay on Groq when NVIDIA fallback is configu
   assert.equal(urls.every((url) => url === 'https://api.groq.com/openai/v1/chat/completions'), true)
 })
 
+test('English constrained-decoding failure retries Groq JSON mode before NVIDIA', async () => {
+  const urls = []
+  const formats = []
+  const questions = Array.from({ length: 5 }, (_, index) => question(index + 1))
+  const savedNvidiaKey = process.env.NVIDIA_API_KEY
+  try {
+    process.env.NVIDIA_API_KEY = 'fallback-test-key'
+    await withGroqMock(async (url, init) => {
+      urls.push(String(url))
+      const body = JSON.parse(init.body)
+      formats.push(body.response_format.type)
+      if (urls.length === 1) {
+        return new Response(JSON.stringify({ error: { code: 'json_validate_failed' } }), { status: 400 })
+      }
+      return urls.length === 2
+        ? providerResponse({ questions })
+        : audit(['q1', 'q2', 'q3', 'q4', 'q5'])
+    }, async () => {
+      const result = await requestQuiz({ ...request, count: 5 })
+      assert.equal(result.length, 5)
+    })
+  } finally {
+    if (savedNvidiaKey === undefined) delete process.env.NVIDIA_API_KEY
+    else process.env.NVIDIA_API_KEY = savedNvidiaKey
+  }
+  assert.equal(urls.length, 4)
+  assert.equal(urls.every((url) => url === 'https://api.groq.com/openai/v1/chat/completions'), true)
+  assert.deepEqual(formats.slice(0, 2), ['json_schema', 'json_object'])
+})
+
 test('one conservative scope audit does not discard an answer-confirmed English question', async () => {
   let calls = 0
   const questions = Array.from({ length: 5 }, (_, index) => question(index + 1))
