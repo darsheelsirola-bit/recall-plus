@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { runAuthenticatedFetchWithRecovery } from '../auth/apiRequestRecovery'
 import type { GenerationFeature } from '../types/generation'
 import { createSingleFlight, generationSingleFlightKey } from '../utils/requestUtils'
 
@@ -46,6 +47,7 @@ const REQUEST_ID_TTL_MS = 30 * 60 * 1000
 const MAX_RETRYABLE_REQUEST_IDS = 32
 const retryableGenerationIds = new Map<string, { requestId: string, createdAt: number }>()
 const runActiveGeneration = createSingleFlight()
+let refreshIdentityFlight: Promise<AuthenticatedIdentity | null> | null = null
 
 function requestMapKey(feature: GenerationFeature, payloadKey: string, userId: string): string {
   return `${userId}\u0000${feature}\u0000${payloadKey}`
@@ -138,11 +140,40 @@ export async function authenticatedFetch(
   identity?: AuthenticatedIdentity,
 ): Promise<Response> {
   const authenticated = identity ?? await getAuthenticatedIdentity()
+  const request = (requestIdentity: AuthenticatedIdentity) => {
+    const headers = new Headers(init.headers)
+    headers.set('Authorization', `Bearer ${requestIdentity.accessToken}`)
+    return fetch(input, { ...init, headers })
+  }
+  const refreshIdentity = async () => {
+    if (!refreshIdentityFlight) {
+      refreshIdentityFlight = supabase.auth.refreshSession()
+        .then(({ data, error }) => {
+          const userId = data.session?.user?.id
+          const accessToken = data.session?.access_token
+          return error || !userId || !accessToken ? null : { userId, accessToken }
+        })
+        .finally(() => { refreshIdentityFlight = null })
+    }
+    return refreshIdentityFlight
+  }
 
-  const headers = new Headers(init.headers)
-  headers.set('Authorization', `Bearer ${authenticated.accessToken}`)
-
-  return fetch(input, { ...init, headers })
+  return runAuthenticatedFetchWithRecovery({
+    identity: authenticated,
+    request,
+    refreshIdentity,
+    assertIdentityCurrent: async (expectedUserId) => {
+      const current = await getAuthenticatedIdentity()
+      if (current.userId !== expectedUserId) {
+        throw new ApiRequestError('Your signed-in account changed. Please try again.', 409, {
+          code: 'AUTH_SESSION_CHANGED',
+        })
+      }
+    },
+    accountChangedError: () => new ApiRequestError('Your signed-in account changed. Please try again.', 409, {
+      code: 'AUTH_SESSION_CHANGED',
+    }),
+  })
 }
 
 export async function readApiError(response: Response, fallback: string): Promise<ApiRequestError> {

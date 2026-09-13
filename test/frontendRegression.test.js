@@ -15,6 +15,7 @@ import {
   isJwtIssuedAtFutureError,
   runWithJwtClockSkewRecovery,
 } from '../src/auth/sessionRecovery.ts'
+import { runAuthenticatedFetchWithRecovery } from '../src/auth/apiRequestRecovery.ts'
 import {
   AUTH_SESSION_CHANGED_CODE,
   assertExpectedSessionUser,
@@ -249,6 +250,101 @@ test('session recovery does not retry unrelated auth failures or cross accounts'
     /signed-in account changed/,
   )
   assert.equal(skewCalls, 2)
+})
+
+test('protected API requests recover a first-click 401 without crossing accounts', async () => {
+  const waits = []
+  const tokens = []
+  let attempts = 0
+  const response = await runAuthenticatedFetchWithRecovery({
+    identity: { userId: 'account-a', accessToken: 'first-token' },
+    request: async (identity) => {
+      attempts += 1
+      tokens.push(identity.accessToken)
+      return new Response('', { status: attempts < 3 ? 401 : 200 })
+    },
+    refreshIdentity: async () => ({ userId: 'account-a', accessToken: 'fresh-token' }),
+    wait: async (milliseconds) => { waits.push(milliseconds) },
+  })
+  assert.equal(response.status, 200)
+  assert.deepEqual(tokens, ['first-token', 'first-token', 'fresh-token'])
+  assert.deepEqual(waits, [1_000, 1_000])
+
+  await assert.rejects(
+    () => runAuthenticatedFetchWithRecovery({
+      identity: { userId: 'account-a', accessToken: 'first-token' },
+      request: async () => new Response('', { status: 401 }),
+      refreshIdentity: async () => ({ userId: 'account-b', accessToken: 'other-token' }),
+      accountChangedError: () => Object.assign(new Error('account changed'), {
+        code: 'AUTH_SESSION_CHANGED',
+        status: 409,
+      }),
+      wait: async () => {},
+    }),
+    (error) => error.code === 'AUTH_SESSION_CHANGED' && error.status === 409,
+  )
+})
+
+test('protected API recovery does not refresh successful or non-auth failures', async () => {
+  for (const status of [200, 400, 403, 429, 500]) {
+    let requests = 0
+    let refreshes = 0
+    const response = await runAuthenticatedFetchWithRecovery({
+      identity: { userId: 'account-a', accessToken: 'token' },
+      request: async () => {
+        requests += 1
+        return new Response('', { status })
+      },
+      refreshIdentity: async () => {
+        refreshes += 1
+        return null
+      },
+      wait: async () => {},
+    })
+    assert.equal(response.status, status)
+    assert.equal(requests, 1)
+    assert.equal(refreshes, 0)
+  }
+})
+
+test('protected API recovery returns the last 401 when session refresh fails', async () => {
+  let requests = 0
+  const response = await runAuthenticatedFetchWithRecovery({
+    identity: { userId: 'account-a', accessToken: 'token' },
+    request: async () => {
+      requests += 1
+      return new Response('', { status: 401 })
+    },
+    refreshIdentity: async () => {
+      throw new Error('refresh transport failed')
+    },
+    wait: async () => {},
+  })
+  assert.equal(response.status, 401)
+  assert.equal(requests, 2)
+})
+
+test('protected API recovery checks the current account before every retry', async () => {
+  let requests = 0
+  let checks = 0
+  await assert.rejects(
+    () => runAuthenticatedFetchWithRecovery({
+      identity: { userId: 'account-a', accessToken: 'token' },
+      request: async () => {
+        requests += 1
+        return new Response('', { status: 401 })
+      },
+      refreshIdentity: async () => ({ userId: 'account-a', accessToken: 'fresh-token' }),
+      assertIdentityCurrent: async () => {
+        checks += 1
+        throw Object.assign(new Error('account changed'), { code: 'AUTH_SESSION_CHANGED' })
+      },
+      wait: async () => {},
+    }),
+    (error) => error.code === 'AUTH_SESSION_CHANGED',
+  )
+  assert.equal(requests, 1)
+  assert.equal(checks, 1)
 })
 
 test('user-data RPC contracts bind every write to the intended authenticated user', () => {
