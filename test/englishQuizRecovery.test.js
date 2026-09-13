@@ -35,6 +35,7 @@ function audit(ids, decisions = {}) {
 
 async function withGroqMock(mock, run) {
   const savedKey = process.env.GROQ_QUIZ_API_KEY
+  const savedNvidiaKey = process.env.NVIDIA_API_KEY
   const originalFetch = globalThis.fetch
   process.env.GROQ_QUIZ_API_KEY = 'test-only-key'
   globalThis.fetch = mock
@@ -44,6 +45,8 @@ async function withGroqMock(mock, run) {
     globalThis.fetch = originalFetch
     if (savedKey === undefined) delete process.env.GROQ_QUIZ_API_KEY
     else process.env.GROQ_QUIZ_API_KEY = savedKey
+    if (savedNvidiaKey === undefined) delete process.env.NVIDIA_API_KEY
+    else process.env.NVIDIA_API_KEY = savedNvidiaKey
   }
 }
 
@@ -101,6 +104,36 @@ test('English recovery retains eight twice-audited questions and requests only t
   for (const id of [...Array.from({ length: 8 }, (_, index) => `q${index + 1}`), 'q11', 'q12']) {
     assert.equal(auditedIds.filter((auditedId) => auditedId === id).length, 2)
   }
+})
+
+test('English content-repair rounds stay on Groq when NVIDIA fallback is configured', async () => {
+  const urls = []
+  const initial = Array.from({ length: 5 }, (_, index) => question(index + 1))
+  const savedNvidiaKey = process.env.NVIDIA_API_KEY
+  try {
+    process.env.NVIDIA_API_KEY = 'fallback-test-key'
+    await withGroqMock(async (url, init) => {
+      urls.push(String(url))
+      const body = JSON.parse(init.body)
+      if (urls.length === 1) return providerResponse({ questions: initial })
+      if (urls.length === 2 || urls.length === 3) {
+        return audit(['q1', 'q2', 'q3', 'q4', 'q5'], { q5: { answer: '' } })
+      }
+      if (body.messages[0].content.includes('You generate accurate')) {
+        return providerResponse({ questions: [question(6)] })
+      }
+      return audit(['q6'])
+    }, async () => {
+      const result = await requestQuiz({ ...request, count: 5 })
+      assert.equal(result.length, 5)
+    })
+  } finally {
+    if (savedNvidiaKey === undefined) delete process.env.NVIDIA_API_KEY
+    else process.env.NVIDIA_API_KEY = savedNvidiaKey
+  }
+
+  assert.equal(urls.length, 6)
+  assert.equal(urls.every((url) => url === 'https://api.groq.com/openai/v1/chat/completions'), true)
 })
 
 test('a duplicate replacement is rejected and cannot displace a unique verified question', async () => {

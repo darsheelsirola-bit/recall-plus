@@ -409,7 +409,11 @@ async function requestEnglishUniformQuiz({
   for (let round = 0; round < ENGLISH_RECOVERY_ROUNDS && retained.length < count; round += 1) {
     const missingCount = count - retained.length
     const model = models[round % models.length]
-    const provider = round === 0 ? undefined : (fallbackProvider || undefined)
+    // A partially accepted English batch is a content-repair round, not a
+    // provider failure. Keep using the feature's primary provider so small
+    // replacement batches do not get forced onto a slower fallback. The AI
+    // client still fails over to the fallback for real 429/5xx/timeout errors.
+    const provider = undefined
     let candidates
     try {
       const generationArgs = {
