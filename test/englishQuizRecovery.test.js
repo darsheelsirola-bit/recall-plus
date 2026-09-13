@@ -112,7 +112,7 @@ test('English recovery retains eight twice-audited questions and requests only t
   assert.ok(!bodies[3].messages[1].content.includes(initial[0].explanation))
   assert.equal(bodies[0].model, 'openai/gpt-oss-120b')
   assert.equal(bodies[1].model, 'openai/gpt-oss-120b')
-  assert.equal(bodies[2].model, 'openai/gpt-oss-120b')
+  assert.equal(bodies[2].model, 'openai/gpt-oss-20b')
 
   const auditedIds = bodies
     .filter((body) => body.messages[0].content.includes('scope and answer-key auditor'))
@@ -180,6 +180,22 @@ test('two answer-blind audits correct a wrong generated English answer key', asy
     assert.equal(result.length, 5)
     assert.equal(result[4].answer, 'Companionship')
     assert.equal(result[4].explanation, 'Two independent answer-blind checks confirmed this answer.')
+  })
+  assert.equal(calls, 3)
+})
+
+test('the smaller advisory verifier cannot veto the strongest verified English answer', async () => {
+  let calls = 0
+  const questions = Array.from({ length: 5 }, (_, index) => question(index + 1))
+  await withGroqMock(async () => {
+    calls += 1
+    if (calls === 1) return providerResponse({ questions })
+    if (calls === 2) return audit(['q1', 'q2', 'q3', 'q4', 'q5'])
+    return audit(['q1', 'q2', 'q3', 'q4', 'q5'], { q5: { answer: 'Commerce' } })
+  }, async () => {
+    const result = await requestQuiz({ ...request, count: 5 })
+    assert.equal(result.length, 5)
+    assert.equal(result[4].answer, 'Companionship')
   })
   assert.equal(calls, 3)
 })

@@ -455,11 +455,11 @@ async function requestEnglishUniformQuiz({
     }))
 
     const audits = []
-    // English answer checks use two separate, deterministic calls to the
-    // strongest configured verifier. Mixing the smaller model into the pair
-    // caused avoidable disagreements and replacement cascades in production.
+    // Put the strongest answer-blind verifier first and keep the second model
+    // as an independent scope/advisory pass. Separate model buckets also avoid
+    // exhausting one provider limit during a ten-question request.
     const strongestVerifierModel = verifierModels[0]
-    const auditModels = [strongestVerifierModel, strongestVerifierModel]
+    const auditModels = [strongestVerifierModel, verifierModels[1] || strongestVerifierModel]
     for (let pass = 0; pass < QUIZ_VERIFICATION_PASSES; pass += 1) {
       const auditArgs = {
         credentialFeature: feature,
@@ -527,7 +527,7 @@ async function requestEnglishUniformQuiz({
         continue
       }
       const auditedAnswer = decisions[0]?.answer
-      if (!auditedAnswer || !decisions.every((decision) => decision.answer === auditedAnswer)) {
+      if (!auditedAnswer) {
         rejected.answerMismatch += 1
         continue
       }
