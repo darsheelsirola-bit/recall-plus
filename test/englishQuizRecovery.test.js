@@ -150,6 +150,24 @@ test('one conservative scope audit does not discard an answer-confirmed English 
   assert.equal(calls, 3)
 })
 
+test('two answer-blind audits correct a wrong generated English answer key', async () => {
+  let calls = 0
+  const questions = Array.from({ length: 5 }, (_, index) => question(index + 1))
+  questions[4] = question(5, { answer: 'Commerce', explanation: 'The generated explanation is wrong.' })
+  await withGroqMock(async () => {
+    calls += 1
+    return calls === 1
+      ? providerResponse({ questions })
+      : audit(['q1', 'q2', 'q3', 'q4', 'q5'])
+  }, async () => {
+    const result = await requestQuiz({ ...request, count: 5 })
+    assert.equal(result.length, 5)
+    assert.equal(result[4].answer, 'Companionship')
+    assert.equal(result[4].explanation, 'Two independent answer-blind checks confirmed this answer.')
+  })
+  assert.equal(calls, 3)
+})
+
 test('a duplicate replacement is rejected and cannot displace a unique verified question', async () => {
   const bodies = []
   const initial = Array.from({ length: 5 }, (_, index) => question(index + 1))

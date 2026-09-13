@@ -528,7 +528,8 @@ async function requestEnglishUniformQuiz({
         rejected.outOfScope += 1
         continue
       }
-      if (!decisions.every((decision) => decision.answer === question.answer)) {
+      const auditedAnswer = decisions[0]?.answer
+      if (!auditedAnswer || !decisions.every((decision) => decision.answer === auditedAnswer)) {
         rejected.answerMismatch += 1
         continue
       }
@@ -538,7 +539,11 @@ async function requestEnglishUniformQuiz({
         continue
       }
       retainedTexts.add(canonicalText)
-      retained.push(question)
+      retained.push(auditedAnswer === question.answer ? question : {
+        ...question,
+        answer: auditedAnswer,
+        explanation: 'Two independent answer-blind checks confirmed this answer.',
+      })
     }
     logEnglishRecovery({
       round: round + 1,
