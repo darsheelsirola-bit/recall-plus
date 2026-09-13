@@ -95,7 +95,7 @@ test('English recovery retains eight twice-audited questions and requests only t
   assert.ok(bodies[3].messages[1].content.includes(initial[0].question))
   assert.ok(!bodies[3].messages[1].content.includes(initial[0].explanation))
   assert.equal(bodies[0].model, 'openai/gpt-oss-120b')
-  assert.equal(bodies[1].model, 'openai/gpt-oss-20b')
+  assert.equal(bodies[1].model, 'openai/gpt-oss-120b')
   assert.equal(bodies[2].model, 'openai/gpt-oss-120b')
 
   const auditedIds = bodies

@@ -352,13 +352,6 @@ function canonicalQuestionText(value) {
   return String(value || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('en')
 }
 
-function verifierModelsFor(generatorModel, candidates) {
-  if (candidates.length < 2) return [candidates[0], candidates[0]]
-  const different = candidates.find((candidate) => candidate !== generatorModel) || candidates[0]
-  const second = candidates.find((candidate) => candidate !== different) || different
-  return [different, second]
-}
-
 function terminalProviderError(error) {
   return [400, 401, 403, 404, 422].includes(error?.upstreamStatus)
     && !error?.retryableGenerationFailure
@@ -461,7 +454,11 @@ async function requestEnglishUniformQuiz({
     }))
 
     const audits = []
-    const auditModels = verifierModelsFor(model, verifierModels)
+    // English answer checks use two separate, deterministic calls to the
+    // strongest configured verifier. Mixing the smaller model into the pair
+    // caused avoidable disagreements and replacement cascades in production.
+    const strongestVerifierModel = verifierModels[0]
+    const auditModels = [strongestVerifierModel, strongestVerifierModel]
     for (let pass = 0; pass < QUIZ_VERIFICATION_PASSES; pass += 1) {
       const auditArgs = {
         credentialFeature: feature,
