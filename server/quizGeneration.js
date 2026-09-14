@@ -10,7 +10,7 @@ import {
   modelCandidates,
   requireAiKey,
 } from './ai/client.js'
-import { AI_FEATURES, GROQ_PROVIDER, fallbackProviderForFeature } from './ai/config.js'
+import { AI_FEATURES } from './ai/config.js'
 import { quizSchema, scopedVerificationSchema, verificationSchema } from './ai/quizSchema.js'
 import { deterministicNumericalAnswer } from './ai/numericalVerification.js'
 import {
@@ -277,7 +277,6 @@ async function generateOnce({
   strictOutput,
   excludedQuestions = [],
   consumeProviderCall,
-  provider,
 }) {
   consumeProviderCall?.()
   const parsed = await generateStructured({
@@ -297,7 +296,6 @@ async function generateOnce({
         content: buildQuizPrompt({ curriculumVersionId, curriculumSubjectId, chapterNodeIds, topicNodeIds, subject, chapter, topic, count, level, purpose, excludedQuestions }),
       },
     ],
-    provider,
   })
   const questions = Array.isArray(parsed) ? parsed : parsed?.questions
   if (/\benglish\b/i.test(subject) && Array.isArray(questions) && questions.some(question => question?.questionType !== 'theory')) return null
@@ -318,7 +316,6 @@ async function verifyOnce({
   strictOutput,
   scoped = false,
   consumeProviderCall,
-  provider,
 }) {
   consumeProviderCall?.()
   const parsed = await generateStructured({
@@ -342,7 +339,6 @@ async function verifyOnce({
           : buildQuizVerificationPrompt(questions, context),
       },
     ],
-    provider,
   })
   return scoped
     ? normalizeScopedQuizVerification(parsed, questions)
@@ -385,7 +381,6 @@ async function requestEnglishUniformQuiz({
   level,
   purpose,
   deadlineAt,
-  fallbackProvider,
 }) {
   const retained = []
   const retainedTexts = new Set()
@@ -404,10 +399,7 @@ async function requestEnglishUniformQuiz({
     const missingCount = count - retained.length
     const model = models[round % models.length]
     // A partially accepted English batch is a content-repair round, not a
-    // provider failure. Keep using the feature's primary provider so small
-    // replacement batches do not get forced onto a slower fallback. The AI
-    // client still fails over to the fallback for real 429/5xx/timeout errors.
-    const provider = undefined
+    // provider failure. Keep its bounded retry sequence on Groq.
     let candidates
     try {
       const generationArgs = {
@@ -426,15 +418,12 @@ async function requestEnglishUniformQuiz({
         deadlineAt,
         excludedQuestions: retained.map(({ question }) => question),
         consumeProviderCall,
-        provider,
       }
       try {
         candidates = await generateOnce({
           ...generationArgs,
           strictOutput: true,
-          // If Groq rejects constrained decoding, let the English recovery
-          // path retry Groq in JSON-object mode before invoking NVIDIA.
-          provider: fallbackProvider ? GROQ_PROVIDER : provider,
+          // If Groq rejects constrained decoding, retry in JSON-object mode.
         })
       } catch (error) {
         if (!error?.retryableGenerationFailure) throw error
@@ -476,7 +465,6 @@ async function requestEnglishUniformQuiz({
         strictOutput: true,
         scoped: true,
         consumeProviderCall,
-        provider,
       }
       let audit
       let usedJsonObjectFallback = false
@@ -492,7 +480,6 @@ async function requestEnglishUniformQuiz({
         audit = await verifyOnce({
           ...auditArgs,
           strictOutput: !usedJsonObjectFallback,
-          provider: fallbackProvider || provider,
         })
       }
       if (!audit && !usedJsonObjectFallback) {
@@ -503,7 +490,6 @@ async function requestEnglishUniformQuiz({
         audit = await verifyOnce({
           ...auditArgs,
           strictOutput: false,
-          provider: fallbackProvider || provider,
         })
       }
       audits.push(audit)
@@ -571,8 +557,7 @@ export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', 
   const safeCount = clampCount(count)
   const safeLevel = ['mixed', 'easy', 'medium', 'hard'].includes(level) ? level : 'mixed'
   const models = modelCandidates(feature)
-  const verifierModels = modelCandidates(AI_FEATURES.VERIFIER, feature)
-  const fallbackProvider = fallbackProviderForFeature(feature)
+  const verifierModels = modelCandidates(AI_FEATURES.VERIFIER)
   const deadlineAt = Date.now() + PROVIDER_TOTAL_DEADLINE_MS
   const englishUniform = /\benglish\b/i.test(subject) && ['easy', 'medium', 'hard'].includes(safeLevel)
   if (englishUniform) {
@@ -591,7 +576,6 @@ export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', 
       level: safeLevel,
       purpose,
       deadlineAt,
-      fallbackProvider,
     })
   }
   let lastError
@@ -599,7 +583,6 @@ export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', 
 
   for (let attempt = 0; attempt < MAX_PROVIDER_ATTEMPTS && Date.now() < deadlineAt; attempt += 1) {
     const model = models[attempt % models.length]
-    const provider = attempt === 0 ? undefined : (fallbackProvider || undefined)
     try {
       const questions = await generateOnce({
         feature,
@@ -616,7 +599,6 @@ export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', 
         purpose,
         deadlineAt,
         strictOutput,
-        provider,
       })
       if (questions) {
         for (let pass = 0; pass < QUIZ_VERIFICATION_PASSES; pass += 1) {
@@ -628,7 +610,6 @@ export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', 
             questions,
             deadlineAt,
             strictOutput,
-            provider,
           })
           if (!verificationMatchesAnswerKey(questions, verifiedAnswers)) {
             throw quizVerificationFailed()

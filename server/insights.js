@@ -1,6 +1,6 @@
 import { buildBasedOnLine, buildFallbackChapterInsight, buildFallbackInsights } from './insightFallbacks.js'
 import { generateStructured, modelCandidates, requireAiKey } from './ai/client.js'
-import { AI_FEATURES, fallbackProviderForFeature, getFeatureProvider } from './ai/config.js'
+import { AI_FEATURES, getFeatureProvider } from './ai/config.js'
 import {
   MAX_PROVIDER_ATTEMPTS,
   PROVIDER_TOTAL_DEADLINE_MS,
@@ -338,8 +338,8 @@ JSON format:
 {"headline":"string","summary":"string","chapters":[{"subject":"Physics","chapter":"Motion in a Straight Line","observedData":"OBSERVED DATA only","recommendation":"AI RECOMMENDATION only","basedOn":"...","prioritizedTopics":[{"topic":"Kinematic Equations","order":1,"reason":"..."}],"studyFrom":{"primary":"NCERT Physics Class 11 Part 1 — Ch 3","sections":["Read §3.4","Solve Ex 3.5 Q1-5"],"secondary":"HC Verma Vol 1 — Ch 3"},"focusArea":"formulas"}]}`
 }
 
-async function generateOnce({ model, chapterContexts, deadlineAt, provider }) {
-  const generated = await generateStructured({
+async function generateOnce({ model, chapterContexts, deadlineAt }) {
+  const parsed = await generateStructured({
     feature: AI_FEATURES.INSIGHT,
     model,
     temperature: 0.3,
@@ -354,11 +354,9 @@ async function generateOnce({ model, chapterContexts, deadlineAt, provider }) {
         content: buildInsightsPrompt(chapterContexts),
       },
     ],
-    provider,
-    includeProvider: true,
   })
-  return isProviderInsightsShape(generated.data, chapterContexts)
-    ? normalizeInsightsPayload(generated.data, chapterContexts, generated.provider)
+  return isProviderInsightsShape(parsed, chapterContexts)
+    ? normalizeInsightsPayload(parsed, chapterContexts)
     : null
 }
 
@@ -380,18 +378,15 @@ export async function requestInsights(chapterContexts) {
   const safeContexts = chapterContexts.slice(0, MAX_CHAPTERS)
   const models = modelCandidates(AI_FEATURES.INSIGHT)
   const deadlineAt = Date.now() + PROVIDER_TOTAL_DEADLINE_MS
-  const fallbackProvider = fallbackProviderForFeature(AI_FEATURES.INSIGHT)
   let lastError
 
   for (let attempt = 0; attempt < MAX_PROVIDER_ATTEMPTS && Date.now() < deadlineAt; attempt += 1) {
     const model = models[attempt % models.length]
-    const provider = attempt === 0 ? undefined : (fallbackProvider || undefined)
     try {
       const insights = await generateOnce({
         model,
         chapterContexts: safeContexts,
         deadlineAt,
-        provider,
       })
       if (insights) return insights
       lastError = providerResponseInvalid()

@@ -35,7 +35,6 @@ function audit(ids, decisions = {}) {
 
 async function withGroqMock(mock, run) {
   const savedKey = process.env.GROQ_QUIZ_API_KEY
-  const savedNvidiaKey = process.env.NVIDIA_API_KEY
   const originalFetch = globalThis.fetch
   process.env.GROQ_QUIZ_API_KEY = 'test-only-key'
   globalThis.fetch = mock
@@ -45,8 +44,6 @@ async function withGroqMock(mock, run) {
     globalThis.fetch = originalFetch
     if (savedKey === undefined) delete process.env.GROQ_QUIZ_API_KEY
     else process.env.GROQ_QUIZ_API_KEY = savedKey
-    if (savedNvidiaKey === undefined) delete process.env.NVIDIA_API_KEY
-    else process.env.NVIDIA_API_KEY = savedNvidiaKey
   }
 }
 
@@ -122,13 +119,10 @@ test('English recovery retains eight twice-audited questions and requests only t
   }
 })
 
-test('English content-repair rounds stay on Groq when NVIDIA fallback is configured', async () => {
+test('English content-repair rounds stay on Groq', async () => {
   const urls = []
   const initial = Array.from({ length: 5 }, (_, index) => question(index + 1))
-  const savedNvidiaKey = process.env.NVIDIA_API_KEY
-  try {
-    process.env.NVIDIA_API_KEY = 'fallback-test-key'
-    await withGroqMock(async (url, init) => {
+  await withGroqMock(async (url, init) => {
       urls.push(String(url))
       const body = JSON.parse(init.body)
       if (urls.length === 1) return providerResponse({ questions: initial })
@@ -139,27 +133,20 @@ test('English content-repair rounds stay on Groq when NVIDIA fallback is configu
         return providerResponse({ questions: [question(6)] })
       }
       return audit(['q6'])
-    }, async () => {
-      const result = await requestQuiz({ ...request, count: 5 })
-      assert.equal(result.length, 5)
-    })
-  } finally {
-    if (savedNvidiaKey === undefined) delete process.env.NVIDIA_API_KEY
-    else process.env.NVIDIA_API_KEY = savedNvidiaKey
-  }
+  }, async () => {
+    const result = await requestQuiz({ ...request, count: 5 })
+    assert.equal(result.length, 5)
+  })
 
   assert.equal(urls.length, 6)
   assert.equal(urls.every((url) => url === 'https://api.groq.com/openai/v1/chat/completions'), true)
 })
 
-test('English constrained-decoding failure retries Groq JSON mode before NVIDIA', async () => {
+test('English constrained-decoding failure retries Groq JSON mode', async () => {
   const urls = []
   const formats = []
   const questions = Array.from({ length: 5 }, (_, index) => question(index + 1))
-  const savedNvidiaKey = process.env.NVIDIA_API_KEY
-  try {
-    process.env.NVIDIA_API_KEY = 'fallback-test-key'
-    await withGroqMock(async (url, init) => {
+  await withGroqMock(async (url, init) => {
       urls.push(String(url))
       const body = JSON.parse(init.body)
       formats.push(body.response_format.type)
@@ -169,14 +156,10 @@ test('English constrained-decoding failure retries Groq JSON mode before NVIDIA'
       return urls.length === 2
         ? providerResponse({ questions })
         : audit(['q1', 'q2', 'q3', 'q4', 'q5'])
-    }, async () => {
-      const result = await requestQuiz({ ...request, count: 5 })
-      assert.equal(result.length, 5)
-    })
-  } finally {
-    if (savedNvidiaKey === undefined) delete process.env.NVIDIA_API_KEY
-    else process.env.NVIDIA_API_KEY = savedNvidiaKey
-  }
+  }, async () => {
+    const result = await requestQuiz({ ...request, count: 5 })
+    assert.equal(result.length, 5)
+  })
   assert.equal(urls.length, 4)
   assert.equal(urls.every((url) => url === 'https://api.groq.com/openai/v1/chat/completions'), true)
   assert.deepEqual(formats.slice(0, 2), ['json_schema', 'json_object'])

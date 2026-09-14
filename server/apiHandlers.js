@@ -44,13 +44,9 @@ export function handleAiStatus(request, response) {
     AI_FEATURES.INSIGHT,
     AI_FEATURES.TIMETABLE,
   ].map((feature) => [feature, getFeatureProvider(feature) || 'unavailable']))
-  const configuredProviders = new Set(Object.values(featureProviders).filter((provider) => provider !== 'unavailable'))
-  const provider = configuredProviders.size === 1
-    ? ([...configuredProviders][0] === 'groq' ? 'Groq' : 'NVIDIA')
-    : configuredProviders.size > 1 ? 'Mixed' : 'Unavailable'
   return response.status(200).json({
     configured: Boolean(isAiConfigured() && isSupabaseConfigured()),
-    provider,
+    provider: isAiConfigured() ? 'Groq' : 'Unavailable',
     features: featureProviders,
   })
 }

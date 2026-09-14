@@ -15,7 +15,7 @@
 - Runtime/toolchain: Node 24.16.0, npm 11.13.0
 - Backend: Express-compatible Vercel Functions
 - Auth/database: Supabase Auth and PostgreSQL migrations
-- AI provider: NVIDIA NIM through server-only handlers
+- AI provider: Groq through server-only handlers
 - Tracked files at baseline: 313
 
 ## Initial verification

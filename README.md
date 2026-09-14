@@ -10,7 +10,6 @@ The production architecture uses:
 - Supabase Postgres and Row Level Security (RLS) for per-user data and generation limits
 - Vercel Functions, or the included Express server, as the trusted API boundary
 - Four dedicated Groq credentials for quiz, recall, insights, and timetable generation; answer verification uses the originating task credential
-- The merged NVIDIA adapter remains available for local installations with no Groq configuration
 
 ## Features
 
@@ -110,9 +109,6 @@ GROQ_INSIGHTS_API_KEY=YOUR_INSIGHTS_KEY
 GROQ_TIMETABLE_API_KEY=YOUR_TIMETABLE_KEY
 GROQ_MODEL=openai/gpt-oss-120b
 GROQ_REQUEST_TIMEOUT_MS=20000
-NVIDIA_API_KEY=YOUR_NVIDIA_FALLBACK_KEY
-NVIDIA_MODEL=openai/gpt-oss-20b
-NVIDIA_REQUEST_TIMEOUT_MS=20000
 
 # Used by the local Express API only
 PORT=8787
@@ -328,14 +324,12 @@ npm start
 | `SUPABASE_URL` | Server | Yes | Supabase project URL used by API functions |
 | `SUPABASE_ANON_KEY` | Server | Yes | Used while validating authenticated requests |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server secret | Yes | Executes protected persistence and generation-limit RPCs |
-| `GROQ_QUIZ_API_KEY` | Server secret | No | Practice quizzes and their verification; NVIDIA is used when absent |
-| `GROQ_RECALL_API_KEY` | Server secret | No | Recall quizzes and their verification; NVIDIA is used when absent |
-| `GROQ_INSIGHTS_API_KEY` | Server secret | No | Chapter insights; NVIDIA is used when absent |
-| `GROQ_TIMETABLE_API_KEY` | Server secret | No | Timetable generation; NVIDIA is used when absent |
-| `NVIDIA_API_KEY` | Server secret | No | Per-feature fallback where that feature has no Groq key |
+| `GROQ_QUIZ_API_KEY` | Server secret | Yes | Practice quizzes and their verification |
+| `GROQ_RECALL_API_KEY` | Server secret | Yes | Recall quizzes and their verification |
+| `GROQ_INSIGHTS_API_KEY` | Server secret | Yes | Chapter insights |
+| `GROQ_TIMETABLE_API_KEY` | Server secret | Yes | Timetable generation |
 | `GROQ_MODEL` | Server | No | Defaults to `openai/gpt-oss-120b` |
 | `GROQ_REQUEST_TIMEOUT_MS` | Server | No | Per-attempt timeout, clamped to 5–30 seconds |
-| `NVIDIA_REQUEST_TIMEOUT_MS` | Server | No | Per-attempt timeout, clamped to 5–30 seconds |
 | `PORT` | Local server | No | Express port; defaults to `8787` |
 
 Use the following environment scopes:

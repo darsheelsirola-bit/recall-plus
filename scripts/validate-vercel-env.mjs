@@ -51,7 +51,6 @@ const quizKey = optionalSecretValue('GROQ_QUIZ_API_KEY')
 const recallKey = optionalSecretValue('GROQ_RECALL_API_KEY')
 const insightsKey = optionalSecretValue('GROQ_INSIGHTS_API_KEY')
 const timetableKey = optionalSecretValue('GROQ_TIMETABLE_API_KEY')
-const nvidiaKey = optionalSecretValue('NVIDIA_API_KEY')
 const featureCredentials = [
   ['quiz', quizKey],
   ['recall', recallKey],
@@ -59,8 +58,8 @@ const featureCredentials = [
   ['timetable', timetableKey],
 ]
 for (const [feature, groqKey] of featureCredentials) {
-  if (!groqKey && !nvidiaKey) {
-    failures.push(`${feature} generation requires its GROQ_*_API_KEY or NVIDIA_API_KEY`)
+  if (!groqKey) {
+    failures.push(`${feature} generation requires its dedicated GROQ_*_API_KEY`)
   }
 }
 
@@ -77,7 +76,6 @@ const serverSecrets = [
   ['GROQ_RECALL_API_KEY', recallKey],
   ['GROQ_INSIGHTS_API_KEY', insightsKey],
   ['GROQ_TIMETABLE_API_KEY', timetableKey],
-  ['NVIDIA_API_KEY', nvidiaKey],
 ]
 for (const publicName of browserSupabaseKeyNames) {
   const publicValue = String(process.env[publicName] || '').trim()
@@ -115,7 +113,7 @@ if (insightsKey && timetableKey && insightsKey === timetableKey) {
   failures.push('GROQ_INSIGHTS_API_KEY and GROQ_TIMETABLE_API_KEY must use separate credentials')
 }
 
-for (const name of ['GROQ_REQUEST_TIMEOUT_MS', 'NVIDIA_REQUEST_TIMEOUT_MS']) {
+for (const name of ['GROQ_REQUEST_TIMEOUT_MS']) {
   const timeout = String(process.env[name] || '').trim()
   if (timeout && (!/^\d+$/.test(timeout) || Number(timeout) < 5000 || Number(timeout) > 30000)) {
     failures.push(`${name} must be an integer from 5000 through 30000`)
@@ -153,7 +151,7 @@ if (failures.length > 0) {
   process.exit(1)
 }
 
-console.log(`Vercel ${environment} environment validation passed; every AI feature has a server-only provider credential.`)
+console.log(`Vercel ${environment} environment validation passed; every AI feature has its server-only Groq credential.`)
 if (environment === 'preview') {
-  console.log('Preview validation cannot compare dashboard scopes; use isolated Preview provider credentials as documented.')
+  console.log('Preview validation cannot compare dashboard scopes; use isolated Preview Groq credentials as documented.')
 }

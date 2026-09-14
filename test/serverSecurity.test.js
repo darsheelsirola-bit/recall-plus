@@ -315,14 +315,14 @@ test('insight validation bounds every nested collection and rejects unknown data
   }), null)
 })
 
-test('AI insights fail closed without NVIDIA_API_KEY', async () => {
-  const originalKey = process.env.NVIDIA_API_KEY
+test('AI insights fail closed without GROQ_INSIGHTS_API_KEY', async () => {
+  const originalKey = process.env.GROQ_INSIGHTS_API_KEY
   const originalFetch = globalThis.fetch
   let providerCalls = 0
-  delete process.env.NVIDIA_API_KEY
+  delete process.env.GROQ_INSIGHTS_API_KEY
   globalThis.fetch = async () => {
     providerCalls += 1
-    throw new Error('Provider must not be called without NVIDIA_API_KEY.')
+    throw new Error('Provider must not be called without GROQ_INSIGHTS_API_KEY.')
   }
 
   try {
@@ -337,17 +337,17 @@ test('AI insights fail closed without NVIDIA_API_KEY', async () => {
     assert.equal(providerCalls, 0)
   } finally {
     globalThis.fetch = originalFetch
-    if (originalKey === undefined) delete process.env.NVIDIA_API_KEY
-    else process.env.NVIDIA_API_KEY = originalKey
+    if (originalKey === undefined) delete process.env.GROQ_INSIGHTS_API_KEY
+    else process.env.GROQ_INSIGHTS_API_KEY = originalKey
   }
 })
 
-test('AI insights authenticate only with NVIDIA_API_KEY', async () => {
-  const originalKey = process.env.NVIDIA_API_KEY
+test('AI insights authenticate only with GROQ_INSIGHTS_API_KEY', async () => {
+  const originalKey = process.env.GROQ_INSIGHTS_API_KEY
   const originalFetch = globalThis.fetch
   let authorization = ''
   let providerUrl = ''
-  process.env.NVIDIA_API_KEY = 'nvidia-insights-test-key'
+  process.env.GROQ_INSIGHTS_API_KEY = 'groq-insights-test-key'
   globalThis.fetch = async (input, init) => {
     providerUrl = String(input)
     authorization = init.headers.Authorization
@@ -384,13 +384,13 @@ test('AI insights authenticate only with NVIDIA_API_KEY', async () => {
 
   try {
     const result = await requestInsights(normalized.chapterContexts)
-    assert.equal(authorization, 'Bearer nvidia-insights-test-key')
-    assert.equal(providerUrl, 'https://integrate.api.nvidia.com/v1/chat/completions')
-    assert.equal(result.source, 'nvidia')
+    assert.equal(authorization, 'Bearer groq-insights-test-key')
+    assert.equal(providerUrl, 'https://api.groq.com/openai/v1/chat/completions')
+    assert.equal(result.source, 'groq')
   } finally {
     globalThis.fetch = originalFetch
-    if (originalKey === undefined) delete process.env.NVIDIA_API_KEY
-    else process.env.NVIDIA_API_KEY = originalKey
+    if (originalKey === undefined) delete process.env.GROQ_INSIGHTS_API_KEY
+    else process.env.GROQ_INSIGHTS_API_KEY = originalKey
   }
 })
 
@@ -442,12 +442,12 @@ test('already-parsed bodies without a raw byte count fail closed', () => {
 
 test('quiz generation is accepted only after two answer-blind verification passes agree', async () => {
   const originalFetch = globalThis.fetch
-  const originalKey = process.env.NVIDIA_API_KEY
+  const originalKey = process.env.GROQ_QUIZ_API_KEY
   const questions = mixedPhysicsQuiz()
   let providerCalls = 0
   const providerUrls = []
   const providerBodies = []
-  process.env.NVIDIA_API_KEY = 'test-only-key'
+  process.env.GROQ_QUIZ_API_KEY = 'test-only-key'
   globalThis.fetch = async (input, init) => {
     providerCalls += 1
     providerUrls.push(String(input))
@@ -467,14 +467,8 @@ test('quiz generation is accepted only after two answer-blind verification passe
       level: 'mixed',
     })
     assert.equal(providerCalls, 3)
-    assert.equal(providerUrls.every((url) => url === 'https://integrate.api.nvidia.com/v1/chat/completions'), true)
-    assert.equal(providerBodies.every((body) => body.model === 'openai/gpt-oss-20b'), true)
-    assert.equal(providerBodies[0].reasoning_effort, 'medium')
-    assert.equal(providerBodies[1].reasoning_effort, 'high')
-    assert.equal(providerBodies[2].reasoning_effort, 'high')
-    assert.equal(providerBodies.every((body) => body.max_tokens === 4096), true)
-    assert.equal(providerBodies.every((body) => body.reasoning_budget === undefined), true)
-    assert.equal(providerBodies.every((body) => body.response_format === undefined), true)
+    assert.equal(providerUrls.every((url) => url === 'https://api.groq.com/openai/v1/chat/completions'), true)
+    assert.equal(providerBodies.every((body) => body.response_format?.type === 'json_schema'), true)
     assert.equal(validateVerifiedQuizQuestions(verified, 5), true)
     assert.equal(
       verified.every((question) => question.verification === QUIZ_VERIFICATION_VERSION),
@@ -482,18 +476,20 @@ test('quiz generation is accepted only after two answer-blind verification passe
     )
   } finally {
     globalThis.fetch = originalFetch
-    if (originalKey === undefined) delete process.env.NVIDIA_API_KEY
-    else process.env.NVIDIA_API_KEY = originalKey
+    if (originalKey === undefined) delete process.env.GROQ_QUIZ_API_KEY
+    else process.env.GROQ_QUIZ_API_KEY = originalKey
   }
 })
 
-test('Recall and practice generation share NVIDIA_API_KEY and fail closed without it', async () => {
+test('Recall and practice generation use their dedicated Groq keys and fail closed without them', async () => {
   const originalFetch = globalThis.fetch
-  const originalKey = process.env.NVIDIA_API_KEY
+  const originalQuizKey = process.env.GROQ_QUIZ_API_KEY
+  const originalRecallKey = process.env.GROQ_RECALL_API_KEY
   const questions = mixedPhysicsQuiz()
   const authorizations = []
   let providerCalls = 0
-  process.env.NVIDIA_API_KEY = 'nvidia-shared-test-key'
+  process.env.GROQ_QUIZ_API_KEY = 'groq-quiz-test-key'
+  process.env.GROQ_RECALL_API_KEY = 'groq-recall-test-key'
   globalThis.fetch = async (_url, init) => {
     authorizations.push(init.headers.Authorization)
     providerCalls += 1
@@ -510,7 +506,7 @@ test('Recall and practice generation share NVIDIA_API_KEY and fail closed withou
       level: 'mixed',
       purpose: 'recall',
     })
-    assert.deepEqual(authorizations, Array(3).fill('Bearer nvidia-shared-test-key'))
+    assert.deepEqual(authorizations, Array(3).fill('Bearer groq-recall-test-key'))
 
     authorizations.length = 0
     await requestQuiz({
@@ -521,9 +517,9 @@ test('Recall and practice generation share NVIDIA_API_KEY and fail closed withou
       level: 'mixed',
       purpose: 'practice',
     })
-    assert.deepEqual(authorizations, Array(3).fill('Bearer nvidia-shared-test-key'))
+    assert.deepEqual(authorizations, Array(3).fill('Bearer groq-quiz-test-key'))
 
-    delete process.env.NVIDIA_API_KEY
+    delete process.env.GROQ_RECALL_API_KEY
     authorizations.length = 0
     await assert.rejects(
       requestQuiz({
@@ -539,14 +535,16 @@ test('Recall and practice generation share NVIDIA_API_KEY and fail closed withou
     assert.deepEqual(authorizations, [])
   } finally {
     globalThis.fetch = originalFetch
-    if (originalKey === undefined) delete process.env.NVIDIA_API_KEY
-    else process.env.NVIDIA_API_KEY = originalKey
+    if (originalQuizKey === undefined) delete process.env.GROQ_QUIZ_API_KEY
+    else process.env.GROQ_QUIZ_API_KEY = originalQuizKey
+    if (originalRecallKey === undefined) delete process.env.GROQ_RECALL_API_KEY
+    else process.env.GROQ_RECALL_API_KEY = originalRecallKey
   }
 })
 
 test('answer verification rejects the two incorrect physics keys reported by the user', async () => {
   const originalFetch = globalThis.fetch
-  const originalKey = process.env.NVIDIA_API_KEY
+  const originalKey = process.env.GROQ_QUIZ_API_KEY
   const questions = mixedPhysicsQuiz()
   questions[0] = {
     id: 'q1',
@@ -571,7 +569,7 @@ test('answer verification rejects the two incorrect physics keys reported by the
     calculation: null,
   }
   let providerCalls = 0
-  process.env.NVIDIA_API_KEY = 'test-only-key'
+  process.env.GROQ_QUIZ_API_KEY = 'test-only-key'
   globalThis.fetch = async () => {
     providerCalls += 1
     if (providerCalls % 2 === 1) return providerQuizResponse({ questions })
@@ -601,15 +599,15 @@ test('answer verification rejects the two incorrect physics keys reported by the
     assert.equal(providerCalls, 6)
   } finally {
     globalThis.fetch = originalFetch
-    if (originalKey === undefined) delete process.env.NVIDIA_API_KEY
-    else process.env.NVIDIA_API_KEY = originalKey
+    if (originalKey === undefined) delete process.env.GROQ_QUIZ_API_KEY
+    else process.env.GROQ_QUIZ_API_KEY = originalKey
   }
 })
 
 test('a failed answer audit regenerates and still requires two successful audits', async () => {
   const originalFetch = globalThis.fetch
-  const originalKey = process.env.NVIDIA_API_KEY
-  process.env.NVIDIA_API_KEY = 'retry-test-key'
+  const originalKey = process.env.GROQ_QUIZ_API_KEY
+  process.env.GROQ_QUIZ_API_KEY = 'retry-test-key'
   const questions = mixedPhysicsQuiz()
   let calls = 0
   globalThis.fetch = async () => {
@@ -624,16 +622,16 @@ test('a failed answer audit regenerates and still requires two successful audits
     assert.equal(validateVerifiedQuizQuestions(result, 5), true)
   } finally {
     globalThis.fetch = originalFetch
-    if (originalKey === undefined) delete process.env.NVIDIA_API_KEY
-    else process.env.NVIDIA_API_KEY = originalKey
+    if (originalKey === undefined) delete process.env.GROQ_QUIZ_API_KEY
+    else process.env.GROQ_QUIZ_API_KEY = originalKey
   }
 })
 
 test('provider response bodies and arbitrary status-bearing errors never leak', async () => {
   const canary = 'provider-secret-canary-DO-NOT-LEAK'
   const originalFetch = globalThis.fetch
-  const originalKey = process.env.NVIDIA_API_KEY
-  process.env.NVIDIA_API_KEY = 'test-only-key'
+  const originalKey = process.env.GROQ_QUIZ_API_KEY
+  process.env.GROQ_QUIZ_API_KEY = 'test-only-key'
   globalThis.fetch = async () => new Response(JSON.stringify({
     error: { message: canary },
   }), {
@@ -666,16 +664,16 @@ test('provider response bodies and arbitrary status-bearing errors never leak', 
     assert.equal(JSON.stringify(response.body).includes(canary), false)
   } finally {
     globalThis.fetch = originalFetch
-    if (originalKey === undefined) delete process.env.NVIDIA_API_KEY
-    else process.env.NVIDIA_API_KEY = originalKey
+    if (originalKey === undefined) delete process.env.GROQ_QUIZ_API_KEY
+    else process.env.GROQ_QUIZ_API_KEY = originalKey
   }
 })
 
-test('an invalid NVIDIA model is not retried', async () => {
+test('an invalid Groq model is not retried', async () => {
   const originalFetch = globalThis.fetch
-  const originalKey = process.env.NVIDIA_API_KEY
+  const originalKey = process.env.GROQ_QUIZ_API_KEY
   let providerCalls = 0
-  process.env.NVIDIA_API_KEY = 'test-only-key'
+  process.env.GROQ_QUIZ_API_KEY = 'test-only-key'
   globalThis.fetch = async () => {
     providerCalls += 1
     return new Response('{}', { status: 404 })
@@ -692,16 +690,16 @@ test('an invalid NVIDIA model is not retried', async () => {
     assert.equal(providerCalls, 1)
   } finally {
     globalThis.fetch = originalFetch
-    if (originalKey === undefined) delete process.env.NVIDIA_API_KEY
-    else process.env.NVIDIA_API_KEY = originalKey
+    if (originalKey === undefined) delete process.env.GROQ_QUIZ_API_KEY
+    else process.env.GROQ_QUIZ_API_KEY = originalKey
   }
 })
 
-test('transient NVIDIA failures are capped at three attempts on the same model', async () => {
+test('transient Groq failures are capped at three attempts on the same model', async () => {
   const originalFetch = globalThis.fetch
-  const originalKey = process.env.NVIDIA_API_KEY
+  const originalKey = process.env.GROQ_QUIZ_API_KEY
   let providerCalls = 0
-  process.env.NVIDIA_API_KEY = 'test-only-key'
+  process.env.GROQ_QUIZ_API_KEY = 'test-only-key'
   globalThis.fetch = async () => {
     providerCalls += 1
     return new Response('{}', { status: 500 })
@@ -718,8 +716,8 @@ test('transient NVIDIA failures are capped at three attempts on the same model',
     assert.equal(providerCalls, 3)
   } finally {
     globalThis.fetch = originalFetch
-    if (originalKey === undefined) delete process.env.NVIDIA_API_KEY
-    else process.env.NVIDIA_API_KEY = originalKey
+    if (originalKey === undefined) delete process.env.GROQ_QUIZ_API_KEY
+    else process.env.GROQ_QUIZ_API_KEY = originalKey
   }
 })
 
@@ -744,7 +742,7 @@ test('provider deadline remains active while the response body is streaming', as
       (error) => (
         error.code === 'AI_PROVIDER_UNAVAILABLE'
         && error.statusCode === 504
-        && error.providerCategory === 'nvidia_timeout'
+        && error.providerCategory === 'groq_timeout'
       ),
     )
   } finally {

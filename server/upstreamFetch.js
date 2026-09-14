@@ -1,4 +1,3 @@
-import { GROQ_PROVIDER, NVIDIA_PROVIDER } from './ai/config.js'
 import { AppError, ERROR_CODES } from './errors.js'
 
 const DEFAULT_TIMEOUT_MS = 20_000
@@ -11,28 +10,13 @@ const providerResponseGuards = new WeakMap()
 export const MAX_PROVIDER_ATTEMPTS = 3
 export const PROVIDER_TOTAL_DEADLINE_MS = 45_000
 
-function configuredTimeout(provider) {
-  const requested = Number(provider === GROQ_PROVIDER ? process.env.GROQ_REQUEST_TIMEOUT_MS : process.env.NVIDIA_REQUEST_TIMEOUT_MS)
+function configuredTimeout() {
+  const requested = Number(process.env.GROQ_REQUEST_TIMEOUT_MS)
   if (!Number.isFinite(requested)) return DEFAULT_TIMEOUT_MS
   return Math.min(MAX_TIMEOUT_MS, Math.max(MIN_TIMEOUT_MS, Math.trunc(requested)))
 }
 
-/**
- * Bound each provider attempt so an abandoned function cannot hold a quota
- * reservation indefinitely. The database lease is longer than the maximum
- * complete retry sequence.
- *
- * @param {string | URL} input
- * @param {RequestInit} init
- */
-function providerUnavailable(message, {
-  cause,
-  statusCode = 503,
-  upstreamStatus,
-  retryAfterMs,
-  providerCategory = 'nvidia_unavailable',
-  retryable = true,
-} = {}) {
+function providerUnavailable(message, { cause, statusCode = 503, upstreamStatus, retryAfterMs, providerCategory = 'groq_unavailable', retryable = true } = {}) {
   const error = new AppError(message, {
     code: ERROR_CODES.AI_PROVIDER_UNAVAILABLE,
     statusCode,
@@ -51,9 +35,7 @@ function retryAfterMilliseconds(response) {
   const seconds = Number(raw)
   if (Number.isFinite(seconds) && seconds >= 0) return Math.min(MAX_RETRY_DELAY_MS, seconds * 1_000)
   const date = Date.parse(raw)
-  return Number.isFinite(date)
-    ? Math.min(MAX_RETRY_DELAY_MS, Math.max(0, date - Date.now()))
-    : null
+  return Number.isFinite(date) ? Math.min(MAX_RETRY_DELAY_MS, Math.max(0, date - Date.now())) : null
 }
 
 function releaseProviderResponse(response) {
@@ -63,25 +45,17 @@ function releaseProviderResponse(response) {
   providerResponseGuards.delete(response)
 }
 
-/**
- * Convert an upstream status into a stable, public-safe application error.
- * Provider bodies are intentionally not read here.
- */
-function categoryFor(provider, category) {
-  return provider === GROQ_PROVIDER ? category.replace('nvidia', 'groq') : category
-}
-
-export function providerHttpError(response, provider = NVIDIA_PROVIDER) {
+export function providerHttpError(response) {
   const status = Number(response?.status)
   const rateLimited = status === 429
   const retryable = rateLimited || status >= 500
-  const providerCategory = categoryFor(provider, status === 401 || status === 403
-    ? 'nvidia_authentication_error'
+  const providerCategory = status === 401 || status === 403
+    ? 'groq_authentication_error'
     : rateLimited
-      ? 'nvidia_rate_limit'
+      ? 'groq_rate_limit'
       : status === 404 || status === 422
-        ? 'invalid_nvidia_model'
-        : 'nvidia_unavailable')
+        ? 'invalid_groq_model'
+        : 'groq_unavailable'
   const error = providerUnavailable(
     rateLimited
       ? 'The AI service is temporarily busy. Please try again shortly.'
@@ -150,7 +124,7 @@ export async function readProviderJson(response, maxBytes = MAX_PROVIDER_RESPONS
       throw providerUnavailable('The AI service took too long to respond. Please try again.', {
         cause: error,
         statusCode: 504,
-        providerCategory: categoryFor(guard?.provider, 'nvidia_timeout'),
+        providerCategory: 'groq_timeout',
       })
     }
     if (error instanceof AppError) throw error
@@ -168,24 +142,20 @@ export async function waitBeforeProviderRetry(error, attemptNumber, deadlineAt) 
   if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs))
 }
 
-export async function fetchProvider(input, init, { deadlineAt = Date.now() + PROVIDER_TOTAL_DEADLINE_MS, provider = NVIDIA_PROVIDER } = {}) {
+export async function fetchProvider(input, init, { deadlineAt = Date.now() + PROVIDER_TOTAL_DEADLINE_MS } = {}) {
   const remaining = deadlineAt - Date.now()
   if (remaining <= 0) {
     throw providerUnavailable('The AI service took too long to respond. Please try again.', {
       statusCode: 504,
-      providerCategory: categoryFor(provider, 'nvidia_timeout'),
+      providerCategory: 'groq_timeout',
     })
   }
 
   const controller = new AbortController()
-  const timeoutId = setTimeout(
-    () => controller.abort(),
-    Math.max(1, Math.min(configuredTimeout(provider), remaining)),
-  )
-
+  const timeoutId = setTimeout(() => controller.abort(), Math.max(1, Math.min(configuredTimeout(), remaining)))
   try {
     const response = await fetch(input, { ...init, signal: controller.signal })
-    providerResponseGuards.set(response, { controller, timeoutId, provider })
+    providerResponseGuards.set(response, { controller, timeoutId })
     return response
   } catch (error) {
     clearTimeout(timeoutId)
@@ -193,12 +163,12 @@ export async function fetchProvider(input, init, { deadlineAt = Date.now() + PRO
       throw providerUnavailable('The AI service took too long to respond. Please try again.', {
         cause: error,
         statusCode: 504,
-        providerCategory: categoryFor(provider, 'nvidia_timeout'),
+        providerCategory: 'groq_timeout',
       })
     }
     throw providerUnavailable('The AI service is temporarily unavailable. Please try again.', {
       cause: error,
-      providerCategory: categoryFor(provider, 'nvidia_unavailable'),
+      providerCategory: 'groq_unavailable',
     })
   }
 }
