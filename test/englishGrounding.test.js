@@ -30,6 +30,26 @@ test('English grounding maps exact reviewed facts to an authorized chapter refer
   assert.ok(loadEnglishChapterFacts().every(({ facts }) => facts.length >= 8))
 })
 
+test('English grounding ignores authorized book containers but fails closed for unreviewed chapters', () => {
+  const bookReference = 'node-cbse-2026-27-xi-301:book:03:hornbill'
+  const bookAndChapterGrounding = buildEnglishGrounding({
+    curriculumVersionId: 'cbse-2026-27-xi-v1',
+    subject: 'English Core',
+    chapterTitles: ['Hornbill', 'The Portrait of a Lady'],
+    chapterNodeIds: [bookReference, portraitReference],
+    chapterNodeTypes: ['book', 'chapter'],
+  })
+  assert.ok(bookAndChapterGrounding)
+  assert.deepEqual(bookAndChapterGrounding.chapters.map(({ chapter }) => chapter), ['The Portrait of a Lady'])
+  assert.equal(buildEnglishGrounding({
+    curriculumVersionId: 'cbse-2026-27-xi-v1',
+    subject: 'English Core',
+    chapterTitles: ['Hornbill', 'An Unreviewed English Chapter'],
+    chapterNodeIds: [bookReference, 'unreviewed-chapter'],
+    chapterNodeTypes: ['book', 'chapter'],
+  }), null)
+})
+
 test('Class XII English grounding covers every current Flamingo and Vistas selection', async () => {
   const { CBSE_2026_27_XII_NODES } = await import('../src/data/curriculum/cbse/2026-27/class-12/outlines.ts')
   const chapters = CBSE_2026_27_XII_NODES.filter(

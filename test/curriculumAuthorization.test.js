@@ -6,6 +6,7 @@ import {
   authorizeTimetableFromWorkspace,
   loadAuthorizedCurriculum,
 } from '../server/curriculumAuthorization.js'
+import { createGenerationRequestHash } from '../server/generationLimit.js'
 
 const PHYSICS = 'cbse-2026-27-xi-042'
 const CHEMISTRY = 'cbse-2026-27-xi-043'
@@ -118,20 +119,35 @@ test('curriculum loading rejects an unselected node subject before catalogue que
 })
 
 test('quiz authorization resolves official labels only from active subject nodes', () => {
-  const authorized = authorizeQuizFromWorkspace({
+  const input = {
     curriculumSubjectId: PHYSICS,
     chapterNodeIds: ['physics-motion'],
     topicNodeIds: ['physics-velocity'],
     count: 5,
     level: 'mixed',
     purpose: 'practice',
-  }, workspace())
+    chapterNodeTypes: ['spoofed-node-type'],
+  }
+  const authorized = authorizeQuizFromWorkspace(input, workspace())
+  const legacyAuthorized = {
+    curriculumSubjectId: PHYSICS,
+    chapterNodeIds: ['physics-motion'],
+    topicNodeIds: ['physics-velocity'],
+    count: 5,
+    level: 'mixed',
+    purpose: 'practice',
+    curriculumVersionId: VERSION,
+    subject: 'Physics',
+    chapterTitles: ['Motion'],
+    chapter: 'Motion',
+    topic: 'Velocity',
+  }
 
-  assert.equal(authorized.subject, 'Physics')
-  assert.equal(authorized.chapter, 'Motion')
-  assert.equal(authorized.topic, 'Velocity')
-  assert.equal(authorized.curriculumVersionId, VERSION)
-  assert.equal(authorized.curriculumSubjectId, PHYSICS)
+  assert.deepEqual(authorized, legacyAuthorized)
+  assert.equal(
+    createGenerationRequestHash('quiz', authorized),
+    createGenerationRequestHash('quiz', legacyAuthorized),
+  )
 })
 
 test('quiz authorization rejects unselected subjects and cross-subject nodes', () => {

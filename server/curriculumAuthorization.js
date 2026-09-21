@@ -166,15 +166,20 @@ function resolveRequestedNodes(input, workspace) {
 
 export function authorizeQuizFromWorkspace(input, workspace) {
   const { subject, chapters, topics } = resolveRequestedNodes(input, workspace)
+  const authorizedInput = { ...input }
+  delete authorizedInput.chapterNodeTypes
   const chapterTitles = chapters.map((node) => node.title)
-  return {
-    ...input,
+  const authorized = {
+    ...authorizedInput,
     curriculumVersionId: workspace.profile.curriculum_version_id,
     subject: subject.name,
     chapterTitles,
     chapter: chapterTitles.join(', '),
     topic: topics.map((node) => node.title).join(', '),
   }
+  return /\benglish\b/i.test(subject.name)
+    ? { ...authorized, chapterNodeTypes: chapters.map((node) => node.node_type) }
+    : authorized
 }
 
 export async function authorizeQuizRequest(user, input) {

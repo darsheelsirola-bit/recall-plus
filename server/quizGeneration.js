@@ -605,7 +605,7 @@ async function requestEnglishUniformQuiz({
   return stampVerifiedQuestions(retained)
 }
 
-export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', curriculumSubjectId = 'test-subject', chapterNodeIds = ['test-chapter'], topicNodeIds = ['test-topic'], chapterTitles, subject, chapter, topic, count, level = 'mixed', purpose = 'practice' }) {
+export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', curriculumSubjectId = 'test-subject', chapterNodeIds = ['test-chapter'], topicNodeIds = ['test-topic'], chapterTitles, chapterNodeTypes, subject, chapter, topic, count, level = 'mixed', purpose = 'practice' }) {
   const feature = purpose === 'recall' ? AI_FEATURES.RECALL : AI_FEATURES.QUIZ
   requireAiKey(feature)
 
@@ -620,6 +620,7 @@ export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', 
     subject,
     chapterTitles,
     chapterNodeIds,
+    chapterNodeTypes,
   })
   if (englishQuiz && !grounding) throw quizVerificationFailed()
   if (englishQuiz) {

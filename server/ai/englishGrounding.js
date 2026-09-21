@@ -2,6 +2,7 @@ import rawEnglishChapterFacts from './englishChapterFacts.json' with { type: 'js
 import rawEnglishChapterFactsXii from './englishChapterFactsXii.json' with { type: 'json' }
 
 const allRawEnglishChapterFacts = [...rawEnglishChapterFacts, ...rawEnglishChapterFactsXii]
+const STRUCTURAL_ENGLISH_NODE_TYPES = new Set(['book', 'unit'])
 
 let cachedFacts
 
@@ -46,14 +47,16 @@ export function loadEnglishChapterFacts() {
 
 /**
  * Build an exact, server-owned fact map for an authorized Class XI/XII English
- * selection. Grounding is all-or-nothing; the caller fails closed when any
- * selected English chapter lacks a reviewed fact bundle.
+ * selection. Authorized book/unit containers carry navigation context but are
+ * not quiz content. Grounding is otherwise all-or-nothing: every selected
+ * English chapter or poem must have a reviewed fact bundle.
  */
 export function buildEnglishGrounding({
   curriculumVersionId,
   subject,
   chapterTitles,
   chapterNodeIds,
+  chapterNodeTypes,
   facts = loadEnglishChapterFacts(),
 }) {
   if (
@@ -63,6 +66,13 @@ export function buildEnglishGrounding({
     || !Array.isArray(chapterNodeIds)
     || chapterTitles.length !== chapterNodeIds.length
   ) return null
+
+  const nodeTypes = chapterNodeTypes === undefined
+    ? chapterTitles.map(() => 'chapter')
+    : Array.isArray(chapterNodeTypes) && chapterNodeTypes.length === chapterTitles.length
+      ? chapterNodeTypes.map((nodeType) => normalizedText(nodeType, 60))
+      : null
+  if (!nodeTypes || nodeTypes.some((nodeType) => !nodeType)) return null
 
   const grade = String(curriculumVersionId || '').includes('-xii-')
     ? '12'
@@ -74,13 +84,16 @@ export function buildEnglishGrounding({
       .filter((entry) => entry.grade === grade)
       .map((entry) => [entry.chapter, entry]),
   )
-  const selected = chapterTitles.map((title, index) => {
-    const chapter = normalizedText(title, 200)
-    const sourceReference = normalizedText(chapterNodeIds[index], 512)
-    const entry = chapter ? entriesByChapter.get(chapter) : null
-    return entry && sourceReference ? { ...entry, sourceReference } : null
-  })
-  if (selected.some((entry) => !entry)) return null
+  const selected = chapterTitles
+    .map((title, index) => ({ title, sourceReference: chapterNodeIds[index], nodeType: nodeTypes[index] }))
+    .filter(({ nodeType }) => !STRUCTURAL_ENGLISH_NODE_TYPES.has(nodeType))
+    .map(({ title, sourceReference }) => {
+      const chapter = normalizedText(title, 200)
+      const normalizedSourceReference = normalizedText(sourceReference, 512)
+      const entry = chapter ? entriesByChapter.get(chapter) : null
+      return entry && normalizedSourceReference ? { ...entry, sourceReference: normalizedSourceReference } : null
+    })
+  if (!selected.length || selected.some((entry) => !entry)) return null
 
   const groundedFacts = selected.flatMap((entry) => entry.facts.map((fact) => ({
     ...fact,

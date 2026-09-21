@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { buildQuizPrompt, requestQuiz } from '../server/quizGeneration.js'
+import { authorizeQuizFromWorkspace } from '../server/curriculumAuthorization.js'
 
 function providerResponse(content) {
   return new Response(JSON.stringify({
@@ -75,6 +76,51 @@ test('English generation requires self-identifying chapter-specific questions', 
   })
   assert.match(prompt, /Every question must identify its selected chapter or poem/)
   assert.match(prompt, /Never use vague stand-ins/)
+})
+
+test('an authorized English post-study book and chapter selection reaches grounded generation', async () => {
+  const bookId = 'node-cbse-2026-27-xi-301:book:03:hornbill'
+  const portraitId = 'node-cbse-2026-27-xi-301:book:03:hornbill:chapter:01:the-portrait-of-a-lady'
+  const topicId = `${portraitId}:topic:01:character-sketch-and-relationships`
+  const authorized = authorizeQuizFromWorkspace({
+    curriculumSubjectId: 'cbse-2026-27-xi-301',
+    chapterNodeIds: [bookId, portraitId],
+    topicNodeIds: [topicId],
+    count: 5,
+    level: 'medium',
+    purpose: 'practice',
+    chapterNodeTypes: ['spoofed-book', 'spoofed-chapter'],
+  }, {
+    profile: { curriculum_version_id: 'cbse-2026-27-xi-v1' },
+    subjects: [{ id: 'cbse-2026-27-xi-301', name: 'English Core' }],
+    nodes: [
+      { id: bookId, subject_id: 'cbse-2026-27-xi-301', parent_id: null, node_type: 'book', title: 'Hornbill' },
+      { id: portraitId, subject_id: 'cbse-2026-27-xi-301', parent_id: bookId, node_type: 'chapter', title: 'The Portrait of a Lady' },
+      { id: topicId, subject_id: 'cbse-2026-27-xi-301', parent_id: portraitId, node_type: 'topic', title: 'Character sketch and relationships' },
+    ],
+  })
+  const questions = Array.from({ length: 5 }, (_, index) => question(index + 1, { sourceReference: portraitId }))
+  const models = []
+  let providerCalls = 0
+  let generationCalls = 0
+  await withGroqMock(async (_url, init) => {
+    const body = JSON.parse(init.body)
+    providerCalls += 1
+    models.push(body.model)
+    if (body.messages[0].content.includes('You generate accurate')) {
+      generationCalls += 1
+      return providerResponse({ questions })
+    }
+    return audit(['q1', 'q2', 'q3', 'q4', 'q5'])
+  }, async () => {
+    const result = await requestQuiz(authorized)
+    assert.equal(result.length, 5)
+  })
+
+  assert.deepEqual(authorized.chapterNodeTypes, ['book', 'chapter'])
+  assert.equal(generationCalls, 1)
+  assert.equal(providerCalls, 3)
+  assert.notEqual(models[1], models[2])
 })
 
 test('English recovery retains eight twice-audited questions and requests only two replacements', async () => {
