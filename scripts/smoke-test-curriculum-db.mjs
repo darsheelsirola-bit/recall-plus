@@ -263,6 +263,36 @@ try {
       count(*) filter (where active)::integer as active
     from public.curriculum_nodes`,
   )
+
+  const reconciledClientModules = [
+    ['class-11', 'cbse-2026-27-xi-066.json'],
+    ['class-11', 'cbse-2026-27-xi-302.json'],
+    ['class-11', 'cbse-2026-27-xi-837.json'],
+    ['class-11', 'cbse-2026-27-xi-843.json'],
+    ['class-12', 'cbse-2026-27-xii-066.json'],
+    ['class-12', 'cbse-2026-27-xii-118.json'],
+    ['class-12', 'cbse-2026-27-xii-302.json'],
+    ['class-12', 'cbse-2026-27-xii-843.json'],
+  ]
+  for (const [gradeDirectory, filename] of reconciledClientModules) {
+    const clientNodes = JSON.parse(await readFile(path.join(
+      projectRoot,
+      'src', 'data', 'curriculum', 'cbse', '2026-27', gradeDirectory, 'client-nodes', filename,
+    ), 'utf8'))
+    const clientIds = clientNodes.map(({ id }) => id).sort()
+    const databaseNodes = await db.query(
+      `select id
+       from public.curriculum_nodes
+       where subject_id = $1 and active
+       order by id`,
+      [filename.replace('.json', '')],
+    )
+    assert.deepEqual(
+      databaseNodes.rows.map(({ id }) => id),
+      clientIds,
+      `${filename} must match the active migrated database nodes`,
+    )
+  }
   assert.ok(nodes.total >= 295)
   assert.ok(nodes.active > 0)
 

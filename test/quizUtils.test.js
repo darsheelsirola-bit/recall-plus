@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { calculateScore, createId, createQuestionStorageKey, getTopicStatus } from '../src/utils/quizUtils.js'
+import { calculateScore, createId, createPostStudyQuestionStorageKey, createQuestionStorageKey, getTopicStatus } from '../src/utils/quizUtils.js'
 
 test('calculateScore counts correct answers and computes percentage', () => {
   const questions = [
@@ -27,7 +27,8 @@ test('getTopicStatus uses the documented thresholds', () => {
 })
 
 test('createQuestionStorageKey is stable and namespaced by selection', () => {
-  assert.equal(createQuestionStorageKey('Physics', 'Kinematics', 'Vectors'), 'questions_Physics_Kinematics_Vectors')
+  assert.equal(createQuestionStorageKey('Physics', 'Kinematics', 'Vectors'), 'questions_v2_Physics_Kinematics_Vectors')
+  assert.equal(createPostStudyQuestionStorageKey('log-1'), 'post_study_questions_v2_log-1')
 })
 
 test('createId returns unique, non-empty ids', () => {

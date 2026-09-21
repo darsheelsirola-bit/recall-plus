@@ -128,32 +128,33 @@ const reviewedSources: Readonly<Record<string, CurriculumSource>> = Object.freez
   '118': {
     url: `${ACADEMIC_BASE}French_SecP2_2026-27.pdf`,
     title: 'French, Classes XI-XII, 2026-27',
-    sha256: null,
+    sha256: '42d27de03b8585f98d3a37139559e8f66638c361e632bae101b703190616e571',
   },
   '034': {
     url: `${ACADEMIC_BASE}Hindustani_Vocal_SecP2_2026-27.pdf`,
     title: 'Hindustani Music Vocal, Classes XI-XII, 2026-27',
-    sha256: null,
+    sha256: 'eb114817f34ecac3dce10a2eb1d8cf68db2e921dfae3b3ae8b9ee7ecbe9dad77',
   },
   '049': {
     url: `${ACADEMIC_BASE}Fine_Arts_SecP2_2026-27.pdf`,
     title: 'Fine Arts / Painting, Classes XI-XII, 2026-27',
-    sha256: null,
+    sha256: '3447ff66fad5775b200dbce5aae0aeb9b7f8a5bca6627d38314c7f966f00f05e',
   },
   '066': {
+    // CBSE publishes this file with the misspelling "Enterprenuership".
     url: `${ACADEMIC_BASE}Enterprenuership_SecP2_2026-27.pdf`,
     title: 'Entrepreneurship, Classes XI-XII, 2026-27',
-    sha256: null,
+    sha256: '243ac18d676d6f1912d5b8417a883106535652047652b33e0b66e04d2ffac8c0',
   },
   '837': {
     url: 'https://cbseacademic.nic.in/web_material/Curriculum27/SrSec/837-FASHION_STUDIES-XII.pdf',
     title: 'Fashion Studies (837), Class XII, 2026-27',
-    sha256: null,
+    sha256: '715046ba6734a5a10f7e5e8b36cdf53f955a232bed5fe438824a71be7b80cb3a',
   },
   '843': {
     url: CBSE_2026_27_XII_AI_URL,
     title: 'Artificial Intelligence (843), Class XII, 2026-27',
-    sha256: null,
+    sha256: 'b649b04e67a67ca68cfef28696306dfb5cf6b6f99cd6e770024dddab4769be03',
   },
 })
 

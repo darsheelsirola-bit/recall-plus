@@ -11,7 +11,13 @@ import {
   requireAiKey,
 } from './ai/client.js'
 import { AI_FEATURES } from './ai/config.js'
-import { quizSchema, scopedVerificationSchema, verificationSchema } from './ai/quizSchema.js'
+import {
+  groundedScopedVerificationSchema,
+  quizSchema,
+  scopedVerificationSchema,
+  verificationSchema,
+} from './ai/quizSchema.js'
+import { buildEnglishGrounding, groundingPromptFacts } from './ai/englishGrounding.js'
 import { deterministicNumericalAnswer } from './ai/numericalVerification.js'
 import {
   MAX_PROVIDER_ATTEMPTS,
@@ -56,8 +62,16 @@ function hasExpectedDifficultyMix(questions, count, level) {
   return true
 }
 
-export function buildQuizPrompt({ curriculumVersionId, curriculumSubjectId, chapterNodeIds, topicNodeIds, subject, chapter, topic, count, level, purpose = 'practice', excludedQuestions = [] }) {
+export function buildQuizPrompt({ curriculumVersionId, curriculumSubjectId, chapterNodeIds, topicNodeIds, subject, chapter, topic, count, level, purpose = 'practice', excludedQuestions = [], grounding = null }) {
   const grade = curriculumVersionId.includes('-xii-') ? '12' : '11'
+  const groundingRules = grounding ? `
+- Use only the supplied official chapter facts for every named person, place, event, relationship, quotation, and answer
+- Each question must contain exactly one "factId" copied from the official facts below
+- sourceReference must exactly match the sourceReference attached to that factId
+- Do not invent, embellish, or import details that are absent from the official facts; omit a question if its stem, options, answer, or explanation needs an unsupported detail
+
+Official chapter facts:
+${groundingPromptFacts(grounding)}` : ''
   return `Generate exactly ${count} NCERT Class ${grade} quiz questions for:
 Subject: ${subject}
 Chapter or chapters: ${chapter}
@@ -70,7 +84,7 @@ Purpose: ${purpose === 'recall' ? 'active-recall check after studying or on a sc
 Rules:
 - Return only a valid JSON object with a single key "questions" containing exactly ${count} questions
 - ${difficultyRule(count, level)}
-- Each question must have: id, difficulty, questionType, question, options, answer, explanation, sourceReference, calculation
+- Each question must have: id, difficulty, questionType, question, options, answer, explanation, sourceReference, calculation${grounding ? ', factId' : ''}
 - ${/\benglish\b/i.test(subject) ? 'All questions must be English literature or language questions with questionType "theory" and calculation null. Do not invent arithmetic word problems or unrelated content. Every question must identify its selected chapter or poem through a specific title, author, character, event, relationship, quoted phrase, or theme that appears in the question itself. Never use vague stand-ins such as "the selected passage", "the text", "the narrator", or "the character" when the stem would otherwise be untraceable.' : 'questionType must be "theory" or "numerical"'}
 - sourceReference must cite one supplied chapter or topic node ID
 - For theory questions, calculation must be null
@@ -87,10 +101,11 @@ Rules:
 - For numerical questions, substitute the given values and check the arithmetic twice
 - Keep explanations concise and educational, but include the calculation or reasoning that proves the selected answer
 - Do not include a question when you are uncertain which option is correct
+${groundingRules}
 ${excludedQuestions.length ? `- Do not repeat or closely paraphrase any of these already accepted questions: ${JSON.stringify(excludedQuestions)}` : ''}
 
 JSON format:
-{"questions":[{"id":"q1","difficulty":"${level === 'mixed' ? 'easy' : level}","questionType":"theory","question":"Question text","options":["A","B","C","D"],"answer":"Correct option text","explanation":"Short explanation","sourceReference":"topic-node-id","calculation":null}]}`
+{"questions":[{"id":"q1","difficulty":"${level === 'mixed' ? 'easy' : level}","questionType":"theory","question":"Question text","options":["A","B","C","D"],"answer":"Correct option text","explanation":"Short explanation","sourceReference":"${grounding ? 'matching-chapter-node-id' : 'topic-node-id'}","calculation":null${grounding ? ',"factId":"official-fact-id"' : ''}}]}`
 }
 
 export function buildQuizVerificationPrompt(questions, context = {}) {
@@ -126,7 +141,19 @@ JSON format:
 
 export function buildScopedQuizVerificationPrompt(questions, context = {}) {
   const grade = questions.some((question) => question.sourceReference.includes('-xii-')) ? '12' : '11'
-  const answerBlindQuestions = questions.map(({ id, question, options }) => ({ id, question, options }))
+  const grounding = context.grounding || null
+  const answerBlindQuestions = questions.map(({ id, question, options, sourceReference, factId }) => ({
+    id,
+    question,
+    options,
+    ...(grounding ? { sourceReference, factId } : {}),
+  }))
+  const groundingDecision = grounding ? `
+3. Set "supportedByFacts" to true only when the cited factId exists, belongs to sourceReference, and the supplied facts support every named person, place, event, relationship, quotation, and the selected answer. Unsupported details in either the stem or options require false.
+
+Official chapter facts:
+${groundingPromptFacts(grounding)}
+` : ''
   return `Independently audit every NCERT Class ${grade} English multiple-choice question below.
 Selected subject: ${context.subject || 'Not specified'}
 Selected chapters: ${context.chapter || 'Not specified'}
@@ -135,6 +162,7 @@ Selected topics: ${context.topic || 'Not specified'}
 For each question, make two independent decisions:
 1. Set "inScope" to true only when the question itself directly tests the selected English subject and one of the selected chapters or topics.
 2. Solve the question without seeing the generator's answer key and return the exact option text in "answer".
+${groundingDecision}
 
 Rules:
 - A declared theory type or supplied source ID is not evidence that a question is relevant
@@ -144,14 +172,14 @@ Rules:
 - If scope is uncertain, set "inScope" to false
 - If the question is ambiguous, flawed, or has no defensible option, use an empty answer
 - Return exactly one entry per question, in the same order
-- Each entry must contain only "id", "inScope", and "answer"
+- Each entry must contain only "id", "inScope", ${grounding ? '"supportedByFacts", ' : ''}and "answer"
 - Return only a valid JSON object with one "verifications" array
 
 Questions:
 ${JSON.stringify(answerBlindQuestions)}
 
 JSON format:
-{"verifications":[{"id":"q1","inScope":true,"answer":"Exact option text"}]}`
+{"verifications":[{"id":"q1","inScope":true,${grounding ? '"supportedByFacts":true,' : ''}"answer":"Exact option text"}]}`
 }
 
 function normalizeQuizVerification(parsed, questions) {
@@ -173,20 +201,26 @@ function normalizeQuizVerification(parsed, questions) {
   return verifiedAnswers.size === questions.length ? verifiedAnswers : null
 }
 
-function normalizeScopedQuizVerification(parsed, questions) {
+function normalizeScopedQuizVerification(parsed, questions, { grounded = false } = {}) {
   const verifications = Array.isArray(parsed) ? parsed : parsed?.verifications
   if (!Array.isArray(verifications) || verifications.length !== questions.length) return null
 
   const questionsById = new Map(questions.map((question) => [question.id, question]))
   const results = new Map()
   for (const item of verifications) {
-    if (!hasOnlyKeys(item, ['id', 'inScope', 'answer']) || typeof item.inScope !== 'boolean') return null
+    const allowedKeys = grounded ? ['id', 'inScope', 'supportedByFacts', 'answer'] : ['id', 'inScope', 'answer']
+    if (!hasOnlyKeys(item, allowedKeys) || typeof item.inScope !== 'boolean') return null
+    if (grounded && typeof item.supportedByFacts !== 'boolean') return null
     const id = normalizedRequiredText(item.id, 80)
     const question = id ? questionsById.get(id) : null
     const answer = typeof item.answer === 'string' ? item.answer.trim() : null
     if (!question || answer === null || answer.length > 500 || results.has(id)) return null
     if (answer && !question.options.includes(answer)) return null
-    results.set(id, { inScope: item.inScope, answer })
+    results.set(id, {
+      inScope: item.inScope,
+      answer,
+      ...(grounded ? { supportedByFacts: item.supportedByFacts } : {}),
+    })
   }
   return results.size === questions.length ? results : null
 }
@@ -208,16 +242,16 @@ function quizVerificationFailed(cause) {
 }
 
 function stampVerifiedQuestions(questions) {
-  return questions.map((question) => ({
+  return questions.map(({ factId: _factId, ...question }) => ({
     ...question,
     verification: QUIZ_VERIFICATION_VERSION,
   }))
 }
 
-function normalizeQuizQuestions(questions, count, level, allowedSourceRefs) {
+export function normalizeQuizQuestions(questions, count, level, allowedSourceRefs, grounding = null) {
   if (!Array.isArray(questions) || questions.length !== count) return null
   const normalized = questions.map((question) => {
-    if (!hasOnlyKeys(question, [
+    const allowedKeys = [
       'id',
       'difficulty',
       'questionType',
@@ -227,7 +261,9 @@ function normalizeQuizQuestions(questions, count, level, allowedSourceRefs) {
       'explanation',
       'sourceReference',
       'calculation',
-    ])) return null
+      ...(grounding ? ['factId'] : []),
+    ]
+    if (!hasOnlyKeys(question, allowedKeys)) return null
     const id = normalizedRequiredText(question.id, 80)
     const prompt = normalizedRequiredText(question.question, 1_200)
     const answer = normalizedRequiredText(question.answer, 500)
@@ -235,6 +271,9 @@ function normalizeQuizQuestions(questions, count, level, allowedSourceRefs) {
     const sourceReference = normalizedRequiredText(question.sourceReference, 512)
     if (!id || !prompt || !answer || !explanation || !sourceReference) return null
     if (!allowedSourceRefs.has(sourceReference)) return null
+    const factId = grounding ? normalizedRequiredText(question.factId, 120) : null
+    const groundedFact = factId ? grounding.factsById.get(factId) : null
+    if (grounding && (!groundedFact || groundedFact.sourceReference !== sourceReference)) return null
     if (!['theory', 'numerical'].includes(question.questionType)) return null
     if (question.questionType === 'theory' && question.calculation !== null) return null
     if (!Array.isArray(question.options) || question.options.length !== 4) return null
@@ -250,6 +289,7 @@ function normalizeQuizQuestions(questions, count, level, allowedSourceRefs) {
       explanation,
       sourceReference,
       calculation: question.calculation,
+      ...(grounding ? { factId } : {}),
     }
     const deterministicAnswer = deterministicNumericalAnswer(normalizedQuestion)
     if (normalizedQuestion.questionType === 'numerical' && !deterministicAnswer) return null
@@ -277,12 +317,16 @@ async function generateOnce({
   strictOutput,
   excludedQuestions = [],
   consumeProviderCall,
+  grounding = null,
 }) {
   consumeProviderCall?.()
   const parsed = await generateStructured({
     feature,
     maxTokens: Math.min(32_768, 4_096 + count * 800),
-    schema: strictOutput ? quizSchema([...chapterNodeIds, ...topicNodeIds], { theoryOnly: /\benglish\b/i.test(subject) }) : undefined,
+    schema: strictOutput ? quizSchema([...chapterNodeIds, ...topicNodeIds], {
+      theoryOnly: /\benglish\b/i.test(subject),
+      factIds: grounding?.facts.map(({ id }) => id) || null,
+    }) : undefined,
     model,
     temperature: 0.2,
     deadlineAt,
@@ -293,7 +337,7 @@ async function generateOnce({
       },
       {
         role: 'user',
-        content: buildQuizPrompt({ curriculumVersionId, curriculumSubjectId, chapterNodeIds, topicNodeIds, subject, chapter, topic, count, level, purpose, excludedQuestions }),
+        content: buildQuizPrompt({ curriculumVersionId, curriculumSubjectId, chapterNodeIds, topicNodeIds, subject, chapter, topic, count, level, purpose, excludedQuestions, grounding }),
       },
     ],
   })
@@ -304,6 +348,7 @@ async function generateOnce({
     count,
     level,
     new Set([...chapterNodeIds, ...topicNodeIds]),
+    grounding,
   )
 }
 
@@ -316,11 +361,14 @@ async function verifyOnce({
   strictOutput,
   scoped = false,
   consumeProviderCall,
+  grounding = null,
 }) {
   consumeProviderCall?.()
   const parsed = await generateStructured({
     feature: AI_FEATURES.VERIFIER,
-    schema: strictOutput ? (scoped ? scopedVerificationSchema : verificationSchema) : undefined,
+    schema: strictOutput
+      ? (scoped ? (grounding ? groundedScopedVerificationSchema : scopedVerificationSchema) : verificationSchema)
+      : undefined,
     credentialFeature,
     model,
     temperature: 0,
@@ -335,13 +383,13 @@ async function verifyOnce({
       {
         role: 'user',
         content: scoped
-          ? buildScopedQuizVerificationPrompt(questions, context)
+          ? buildScopedQuizVerificationPrompt(questions, { ...context, grounding })
           : buildQuizVerificationPrompt(questions, context),
       },
     ],
   })
   return scoped
-    ? normalizeScopedQuizVerification(parsed, questions)
+    ? normalizeScopedQuizVerification(parsed, questions, { grounded: Boolean(grounding) })
     : normalizeQuizVerification(parsed, questions)
 }
 
@@ -381,6 +429,7 @@ async function requestEnglishUniformQuiz({
   level,
   purpose,
   deadlineAt,
+  grounding,
 }) {
   const retained = []
   const retainedTexts = new Set()
@@ -418,6 +467,7 @@ async function requestEnglishUniformQuiz({
         deadlineAt,
         excludedQuestions: retained.map(({ question }) => question),
         consumeProviderCall,
+        grounding,
       }
       try {
         candidates = await generateOnce({
@@ -465,6 +515,7 @@ async function requestEnglishUniformQuiz({
         strictOutput: true,
         scoped: true,
         consumeProviderCall,
+        grounding,
       }
       let audit
       let usedJsonObjectFallback = false
@@ -506,20 +557,22 @@ async function requestEnglishUniformQuiz({
       throw quizVerificationFailed()
     }
 
-    const rejected = { outOfScope: 0, answerMismatch: 0, duplicate: 0 }
+    const rejected = { unsupportedByFacts: 0, outOfScope: 0, answerMismatch: 0, duplicate: 0 }
     for (const question of candidates) {
       const decisions = audits.map((audit) => audit.get(question.id))
-      // The generator is already constrained to the selected curriculum IDs
-      // and English theory-only shape. Treat one positive semantic scope audit
-      // as sufficient, while still requiring both independent auditors to
-      // solve to the exact same answer key below. This avoids discarding valid
-      // chapter questions because one scope auditor is overly conservative.
-      if (!decisions.some((decision) => decision?.inScope)) {
+      if (grounding && !decisions.every((decision) => decision?.supportedByFacts === true)) {
+        rejected.unsupportedByFacts += 1
+        continue
+      }
+      // Both independent auditors must confirm semantic scope. A disagreement
+      // is treated as uncertainty and the question is replaced rather than
+      // weakening the accuracy gate.
+      if (!decisions.every((decision) => decision?.inScope === true)) {
         rejected.outOfScope += 1
         continue
       }
       const auditedAnswer = decisions[0]?.answer
-      if (!auditedAnswer) {
+      if (!auditedAnswer || !decisions.every((decision) => decision?.answer === auditedAnswer)) {
         rejected.answerMismatch += 1
         continue
       }
@@ -532,7 +585,9 @@ async function requestEnglishUniformQuiz({
       retained.push(auditedAnswer === question.answer ? question : {
         ...question,
         answer: auditedAnswer,
-        explanation: 'Two independent answer-blind checks confirmed this answer.',
+        explanation: grounding
+          ? 'Two answer-blind audits identified this answer from the supplied official facts.'
+          : 'Two answer-blind audits identified this as the defensible answer.',
       })
     }
     logEnglishRecovery({
@@ -550,7 +605,7 @@ async function requestEnglishUniformQuiz({
   return stampVerifiedQuestions(retained)
 }
 
-export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', curriculumSubjectId = 'test-subject', chapterNodeIds = ['test-chapter'], topicNodeIds = ['test-topic'], subject, chapter, topic, count, level = 'mixed', purpose = 'practice' }) {
+export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', curriculumSubjectId = 'test-subject', chapterNodeIds = ['test-chapter'], topicNodeIds = ['test-topic'], chapterTitles, subject, chapter, topic, count, level = 'mixed', purpose = 'practice' }) {
   const feature = purpose === 'recall' ? AI_FEATURES.RECALL : AI_FEATURES.QUIZ
   requireAiKey(feature)
 
@@ -559,8 +614,15 @@ export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', 
   const models = modelCandidates(feature)
   const verifierModels = modelCandidates(AI_FEATURES.VERIFIER)
   const deadlineAt = Date.now() + PROVIDER_TOTAL_DEADLINE_MS
-  const englishUniform = /\benglish\b/i.test(subject) && ['easy', 'medium', 'hard'].includes(safeLevel)
-  if (englishUniform) {
+  const englishQuiz = /\benglish\b/i.test(subject)
+  const grounding = buildEnglishGrounding({
+    curriculumVersionId,
+    subject,
+    chapterTitles,
+    chapterNodeIds,
+  })
+  if (englishQuiz && !grounding) throw quizVerificationFailed()
+  if (englishQuiz) {
     return requestEnglishUniformQuiz({
       feature,
       models,
@@ -576,6 +638,7 @@ export async function requestQuiz({ curriculumVersionId = 'cbse-2026-27-xi-v1', 
       level: safeLevel,
       purpose,
       deadlineAt,
+      grounding,
     })
   }
   let lastError

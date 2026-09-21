@@ -27,8 +27,14 @@ export function getTopicStatus(score) {
   return 'Weak'
 }
 
+const QUESTION_CACHE_VERSION = 'v2'
+
 export function createQuestionStorageKey(subject, chapter, topic, variant = '') {
-  return `questions_${subject}_${chapter}_${topic}${variant ? `_${variant}` : ''}`
+  return `questions_${QUESTION_CACHE_VERSION}_${subject}_${chapter}_${topic}${variant ? `_${variant}` : ''}`
+}
+
+export function createPostStudyQuestionStorageKey(logId) {
+  return `post_study_questions_${QUESTION_CACHE_VERSION}_${logId}`
 }
 
 // Long-format practice Quiz: student picks a duration; questions scale at ~3 min each.

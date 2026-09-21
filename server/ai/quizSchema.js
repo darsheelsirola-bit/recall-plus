@@ -3,8 +3,8 @@ const object = (properties) => ({ type: 'object', additionalProperties: false, p
 
 // Constrained decoding keeps generated output aligned with the validator.
 // Answer accuracy is still checked independently after generation.
-export function quizSchema(sourceRefs, { theoryOnly = false } = {}) {
-  return object({ questions: { type: 'array', items: object({
+export function quizSchema(sourceRefs, { theoryOnly = false, factIds = null } = {}) {
+  const questionProperties = {
     id: text,
     difficulty: { type: 'string', enum: ['easy', 'medium', 'hard'] },
     questionType: { type: 'string', enum: theoryOnly ? ['theory'] : ['theory', 'numerical'] },
@@ -19,7 +19,11 @@ export function quizSchema(sourceRefs, { theoryOnly = false } = {}) {
       unit: text,
       decimals: { type: 'integer' },
     })] },
-  }) } })
+  }
+  if (Array.isArray(factIds) && factIds.length) {
+    questionProperties.factId = { type: 'string', enum: factIds }
+  }
+  return object({ questions: { type: 'array', items: object(questionProperties) } })
 }
 
 export const verificationSchema = object({ verifications: { type: 'array', items: object({ id: text, answer: text }) } })
@@ -30,5 +34,12 @@ export const verificationSchema = object({ verifications: { type: 'array', items
 export const scopedVerificationSchema = object({ verifications: { type: 'array', items: object({
   id: text,
   inScope: { type: 'boolean' },
+  answer: text,
+}) } })
+
+export const groundedScopedVerificationSchema = object({ verifications: { type: 'array', items: object({
+  id: text,
+  inScope: { type: 'boolean' },
+  supportedByFacts: { type: 'boolean' },
   answer: text,
 }) } })

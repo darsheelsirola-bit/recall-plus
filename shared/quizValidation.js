@@ -5,7 +5,11 @@
 export const VALID_DIFFICULTIES = ['easy', 'medium', 'hard']
 export const MIN_QUESTIONS = 5
 export const MAX_QUESTIONS = 30
-export const QUIZ_VERIFICATION_VERSION = 'independent-consensus-v1'
+export const QUIZ_VERIFICATION_VERSION = 'independent-grounding-v2'
+const SCORABLE_VERIFICATION_VERSIONS = new Set([
+  'independent-consensus-v1',
+  QUIZ_VERIFICATION_VERSION,
+])
 
 const DIFFICULTY_SET = new Set(VALID_DIFFICULTIES)
 
@@ -64,5 +68,15 @@ export function validateVerifiedQuizQuestions(questions, expectedCount) {
   return validateQuizQuestions(questions, expectedCount)
     && questions.every(
       (question) => question.verification === QUIZ_VERIFICATION_VERSION,
+    )
+}
+
+// Previously served quizzes remain submittable after verification evolves.
+// Generation replays deliberately use validateVerifiedQuizQuestions above and
+// accept only the current contract.
+export function validateScorableQuizQuestions(questions, expectedCount) {
+  return validateQuizQuestions(questions, expectedCount)
+    && questions.every(
+      (question) => SCORABLE_VERIFICATION_VERSIONS.has(question.verification),
     )
 }

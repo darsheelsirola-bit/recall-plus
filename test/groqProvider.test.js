@@ -92,7 +92,7 @@ test('Groq structured-output recovery retains its dynamic question budget', asyn
     return new Response(JSON.stringify({ error: { code: 'json_validate_failed' } }), { status: 400 })
   }
   try {
-    await assert.rejects(requestQuiz({ subject: 'English', chapter: 'Two chapters', topic: 'Themes', count: 10, level: 'mixed' }))
+    await assert.rejects(requestQuiz({ subject: 'Physics', chapter: 'Two chapters', topic: 'Themes', count: 10, level: 'mixed' }))
     assert.equal(bodies.length, 3)
     assert.equal(bodies[0].max_completion_tokens, 12096)
     assert.equal(bodies[0].response_format.type, 'json_schema')

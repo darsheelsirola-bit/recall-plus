@@ -14,7 +14,7 @@ import { useGenerationUsage } from '../contexts/GenerationUsageContext'
 import { generateQuizQuestions, submitQuizAnswers } from '../services/quizService'
 import { GENERATION_LIMIT_MESSAGE } from '../types/generation'
 import { addDays, formatDate, getTodayDate } from '../utils/dateUtils'
-import { createId, getTopicStatus, validatePublicQuizQuestions } from '../utils/quizUtils'
+import { createId, createPostStudyQuestionStorageKey, getTopicStatus, validatePublicQuizQuestions } from '../utils/quizUtils'
 import { getPostStudyGap, upsertPostStudyRecalls } from '../utils/recallCalendar'
 import {
   getData,
@@ -26,7 +26,7 @@ import {
 import { createSubmissionGuard } from '../utils/submissionGuard'
 
 function savedPostStudyQuiz(logId) {
-  const saved = getData(`post_study_questions_${logId}`, null)
+  const saved = getData(createPostStudyQuestionStorageKey(logId), null)
   return saved?.quizId && validatePublicQuizQuestions(saved.questions, 10) ? saved : null
 }
 
@@ -111,7 +111,7 @@ export default function PostStudyQuiz() {
       if (!ownerId || getStorageUser() !== ownerId) return
       setQuizId(generated.quizId)
       setQuestions(generated.questions)
-      saveDataForUserOrThrow(ownerId, `post_study_questions_${log.id}`, generated)
+      saveDataForUserOrThrow(ownerId, createPostStudyQuestionStorageKey(log.id), generated)
     } catch (error) {
       if (!ownerId || getStorageUser() !== ownerId) return
       const saved = savedPostStudyQuiz(log.id)

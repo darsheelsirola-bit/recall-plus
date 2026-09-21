@@ -17,5 +17,33 @@ export function withChapterTopics(nodes: readonly CurriculumNode[]): readonly Cu
       active: true as const,
     }]
   })
-  return Object.freeze([...nodes, ...additions])
+
+  // Employability Skills are mandatory for every skill course. Reuse the
+  // official XI/XII Employability Skills topic rows already attached to Fashion
+  // Studies for the matching AI units instead of maintaining divergent copies.
+  const aiEmployabilityTopics: CurriculumNode[] = topics.flatMap((entry) => {
+    if (!entry.subjectId.endsWith('-837')) return []
+    const sourceParent = parents.get(entry.parentId)
+    if (!sourceParent) return []
+    const targetSubjectId = entry.subjectId.replace(/-837$/, '-843')
+    const targetParent = nodes.find((node) => (
+      node.subjectId === targetSubjectId
+      && node.nodeType === sourceParent.nodeType
+      && node.title === sourceParent.title
+    ))
+    if (!targetParent) return []
+    const id = entry.id.replace(/^node-topic-/, 'node-topic-ai-')
+    return [{
+      ...entry,
+      id,
+      parentId: targetParent.id,
+      subjectId: targetSubjectId,
+      nodeType: 'topic' as const,
+      description: null,
+      marksWeightage: null,
+      externalKey: id.slice(5),
+      active: true as const,
+    }]
+  })
+  return Object.freeze([...nodes, ...additions, ...aiEmployabilityTopics])
 }

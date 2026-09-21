@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { validateVerifiedQuizQuestions } from '../shared/quizValidation.js'
+import { validateScorableQuizQuestions } from '../shared/quizValidation.js'
 import { AppError, ERROR_CODES } from './errors.js'
 import { getSupabaseAdminClient } from './supabase.js'
 
@@ -86,7 +86,7 @@ export async function scoreQuizSubmission(userId, input, operations = {}) {
     .maybeSingle()
   if (attemptResponse.error) throw scoringUnavailable(attemptResponse.error)
   const questions = attemptResponse.data?.result?.questions
-  if (!attemptResponse.data || !validateVerifiedQuizQuestions(questions)) {
+  if (!attemptResponse.data || !validateScorableQuizQuestions(questions)) {
     throw new AppError('This generated quiz is unavailable or has expired.', {
       code: ERROR_CODES.QUIZ_NOT_FOUND,
       statusCode: 404,

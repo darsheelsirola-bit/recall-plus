@@ -19,6 +19,7 @@ function question(number, overrides = {}) {
     explanation: 'The selected passage develops companionship.',
     sourceReference: 'test-topic',
     calculation: null,
+    factId: 'xi-portrait-01',
     ...overrides,
   }
 }
@@ -28,6 +29,7 @@ function audit(ids, decisions = {}) {
     verifications: ids.map((id) => ({
       id,
       inScope: decisions[id]?.inScope ?? true,
+      supportedByFacts: decisions[id]?.supportedByFacts ?? true,
       answer: decisions[id]?.answer ?? 'Companionship',
     })),
   })
@@ -48,6 +50,10 @@ async function withGroqMock(mock, run) {
 }
 
 const request = {
+  curriculumVersionId: 'cbse-2026-27-xi-v1',
+  chapterNodeIds: ['test-topic'],
+  topicNodeIds: ['test-topic'],
+  chapterTitles: ['The Portrait of a Lady'],
   subject: 'English Core',
   chapter: 'The Portrait of a Lady, Silk Road',
   topic: 'Character, theme, travel narrative',
@@ -165,18 +171,23 @@ test('English constrained-decoding failure retries Groq JSON mode', async () => 
   assert.deepEqual(formats.slice(0, 2), ['json_schema', 'json_object'])
 })
 
-test('one conservative scope audit does not discard an answer-confirmed English question', async () => {
+test('one conservative scope audit rejects and replaces the disputed English question', async () => {
   let calls = 0
   const questions = Array.from({ length: 5 }, (_, index) => question(index + 1))
   await withGroqMock(async () => {
     calls += 1
     if (calls === 1) return providerResponse({ questions })
-    return audit(['q1', 'q2', 'q3', 'q4', 'q5'], calls === 2 ? { q5: { inScope: false } } : {})
+    if (calls === 2) return audit(['q1', 'q2', 'q3', 'q4', 'q5'], { q5: { inScope: false } })
+    if (calls === 3) return audit(['q1', 'q2', 'q3', 'q4', 'q5'])
+    if (calls === 4) return providerResponse({ questions: [question(6)] })
+    return audit(['q6'])
   }, async () => {
     const result = await requestQuiz({ ...request, count: 5 })
     assert.equal(result.length, 5)
+    assert.ok(result.some(({ id }) => id === 'q6'))
+    assert.ok(!result.some(({ id }) => id === 'q5'))
   })
-  assert.equal(calls, 3)
+  assert.equal(calls, 6)
 })
 
 test('two answer-blind audits correct a wrong generated English answer key', async () => {
@@ -192,25 +203,79 @@ test('two answer-blind audits correct a wrong generated English answer key', asy
     const result = await requestQuiz({ ...request, count: 5 })
     assert.equal(result.length, 5)
     assert.equal(result[4].answer, 'Companionship')
-    assert.equal(result[4].explanation, 'Two independent answer-blind checks confirmed this answer.')
+    assert.equal(result[4].explanation, 'Two answer-blind audits identified this answer from the supplied official facts.')
   })
   assert.equal(calls, 3)
 })
 
-test('the smaller advisory verifier cannot veto the strongest verified English answer', async () => {
+test('auditor disagreement rejects and replaces the disputed English question', async () => {
   let calls = 0
   const questions = Array.from({ length: 5 }, (_, index) => question(index + 1))
   await withGroqMock(async () => {
     calls += 1
     if (calls === 1) return providerResponse({ questions })
     if (calls === 2) return audit(['q1', 'q2', 'q3', 'q4', 'q5'])
-    return audit(['q1', 'q2', 'q3', 'q4', 'q5'], { q5: { answer: 'Commerce' } })
+    if (calls === 3) return audit(['q1', 'q2', 'q3', 'q4', 'q5'], { q5: { answer: 'Commerce' } })
+    if (calls === 4) return providerResponse({ questions: [question(6)] })
+    return audit(['q6'])
   }, async () => {
     const result = await requestQuiz({ ...request, count: 5 })
     assert.equal(result.length, 5)
-    assert.equal(result[4].answer, 'Companionship')
+    assert.ok(result.some(({ id }) => id === 'q6'))
+    assert.ok(!result.some(({ id }) => id === 'q5'))
   })
-  assert.equal(calls, 3)
+  assert.equal(calls, 6)
+})
+
+test('a fact-unsupported audit rejects and replaces the disputed English question', async () => {
+  let calls = 0
+  const questions = Array.from({ length: 5 }, (_, index) => question(index + 1))
+  await withGroqMock(async () => {
+    calls += 1
+    if (calls === 1) return providerResponse({ questions })
+    if (calls === 2) return audit(['q1', 'q2', 'q3', 'q4', 'q5'], { q5: { supportedByFacts: false } })
+    if (calls === 3) return audit(['q1', 'q2', 'q3', 'q4', 'q5'])
+    if (calls === 4) return providerResponse({ questions: [question(6)] })
+    return audit(['q6'])
+  }, async () => {
+    const result = await requestQuiz({ ...request, count: 5 })
+    assert.equal(result.length, 5)
+    assert.ok(result.some(({ id }) => id === 'q6'))
+    assert.ok(!result.some(({ id }) => id === 'q5'))
+  })
+  assert.equal(calls, 6)
+})
+
+test('Class XII mixed-difficulty English uses the same grounded two-auditor path', async () => {
+  const sourceReference = 'node-cbse-2026-27-xii-301:last-lesson'
+  const difficulties = ['easy', 'medium', 'medium', 'hard', 'hard']
+  const questions = difficulties.map((difficulty, index) => question(index + 1, {
+    difficulty,
+    sourceReference,
+    factId: 'xii-last-lesson-01',
+  }))
+  const bodies = []
+  await withGroqMock(async (_url, init) => {
+    bodies.push(JSON.parse(init.body))
+    return bodies.length === 1
+      ? providerResponse({ questions })
+      : audit(['q1', 'q2', 'q3', 'q4', 'q5'])
+  }, async () => {
+    const result = await requestQuiz({
+      ...request,
+      curriculumVersionId: 'cbse-2026-27-xii-v1',
+      chapterNodeIds: [sourceReference],
+      topicNodeIds: [sourceReference],
+      chapterTitles: ['The Last Lesson'],
+      chapter: 'The Last Lesson',
+      count: 5,
+      level: 'mixed',
+    })
+    assert.deepEqual(result.map(({ difficulty }) => difficulty), difficulties)
+  })
+  assert.equal(bodies.length, 3)
+  assert.match(bodies[0].messages[1].content, /xii-last-lesson-01/)
+  assert.equal(bodies.slice(1).every((body) => body.messages[1].content.includes('supportedByFacts')), true)
 })
 
 test('a duplicate replacement is rejected and cannot displace a unique verified question', async () => {
@@ -313,6 +378,34 @@ test('an invalid strict audit shape retries in JSON-object mode without weakenin
   assert.equal(bodies[1].response_format.type, 'json_schema')
   assert.equal(bodies[2].response_format.type, 'json_object')
   assert.equal(bodies[3].response_format.type, 'json_schema')
+})
+
+test('one rate-limited English audit retries once and preserves the generated quiz for both audits', async () => {
+  const bodies = []
+  let generationCalls = 0
+  const questions = Array.from({ length: 5 }, (_, index) => question(index + 1))
+  await withGroqMock(async (_url, init) => {
+    const body = JSON.parse(init.body)
+    bodies.push(body)
+    if (body.messages[0].content.includes('You generate accurate')) {
+      generationCalls += 1
+      return providerResponse({ questions })
+    }
+    if (bodies.length === 2) {
+      return new Response('{}', { status: 429, headers: { 'retry-after': '0' } })
+    }
+    return audit(['q1', 'q2', 'q3', 'q4', 'q5'])
+  }, async () => {
+    const result = await requestQuiz({ ...request, count: 5 })
+    assert.equal(result.length, 5)
+    assert.equal(result.every(({ verification }) => verification), true)
+  })
+
+  assert.equal(generationCalls, 1)
+  assert.equal(bodies.length, 4)
+  assert.equal(bodies.filter((body) => body.messages[0].content.includes('You generate accurate')).length, 1)
+  assert.equal(bodies[1].model, bodies[2].model)
+  assert.notEqual(bodies[2].model, bodies[3].model)
 })
 
 test('repeated auditor rate limits fail boundedly without regenerating or returning a partial quiz', async () => {

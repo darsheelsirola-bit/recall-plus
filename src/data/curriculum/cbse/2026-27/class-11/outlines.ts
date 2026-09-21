@@ -10,6 +10,7 @@ interface OutlineNode {
   title: string
   page: number
   marks?: number
+  keyOrder?: number
   children?: readonly OutlineNode[]
 }
 
@@ -18,7 +19,8 @@ const unit = (
   page: number,
   children: readonly OutlineNode[] = [],
   marks?: number,
-): OutlineNode => ({ type: 'unit', title, page, children, marks })
+  keyOrder?: number,
+): OutlineNode => ({ type: 'unit', title, page, children, marks, keyOrder })
 const book = (
   title: string,
   page: number,
@@ -34,15 +36,17 @@ const topic = (title: string, page: number): OutlineNode => ({
   title,
   page,
 })
-const practical = (title: string, page: number): OutlineNode => ({
+const practical = (title: string, page: number, keyOrder?: number): OutlineNode => ({
   type: 'practical',
   title,
   page,
+  keyOrder,
 })
-const project = (title: string, page: number): OutlineNode => ({
+const project = (title: string, page: number, keyOrder?: number): OutlineNode => ({
   type: 'project',
   title,
   page,
+  keyOrder,
 })
 const assessment = (title: string, page: number, marks?: number): OutlineNode => ({
   type: 'assessment_area',
@@ -113,9 +117,31 @@ const reviewedOutlines: Readonly<Record<string, readonly OutlineNode[]>> =
     ],
     '302': [
       assessment('अपठित बोध', 7),
-      assessment('अभिव्यक्ति और माध्यम', 7),
-      book('आरोह भाग-1', 8),
-      book('वितान भाग-1', 8),
+      book('अभिव्यक्ति और माध्यम', 8, [
+        chapter('जनसंचार माध्यम', 8),
+        chapter('पत्रकारिता के विविध आयाम', 8),
+        chapter('डायरी लिखने की कला', 8),
+        chapter('कथा-पटकथा', 8),
+        chapter('कार्यालयी लेखन और प्रक्रिया', 8),
+        chapter('स्ववृत्त (बायोडाटा) लेखन और रोजगार संबंधी आवेदन पत्र', 8),
+        chapter('कोश–एक परिचय', 8),
+      ]),
+      book('आरोह भाग-1', 8, [
+        unit('गद्य खंड', 8, [
+          chapter('नमक का दारोगा', 8), chapter('मियाँ नसीरुद्दीन', 8),
+          chapter('अपू के साथ ढाई साल', 8), chapter('विदाई-संभाषण', 8),
+          chapter('गलता लोहा', 8), chapter('रजनी', 8), chapter('जामुन का पेड़', 8), chapter('भारत माता', 8),
+        ]),
+        unit('काव्य खंड', 8, [
+          chapter('हम तौ एक एक करि जांनां', 8), chapter('मेरे तो गिरधर गोपाल, दूसरो न कोई', 8),
+          chapter('घर की याद', 8), chapter('चंपा काले काले अच्छर नहीं चीन्हती', 8), chapter('गजल', 8),
+          chapter('हे भूख! मत मचल; हे मेरे जूही के फूल जैसे ईश्वर', 8), chapter('सबसे खतरनाक', 8), chapter('आओ, मिलकर बचाएँ', 8),
+        ]),
+      ]),
+      book('वितान भाग-1', 8, [
+        chapter('भारतीय गायिकाओं में बेजोड़ : लता मंगेशकर', 8),
+        chapter('राजस्थान की रजत बूँदें', 8), chapter('आलो-आँधारि*', 8),
+      ]),
       assessment('श्रवण तथा वाचन', 4),
       project('परियोजना कार्य', 5),
     ],
@@ -412,16 +438,21 @@ const reviewedOutlines: Readonly<Record<string, readonly OutlineNode[]>> =
       project('Project Work', 5),
     ],
     '843': [
-      unit('Introduction: Artificial Intelligence for Everyone', 2),
-      unit('Unlocking Your Future in AI', 2),
-      unit('Python Programming', 2),
-      unit('Introduction to Capstone Project', 2),
-      unit('Data Literacy - Data Collection to Data Analysis', 2),
-      unit('Machine Learning Algorithms', 2),
-      unit('Leveraging Linguistics and Computer Science', 2),
-      unit('AI Ethics and Values', 2),
-      practical('Practical Work', 2),
-      project('Capstone Project', 2),
+      unit('Communication Skills-III', 3, [], undefined, 9),
+      unit('Self-Management Skills-III', 3, [], undefined, 10),
+      unit('ICT Skills-III', 3, [], undefined, 11),
+      unit('Entrepreneurial Skills-III', 3, [], undefined, 12),
+      unit('Green Skills-III', 3, [], undefined, 13),
+      unit('Introduction: Artificial Intelligence for Everyone', 2, [], undefined, 1),
+      unit('Unlocking Your Future in AI', 2, [], undefined, 2),
+      unit('Python Programming', 2, [], undefined, 3),
+      unit('Introduction to Capstone Project', 2, [], undefined, 4),
+      unit('Data Literacy - Data Collection to Data Analysis', 2, [], undefined, 5),
+      unit('Machine Learning Algorithms', 2, [], undefined, 6),
+      unit('Leveraging Linguistics and Computer Science', 2, [], undefined, 7),
+      unit('AI Ethics and Values', 2, [], undefined, 8),
+      practical('Practical Work', 2, 9),
+      project('Capstone Project', 2, 10),
     ],
     '118': [
       assessment('Comprehension / Reading', 2, 20),
@@ -523,7 +554,7 @@ function flattenOutline(
       subjectId,
       parentKey,
       entry.type,
-      String(index + 1).padStart(2, '0'),
+      String(entry.keyOrder ?? index + 1).padStart(2, '0'),
       slug(entry.title),
     ].filter(Boolean).join(':')
     const id = `node-${externalKey}`

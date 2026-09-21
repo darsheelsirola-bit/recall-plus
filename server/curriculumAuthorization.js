@@ -166,11 +166,13 @@ function resolveRequestedNodes(input, workspace) {
 
 export function authorizeQuizFromWorkspace(input, workspace) {
   const { subject, chapters, topics } = resolveRequestedNodes(input, workspace)
+  const chapterTitles = chapters.map((node) => node.title)
   return {
     ...input,
     curriculumVersionId: workspace.profile.curriculum_version_id,
     subject: subject.name,
-    chapter: chapters.map((node) => node.title).join(', '),
+    chapterTitles,
+    chapter: chapterTitles.join(', '),
     topic: topics.map((node) => node.title).join(', '),
   }
 }
