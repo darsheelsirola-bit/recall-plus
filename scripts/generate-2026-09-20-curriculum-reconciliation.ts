@@ -10,7 +10,7 @@ import {
 } from '../src/data/curriculum/cbse/2026-27/class-12/index.ts'
 
 const outputPath = resolve(
-  'supabase/migrations/20260920193000_reconcile_verified_2026_27_curriculum.sql',
+  'supabase/migrations/20260921121220_reconcile_verified_2026_27_curriculum.sql',
 )
 const sourceCodes = new Set(['034', '049', '066', '118', '837', '843'])
 const nodeSubjectIds = new Set([
