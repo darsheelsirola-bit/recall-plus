@@ -1,9 +1,76 @@
 import { createClient } from '@supabase/supabase-js'
 import { AppError, ERROR_CODES } from './errors.js'
-import { getRequestHeader } from './http.js'
 
 let authClient
 let adminClient
+
+export const MAX_BEARER_TOKEN_LENGTH = 8 * 1024
+
+const SUPABASE_ACCESS_TOKEN_PATTERN = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/
+
+function authRequiredError() {
+  return new AppError('Please sign in before using AI generation.', {
+    code: ERROR_CODES.AUTH_REQUIRED,
+    statusCode: 401,
+  })
+}
+
+/**
+ * Read exactly one Authorization header without falling back to a selected
+ * array element. Node and Express retain duplicate wire headers in
+ * `rawHeaders`; Vercel-style requests may instead expose an array value.
+ */
+function readSingleAuthorizationHeader(request) {
+  const rawHeaders = request?.rawHeaders
+  if (Array.isArray(rawHeaders)) {
+    let authorizationCount = 0
+    for (let index = 0; index < rawHeaders.length; index += 2) {
+      if (String(rawHeaders[index]).toLowerCase() === 'authorization') authorizationCount += 1
+    }
+    if (authorizationCount > 1) return null
+  }
+
+  const headers = request?.headers
+  if (headers && typeof headers === 'object') {
+    if (typeof headers.get === 'function') {
+      const value = headers.get('authorization')
+      return typeof value === 'string' ? value : null
+    }
+
+    const authorizationEntries = Object.entries(headers).filter(
+      ([name]) => name.toLowerCase() === 'authorization',
+    )
+    if (authorizationEntries.length !== 1) return null
+    const value = authorizationEntries[0][1]
+    return typeof value === 'string' ? value : null
+  }
+
+  // Express always provides `headers`, but retain this narrow fallback for
+  // compatible request adapters that only implement `get(name)`.
+  const value = typeof request?.get === 'function' ? request.get('authorization') : null
+  return typeof value === 'string' ? value : null
+}
+
+/**
+ * Reject obviously invalid bearer values before they reach Supabase Auth.
+ * This is only an inexpensive syntax and size check: every accepted-shaped
+ * token is still verified remotely by Supabase below.
+ */
+export function readBearerAccessToken(request) {
+  const authorization = readSingleAuthorizationHeader(request)
+  if (typeof authorization !== 'string') throw authRequiredError()
+
+  // RFC 6750 permits one or more ASCII spaces between the scheme and token.
+  const match = authorization.match(/^Bearer +([^\s]+)$/i)
+  const accessToken = match?.[1]
+  if (
+    !accessToken
+    || accessToken.length > MAX_BEARER_TOKEN_LENGTH
+    || !SUPABASE_ACCESS_TOKEN_PATTERN.test(accessToken)
+  ) throw authRequiredError()
+
+  return accessToken
+}
 
 function supabaseUrl() {
   // VITE_SUPABASE_URL is intentionally allowed as a fallback because the
@@ -108,19 +175,12 @@ export function getUserScopedSupabaseClient(accessToken) {
  * @param {import('node:http').IncomingMessage | any} request
  * @returns {Promise<{id: string}>}
  */
-export async function verifySupabaseUser(request) {
-  const authorization = String(getRequestHeader(request, 'authorization') || '')
-  const match = authorization.match(/^Bearer\s+(.+)$/i)
-  if (!match?.[1]) {
-    throw new AppError('Please sign in before using AI generation.', {
-      code: ERROR_CODES.AUTH_REQUIRED,
-      statusCode: 401,
-    })
-  }
+export async function verifySupabaseUser(request, { getAuthClient = getSupabaseAuthClient } = {}) {
+  const accessToken = readBearerAccessToken(request)
 
   let result
   try {
-    result = await getSupabaseAuthClient().auth.getUser(match[1])
+    result = await getAuthClient().auth.getUser(accessToken)
   } catch (error) {
     throw new AppError('Could not verify your session. Please try again.', {
       code: ERROR_CODES.AUTH_UNAVAILABLE,
@@ -146,5 +206,5 @@ export async function verifySupabaseUser(request) {
     )
   }
 
-  return { id: result.data.user.id, accessToken: match[1] }
+  return { id: result.data.user.id, accessToken }
 }

@@ -20,7 +20,7 @@ import {
   authorizeQuizRequest,
   authorizeTimetableRequest,
 } from './curriculumAuthorization.js'
-import { AI_FEATURES, getFeatureProvider, isAiConfigured } from './ai/config.js'
+import { isAiConfigured } from './ai/config.js'
 import {
   publicQuizQuestions,
   validateVerifiedQuizQuestions,
@@ -38,16 +38,8 @@ function injected(operations, name, fallback) {
 export function handleAiStatus(request, response) {
   if (request.method !== 'GET') return sendMethodNotAllowed(response, ['GET'])
   setPrivateNoStore(response)
-  const featureProviders = Object.fromEntries([
-    AI_FEATURES.QUIZ,
-    AI_FEATURES.RECALL,
-    AI_FEATURES.INSIGHT,
-    AI_FEATURES.TIMETABLE,
-  ].map((feature) => [feature, getFeatureProvider(feature) || 'unavailable']))
   return response.status(200).json({
     configured: Boolean(isAiConfigured() && isSupabaseConfigured()),
-    provider: isAiConfigured() ? 'Groq' : 'Unavailable',
-    features: featureProviders,
   })
 }
 

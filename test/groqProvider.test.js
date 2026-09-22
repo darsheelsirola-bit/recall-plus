@@ -156,7 +156,7 @@ test('a partial Groq configuration fails closed for the unrelated feature before
   })
 })
 
-test('AI status reports feature readiness without disclosing Groq credentials', async () => {
+test('AI status reports only non-identifying general availability', async () => {
   const credentials = {
     GROQ_QUIZ_API_KEY: 'status-quiz-key',
     GROQ_RECALL_API_KEY: 'status-recall-key',
@@ -174,16 +174,12 @@ test('AI status reports feature readiness without disclosing Groq credentials', 
       },
     }
     handleAiStatus({ method: 'GET' }, response)
-    assert.equal(payload.provider, 'Groq')
-    assert.deepEqual(payload.features, {
-      quiz: 'groq',
-      recall: 'groq',
-      insight: 'groq',
-      timetable: 'groq',
-    })
+    assert.deepEqual(Object.keys(payload), ['configured'])
+    assert.equal(typeof payload.configured, 'boolean')
     const statusText = JSON.stringify(payload)
     for (const credential of Object.values(credentials)) {
       assert.doesNotMatch(statusText, new RegExp(credential))
     }
+    assert.doesNotMatch(statusText, /groq|quiz|recall|insight|timetable/i)
   })
 })
